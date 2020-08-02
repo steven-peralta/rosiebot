@@ -1,6 +1,10 @@
 {
   "name": "rosiebot",
   "version": "1.0.0b",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/steven-peralta/rosiebot"
+  },
   "main": "src/index.ts",
   "license": "MIT",
   "dependencies": {
