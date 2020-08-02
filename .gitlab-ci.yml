@@ -33,6 +33,7 @@ deploy_prod:
     - apt-get install -y ruby-dev
     - gem install dpl
     - dpl --provider=heroku --app=rosiebot-prod --api-key=$HEROKU_API_KEY
+    - npx semantic-release
   only:
     - master
   when: manual
