@@ -11,7 +11,7 @@ import { Waifu } from '../waifu/api';
 import { IWaifuDocument } from '../db/waifus/waifus.types';
 import { Embeds } from 'discord-paginationembed';
 
-const version = 'beta v1.0';
+const version = 'beta 20200802';
 const footerAvatarURL =
   'https://en.gravatar.com/userimage/24330621/a37c5a0e6da08903ac0d7987cfd69362.png?size=200';
 
