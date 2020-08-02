@@ -3,11 +3,11 @@ import { Client as DiscordClient } from 'discord.js';
 import config from './config';
 import commands from './discord/commands';
 import Mongoose from 'mongoose';
-const { discordTokenKey, commandPrefix, mongo } = config;
+const { discordTokenKey, commandPrefix, mongodbUri } = config;
 const discordClient = new DiscordClient();
 const db = Mongoose.connection;
 
-Mongoose.connect(`mongodb://${mongo.hostname}:${mongo.port}/${mongo.db}`, {
+Mongoose.connect(mongodbUri, {
   useNewUrlParser: true,
   useFindAndModify: true,
   useUnifiedTopology: true,
