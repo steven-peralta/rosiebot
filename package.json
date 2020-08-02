@@ -30,6 +30,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "run": "node dist/index.js",
     "dev": "nodemon src/index.ts"
   }
 }
