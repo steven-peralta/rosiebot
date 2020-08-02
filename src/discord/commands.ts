@@ -36,7 +36,7 @@ const ownedCommand: CommandFunc = async (msg: Message, ...args: string[]) => {
       .build()
       .catch(() => {
         msg.channel.send(
-          'An error occurred. Do I have permissions to manage permissions in this channel?'
+          'An error occurred. Do I have permissions to manage messages in this channel?'
         );
       });
   } else {
@@ -49,7 +49,7 @@ const ownedCommand: CommandFunc = async (msg: Message, ...args: string[]) => {
       .build()
       .catch(() => {
         msg.channel.send(
-          'An error occurred. Do I have permissions to manage permissions in this channel?'
+          'An error occurred. Do I have permissions to manage messages in this channel?'
         );
       });
   }
