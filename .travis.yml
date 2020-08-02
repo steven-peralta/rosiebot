@@ -6,4 +6,7 @@ script:
   - yarn run build
 deploy:
   provider: elasticbeanstalk
+  env: RosiebotDev-1
+  app: rosiebot-dev
+  region: us-east-1
   edge: true
