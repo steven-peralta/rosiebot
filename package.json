@@ -43,6 +43,10 @@
     "yarn": "*"
   },
   "release": {
-    "branches": ["master", "staging"]
+    "branches": ["master",
+      {
+        "name": "staging",
+        "prerelease": true
+      }]
   }
 }
