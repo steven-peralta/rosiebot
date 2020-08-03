@@ -103,7 +103,7 @@ const dailyCommand = async (msg: Message, ...args: string[]) => {
 
 const infoCommand = async (msg: Message, ...args: string[]) => {
   if (args[1]) {
-    console.log(await waifuApi.getWaifu(Number.parseInt(args[1])));
+    //console.log(await waifuApi.getWaifu(Number.parseInt(args[1])));
   }
 };
 
