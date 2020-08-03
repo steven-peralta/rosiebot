@@ -22,6 +22,7 @@ staging:
     - apt-get update -qy
     - apt-get install -y ruby-dev
     - gem install dpl
+    - npx semantic-release
     - dpl --provider=heroku --app=rosiebot-dev --api-key=$HEROKU_API_KEY
   only:
     - staging
