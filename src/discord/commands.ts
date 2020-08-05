@@ -101,6 +101,14 @@ const dailyCommand = async (msg: Message, ...args: string[]) => {
   }
 };
 
+const idCommand = async (msg: Message, ...args: string[]) => {
+  const mention = msg.mentions.users.first();
+  const userId = mention
+    ? getId(mention.id, msg.guild?.id)
+    : getId(msg.author.id, msg.guild?.id);
+  msg.channel.send(userId);
+};
+
 const infoCommand = async (msg: Message, ...args: string[]) => {
   if (args[1]) {
     //console.log(await waifuApi.getWaifu(Number.parseInt(args[1])));
@@ -112,6 +120,7 @@ const commands: Record<string, CommandFunc> = {
   wroll: rollCommand,
   wdaily: dailyCommand,
   winfo: infoCommand,
+  id: idCommand,
 };
 
 export default commands;
