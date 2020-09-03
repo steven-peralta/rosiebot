@@ -1,4 +1,4 @@
-import { IUserDocument } from "./users.types";
+import { IUserDocument } from './users.types';
 
 export async function setLastUpdated(this: IUserDocument): Promise<void> {
   const now = new Date();
@@ -12,6 +12,16 @@ export async function setDailyClaimed(this: IUserDocument): Promise<void> {
   const now = new Date();
   if (!this.dailyLastClaimed || this.dailyLastClaimed < now) {
     this.dailyLastClaimed = now;
+    await this.save();
+  }
+}
+
+export async function removeWaifu(
+  this: IUserDocument,
+  waifuId: number
+): Promise<void> {
+  if (this.ownedWaifus && this.ownedWaifus.includes(waifuId)) {
+    this.ownedWaifus.splice(this.ownedWaifus.indexOf(waifuId), 1);
     await this.save();
   }
 }

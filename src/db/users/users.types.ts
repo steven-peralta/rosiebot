@@ -12,6 +12,7 @@ export interface IUser {
 
 export interface IUserDocument extends IUser, Document {
   setLastUpdated: (this: IUserDocument) => Promise<void>;
+  removeWaifu: (this: IUserDocument, waifuId: number) => Promise<void>;
   addWaifu: (this: IUserDocument, waifuId: number) => Promise<void>;
   setCoins: (this: IUserDocument, coins: number) => Promise<void>;
   setDailyClaimed: (this: IUserDocument) => Promise<void>;

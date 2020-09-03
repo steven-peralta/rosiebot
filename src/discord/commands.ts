@@ -55,6 +55,39 @@ const ownedCommand: CommandFunc = async (msg: Message, ...args: string[]) => {
   }
 };
 
+const coinsCommand = async (msg: Message, ...args: string[]) => {
+  const userId = getId(msg.author.id, msg.guild?.id);
+  const user = await UserModel.findOneOrCreate({ userId });
+  await msg.channel.send(`You have ${user.coins ?? 200} coins`);
+};
+
+const sellCommand = async (msg: Message, ...args: string[]) => {
+  const userId = getId(msg.author.id, msg.guild?.id);
+  const user = await UserModel.findOneOrCreate({ userId });
+
+  if (args[1]) {
+    const waifuIds = args[1].split(',');
+    for (const waifuId of waifuIds) {
+      const id = parseInt(waifuId);
+      if (user.ownedWaifus && !user.ownedWaifus.includes(id)) {
+        await msg.channel.send(`You don't own waifu #${id}.`);
+        return;
+      }
+    }
+
+    for (const waifuId of waifuIds) {
+      const id = parseInt(waifuId);
+      if (user.ownedWaifus && user.ownedWaifus.includes(id)) {
+        await user.removeWaifu(id);
+        await user.setCoins((user.coins ?? 200) + 100);
+      }
+    }
+    await msg.channel.send(
+      `You sold ${waifuIds.length} waifus for ${waifuIds.length * 100} coins.`
+    );
+  }
+};
+
 const rollCommand = async (msg: Message, ...args: string[]) => {
   const userId = getId(msg.author.id, msg.guild?.id);
   const user = await UserModel.findOneOrCreate({ userId });
@@ -121,6 +154,8 @@ const commands: Record<string, CommandFunc> = {
   wdaily: dailyCommand,
   winfo: infoCommand,
   id: idCommand,
+  wsell: sellCommand,
+  wcoins: coinsCommand,
 };
 
 export default commands;

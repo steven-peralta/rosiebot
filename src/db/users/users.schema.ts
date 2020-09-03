@@ -1,11 +1,12 @@
-import { Schema } from "mongoose";
-import { findOneOrCreate } from "./users.statics";
+import { Schema } from 'mongoose';
+import { findOneOrCreate } from './users.statics';
 import {
   addWaifu,
+  removeWaifu,
   setCoins,
   setDailyClaimed,
   setLastUpdated,
-} from "./users.methods";
+} from './users.methods';
 
 const UserSchema = new Schema({
   userId: {
@@ -35,6 +36,7 @@ const UserSchema = new Schema({
 UserSchema.statics.findOneOrCreate = findOneOrCreate;
 
 UserSchema.methods.setLastUpdated = setLastUpdated;
+UserSchema.methods.removeWaifu = removeWaifu;
 UserSchema.methods.addWaifu = addWaifu;
 UserSchema.methods.setCoins = setCoins;
 UserSchema.methods.setDailyClaimed = setDailyClaimed;
