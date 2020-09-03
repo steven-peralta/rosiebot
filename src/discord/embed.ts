@@ -50,10 +50,10 @@ export const getWaifuEmbed = (
   author?: MessageEmbedAuthor
 ): MessageEmbed => {
   const embed = new MessageEmbed({
-    image: { url: waifu.displayPictureURL },
-    description: waifu.description,
+    image: { url: waifu.displayPictureURL ?? '' },
+    description: waifu.description ?? 'No description.',
     title: `${waifu.name} (#${waifu.mwlId})`,
-    url: waifu.url,
+    url: waifu.url ?? '',
   });
 
   if (waifu.appearsIn) {
