@@ -56,7 +56,7 @@ export const getWaifuEmbed = (
     url: waifu.url ?? '',
   });
 
-  if (waifu.appearsIn) {
+  if (waifu.appearsIn && waifu.appearsIn.length != 0) {
     embed.addField('Appears In', waifu.appearsIn.join(', '));
   }
 
