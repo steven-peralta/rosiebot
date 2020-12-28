@@ -1,0 +1,95 @@
+import {
+  getModelForClass,
+  prop,
+  Ref,
+  ReturnModelType,
+} from '@typegoose/typegoose';
+import { Base } from '@typegoose/typegoose/lib/defaultClasses';
+import { MwlId, MwlSlug } from '../../mwl/types';
+import ApiFields from '../../util/ApiFields';
+import Studio, { StudioClass } from './Studio';
+import MwlApi from '../../mwl/MwlApi';
+
+export class SeriesClass extends Base {
+  @prop({ type: Number, unique: true, required: true })
+  public [ApiFields.mwlId]!: MwlId;
+
+  @prop({ type: String, unique: true, required: true })
+  public [ApiFields.mwlSlug]!: MwlSlug;
+
+  @prop({ required: true })
+  public [ApiFields.mwlUrl]!: string;
+
+  @prop({ required: true })
+  public [ApiFields.name]!: string;
+
+  @prop()
+  public [ApiFields.type]?: string;
+
+  @prop()
+  public [ApiFields.originalName]?: string;
+
+  @prop()
+  public [ApiFields.romajiName]?: string;
+
+  @prop()
+  public [ApiFields.description]?: string;
+
+  @prop()
+  public [ApiFields.mwlDisplayPictureUrl]?: string;
+
+  @prop()
+  public [ApiFields.releaseDate]?: string;
+
+  @prop()
+  public [ApiFields.episodeCount]?: number;
+
+  @prop()
+  public [ApiFields.airingStart]?: string;
+
+  @prop()
+  public [ApiFields.airingEnd]?: string;
+
+  @prop({ ref: () => StudioClass })
+  public [ApiFields.studio]?: Ref<StudioClass>;
+
+  public static async findOneOrFetchFromMwl(
+    this: ReturnModelType<typeof SeriesClass>,
+    mwlId: MwlId | MwlSlug
+  ): Promise<SeriesClass> {
+    const record =
+      typeof mwlId === 'number'
+        ? await this.findOne({ [ApiFields.mwlId]: mwlId })
+        : await this.findOne({ [ApiFields.mwlSlug]: mwlId });
+
+    if (record) return record;
+
+    const mwlSeries = await MwlApi.getSeries(mwlId);
+    let studio;
+
+    if (mwlSeries[ApiFields.studio]) {
+      studio = (await Studio.findOneOrCreate(mwlSeries[ApiFields.studio]!))._id;
+    }
+
+    return Series.create({
+      [ApiFields.mwlId]: mwlSeries[ApiFields.id],
+      [ApiFields.mwlSlug]: mwlSeries[ApiFields.slug],
+      [ApiFields.mwlUrl]: mwlSeries[ApiFields.url],
+      [ApiFields.name]: mwlSeries[ApiFields.name],
+      [ApiFields.type]: mwlSeries[ApiFields.type],
+      [ApiFields.originalName]: mwlSeries[ApiFields.originalName],
+      [ApiFields.romajiName]: mwlSeries[ApiFields.romajiName],
+      [ApiFields.description]: mwlSeries[ApiFields.description],
+      [ApiFields.mwlDisplayPictureUrl]: mwlSeries[ApiFields.displayPicture],
+      [ApiFields.releaseDate]: mwlSeries[ApiFields.releaseDate],
+      [ApiFields.episodeCount]: mwlSeries[ApiFields.episodeCount],
+      [ApiFields.airingStart]: mwlSeries[ApiFields.airingStart],
+      [ApiFields.airingEnd]: mwlSeries[ApiFields.airingEnd],
+      [ApiFields.studio]: studio,
+    });
+  }
+}
+
+const Series = getModelForClass(SeriesClass);
+
+export default Series;

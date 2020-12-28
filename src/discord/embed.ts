@@ -7,8 +7,8 @@ import {
   NewsChannel,
   TextChannel,
 } from 'discord.js';
-import { Waifu } from '../waifu/api';
-import { IWaifuDocument } from '../db/waifus/waifus.types';
+import { Waifu } from '../mwl/types';
+import { IWaifuDocument } from '../db/models/waifus.types';
 import { Embeds } from 'discord-paginationembed';
 
 const version = process.env.npm_package_version;

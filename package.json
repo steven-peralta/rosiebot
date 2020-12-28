@@ -8,6 +8,7 @@
   "main": "src/index.ts",
   "license": "MIT",
   "dependencies": {
+    "@typegoose/typegoose": "^7.4.5",
     "@types/axios": "^0.14.0",
     "axios": "^0.19.2",
     "axios-rate-limit": "^1.2.1",
@@ -32,19 +33,20 @@
     "eslint-config-airbnb-typescript-prettier": "^3.1.0",
     "eslint-config-prettier": "^6.11.0",
     "eslint-plugin-import": "^2.22.0",
-    "nodemon": "^2.0.4",
     "prettier": "2.0.5",
     "semantic-release": "^17.1.1",
     "ts-node": "^8.10.2",
+    "ts-node-dev": "^1.1.1",
     "typescript": "^3.9.5"
   },
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "nodemon --watch 'src/**/*.ts' --ignore 'src/**/*.spec.ts' --exec 'ts-node' src/index.ts"
+    "dev": "nodemon --watch 'src/**/*.ts' --ignore 'src/**/*.spec.ts' --exec 'ts-node' src/index.ts",
+    "devScrape": "ts-node-dev --watch 'src/**/*.ts' --clear --respawn scripts/scrape.ts"
   },
   "engines": {
-    "node": "12.x",
+    "node": "<=12.x",
     "yarn": "*"
   },
   "release": {

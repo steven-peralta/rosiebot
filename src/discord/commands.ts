@@ -1,15 +1,15 @@
 import { Message, Snowflake, TextChannel } from 'discord.js';
 import { UserModel } from '../db/users/users.model';
-import { waifuApi } from '../waifu/api';
+import { waifuApi } from '../mwl/types';
 import {
   getWaifuEmbed,
   getWaifuListEmbed,
   waifuCardListEmbed,
   waifuListEmbed,
 } from './embed';
-import { getId } from './utils';
-import { WaifuModel } from '../db/waifus/waifus.model';
-import { IWaifuDocument } from '../db/waifus/waifus.types';
+import { getId } from '../util/utils';
+import { WaifuModel } from '../db/models/waifus.model';
+import { IWaifuDocument } from '../db/models/waifus.types';
 
 type CommandFunc = (msg: Message, ...args: string[]) => Promise<void>;
 
@@ -64,7 +64,7 @@ const rollCommand = async (msg: Message, ...args: string[]) => {
     await user.setCoins(user.coins - 200);
     await user.addWaifu(rolledWaifu.id);
 
-    const waifu = await WaifuModel.findOneOrCreate(rolledWaifu); // cache our waifu
+    const waifu = await WaifuModel.findOneOrCreate(rolledWaifu); // cache our mwl
 
     await msg.channel.send({
       content: "Here's what you claimed:",
