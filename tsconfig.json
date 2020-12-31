@@ -70,6 +70,6 @@
     "resolveJsonModule": true,
     "outDir": "dist",
     "sourceMap": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
   }
 }
