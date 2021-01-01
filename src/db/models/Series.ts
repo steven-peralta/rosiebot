@@ -5,12 +5,12 @@ import {
   ReturnModelType,
 } from '@typegoose/typegoose';
 import { Base } from '@typegoose/typegoose/lib/defaultClasses';
-import { MwlId, MwlSlug } from '../../mwl/types';
+import { MwlId, MwlSlug, MwlStudio } from '../../mwl/types';
 import ApiFields from '../../util/ApiFields';
-import Studio, { StudioClass } from './Studio';
-import MwlApi from '../../mwl/MwlApi';
+import StudioModel, { Studio } from './Studio';
+import api from '../../mwl/api';
 
-export class SeriesClass extends Base {
+export class Series extends Base {
   @prop({ type: Number, unique: true, required: true })
   public [ApiFields.mwlId]!: MwlId;
 
@@ -50,13 +50,13 @@ export class SeriesClass extends Base {
   @prop()
   public [ApiFields.airingEnd]?: string;
 
-  @prop({ ref: () => StudioClass })
-  public [ApiFields.studio]?: Ref<StudioClass>;
+  @prop({ ref: () => Studio })
+  public [ApiFields.studio]?: Ref<Studio>;
 
   public static async findOneOrFetchFromMwl(
-    this: ReturnModelType<typeof SeriesClass>,
+    this: ReturnModelType<typeof Series>,
     mwlId: MwlId | MwlSlug
-  ): Promise<SeriesClass> {
+  ): Promise<Series> {
     const record =
       typeof mwlId === 'number'
         ? await this.findOne({ [ApiFields.mwlId]: mwlId })
@@ -64,14 +64,18 @@ export class SeriesClass extends Base {
 
     if (record) return record;
 
-    const mwlSeries = await MwlApi.getSeries(mwlId);
+    const mwlSeries = await api.getSeries(mwlId);
     let studio;
 
     if (mwlSeries[ApiFields.studio]) {
-      studio = (await Studio.findOneOrCreate(mwlSeries[ApiFields.studio]!))._id;
+      studio = (
+        await StudioModel.findOneOrCreate(
+          <MwlStudio>mwlSeries[ApiFields.studio]
+        )
+      )._id;
     }
 
-    return Series.create({
+    return SeriesModel.create({
       [ApiFields.mwlId]: mwlSeries[ApiFields.id],
       [ApiFields.mwlSlug]: mwlSeries[ApiFields.slug],
       [ApiFields.mwlUrl]: mwlSeries[ApiFields.url],
@@ -90,6 +94,6 @@ export class SeriesClass extends Base {
   }
 }
 
-const Series = getModelForClass(SeriesClass);
+const SeriesModel = getModelForClass(Series);
 
-export default Series;
+export default SeriesModel;

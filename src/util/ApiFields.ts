@@ -1,4 +1,5 @@
 enum ApiFields {
+  favoriteWaifu = 'favorite_waifu',
   dailyLastClaimed = 'daily_last_claimed',
   mwlCreatorName = 'mwl_creator_name',
   ownedWaifus = 'owned_waifus',

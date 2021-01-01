@@ -3,13 +3,14 @@ import {
   prop,
   Ref,
   DocumentType,
+  ReturnModelType,
 } from '@typegoose/typegoose';
 import { Base } from '@typegoose/typegoose/lib/defaultClasses';
 import * as mongoose from 'mongoose';
 import ApiFields from '../../util/ApiFields';
-import { WaifuClass } from './Waifu';
+import { Waifu } from './Waifu';
 
-class UserClass extends Base {
+class User extends Base {
   @prop({ required: true, unique: true })
   [ApiFields.userId]!: string;
 
@@ -25,10 +26,31 @@ class UserClass extends Base {
   @prop({ default: new Date(0) })
   [ApiFields.dailyLastClaimed]!: Date;
 
-  @prop({ ref: () => WaifuClass })
-  [ApiFields.ownedWaifus]: Ref<WaifuClass>[];
+  @prop({ ref: () => Waifu })
+  [ApiFields.ownedWaifus]!: Ref<Waifu>[];
 
-  public setLastUpdated(this: DocumentType<UserClass>) {
+  @prop({ ref: () => Waifu })
+  [ApiFields.favoriteWaifu]?: Ref<Waifu>[];
+
+  public static async findOneOrCreate(
+    this: ReturnModelType<typeof User>,
+    userId: string
+  ) {
+    const record = await this.findOne({ [ApiFields.userId]: userId });
+    if (record) {
+      return record;
+    }
+    return this.create({
+      [ApiFields.userId]: userId,
+      [ApiFields.coins]: 200,
+      [ApiFields.created]: new Date(),
+      [ApiFields.updated]: new Date(),
+      [ApiFields.dailyLastClaimed]: new Date(0),
+      [ApiFields.ownedWaifus]: [],
+    });
+  }
+
+  public setLastUpdated(this: DocumentType<User>) {
     const now = new Date();
     if (!this[ApiFields.updated] || this[ApiFields.updated] < now) {
       this[ApiFields.updated] = now;
@@ -38,7 +60,7 @@ class UserClass extends Base {
     }
   }
 
-  public setDailyClaimed(this: DocumentType<UserClass>) {
+  public setDailyClaimed(this: DocumentType<User>) {
     const now = new Date();
     if (
       !this[ApiFields.dailyLastClaimed] ||
@@ -51,7 +73,7 @@ class UserClass extends Base {
     }
   }
 
-  public addWaifu(this: DocumentType<UserClass>, id: mongoose.Types.ObjectId) {
+  public addWaifu(this: DocumentType<User>, id: mongoose.Types.ObjectId) {
     if (!this[ApiFields.ownedWaifus]) {
       this[ApiFields.ownedWaifus] = [id];
       this.setLastUpdated();
@@ -65,6 +87,6 @@ class UserClass extends Base {
   }
 }
 
-const User = getModelForClass(UserClass);
+const UserModel = getModelForClass(User);
 
-export default User;
+export default UserModel;

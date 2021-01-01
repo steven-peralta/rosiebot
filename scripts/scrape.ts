@@ -1,6 +1,6 @@
 import Mongoose from 'mongoose';
 import config from '../src/config';
-import Waifu from '../src/db/models/Waifu';
+import WaifuModel from '../src/db/models/Waifu';
 import ApiFields from '../src/util/ApiFields';
 
 const { mongodbUri } = config;
@@ -20,7 +20,7 @@ async function scrape() {
   for (let i = 1; i < 1000; i += 1) {
     try {
       // eslint-disable-next-line no-await-in-loop
-      const result = await Waifu.findOneOrFetchFromMwl(i);
+      const result = await WaifuModel.findOneOrFetchFromMwl(i);
       console.log(`${i}: ${result[ApiFields.name]}`);
       results.push(result);
     } catch (e) {

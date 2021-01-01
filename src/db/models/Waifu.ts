@@ -7,10 +7,10 @@ import {
 import { Base } from '@typegoose/typegoose/lib/defaultClasses';
 import { MwlId, MwlSlug } from '../../mwl/types';
 import ApiFields from '../../util/ApiFields';
-import Series, { SeriesClass } from './Series';
-import MwlApi from '../../mwl/MwlApi';
+import SeriesModel, { Series } from './Series';
+import api from '../../mwl/api';
 
-export class WaifuClass extends Base {
+export class Waifu extends Base {
   @prop({ unique: true, required: true })
   public [ApiFields.mwlId]!: MwlId;
 
@@ -95,16 +95,16 @@ export class WaifuClass extends Base {
   @prop()
   [ApiFields.trashRank]?: number;
 
-  @prop({ ref: () => SeriesClass })
-  [ApiFields.appearances]?: Ref<SeriesClass>[];
+  @prop({ ref: () => Series })
+  [ApiFields.appearances]?: Ref<Series>[];
 
-  @prop({ ref: () => SeriesClass })
-  [ApiFields.series]?: Ref<SeriesClass>;
+  @prop({ ref: () => Series })
+  [ApiFields.series]?: Ref<Series>;
 
   public static async findOneOrFetchFromMwl(
-    this: ReturnModelType<typeof WaifuClass>,
+    this: ReturnModelType<typeof Waifu>,
     mwlId: MwlId | MwlSlug
-  ): Promise<WaifuClass> {
+  ): Promise<Waifu> {
     const record =
       typeof mwlId === 'number'
         ? await this.findOne({ [ApiFields.mwlId]: mwlId })
@@ -112,23 +112,23 @@ export class WaifuClass extends Base {
 
     if (record) return record;
 
-    const mwlWaifu = await MwlApi.getWaifu(mwlId);
+    const mwlWaifu = await api.getWaifu(mwlId);
     const appearances = (
       await Promise.all(
         (mwlWaifu[ApiFields.appearances] ?? [])
           .map((appearance) => appearance[ApiFields.slug])
-          .map((slug) => Series.findOneOrFetchFromMwl(slug))
+          .map((slug) => SeriesModel.findOneOrFetchFromMwl(slug))
       )
     ).map((doc) => doc._id);
     const series = mwlWaifu[ApiFields.series]
       ? (
-          await Series.findOneOrFetchFromMwl(
+          await SeriesModel.findOneOrFetchFromMwl(
             mwlWaifu[ApiFields.series]![ApiFields.slug]
           )
         )._id
       : undefined;
 
-    return Waifu.create({
+    return WaifuModel.create({
       [ApiFields.mwlId]: mwlWaifu[ApiFields.id],
       [ApiFields.mwlSlug]: mwlWaifu[ApiFields.slug],
       [ApiFields.mwlCreatorId]: mwlWaifu[ApiFields.creator].id,
@@ -163,6 +163,6 @@ export class WaifuClass extends Base {
   }
 }
 
-const Waifu = getModelForClass(WaifuClass);
+const WaifuModel = getModelForClass(Waifu);
 
-export default Waifu;
+export default WaifuModel;

@@ -15,7 +15,8 @@
     "discord-paginationembed": "^2.0.0-beta.4",
     "discord.js": "^12.2.0",
     "mongodb": "^3.5.9",
-    "mongoose": "^5.9.25"
+    "mongoose": "^5.9.25",
+    "winston": "^3.3.3"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^5.0.1",
@@ -42,7 +43,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "nodemon --watch 'src/**/*.ts' --ignore 'src/**/*.spec.ts' --exec 'ts-node' src/index.ts",
+    "dev": "ts-node-dev --watch 'src/**/*.ts' --clear --respawn src/index.ts",
     "devScrape": "ts-node-dev --watch 'src/**/*.ts' --clear --respawn scripts/scrape.ts"
   },
   "engines": {

@@ -3,7 +3,7 @@ import { Base } from '@typegoose/typegoose/lib/defaultClasses';
 import ApiFields from '../../util/ApiFields';
 import { MwlId, MwlStudio } from '../../mwl/types';
 
-export class StudioClass extends Base {
+export class Studio extends Base {
   @prop({ type: Number, required: true, unique: true })
   public [ApiFields.mwlId]!: MwlId;
 
@@ -14,16 +14,16 @@ export class StudioClass extends Base {
   public [ApiFields.originalName]?: string;
 
   public static async findOneOrCreate(
-    this: ReturnModelType<typeof StudioClass>,
+    this: ReturnModelType<typeof Studio>,
     mwlStudio: MwlStudio
-  ): Promise<StudioClass> {
+  ): Promise<Studio> {
     const record = await this.findOne({
       [ApiFields.mwlId]: mwlStudio[ApiFields.id],
     });
 
     if (record) return record;
 
-    return Studio.create({
+    return StudioModel.create({
       [ApiFields.mwlId]: mwlStudio[ApiFields.id],
       [ApiFields.name]: mwlStudio[ApiFields.name],
       [ApiFields.originalName]: mwlStudio[ApiFields.originalName] ?? undefined,
@@ -31,6 +31,6 @@ export class StudioClass extends Base {
   }
 }
 
-const Studio = getModelForClass(StudioClass);
+const StudioModel = getModelForClass(Studio);
 
-export default Studio;
+export default StudioModel;
