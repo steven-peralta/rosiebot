@@ -10,7 +10,7 @@ import * as mongoose from 'mongoose';
 import ApiFields from '../../util/ApiFields';
 import { Waifu } from './Waifu';
 
-class User extends Base {
+export class User extends Base {
   @prop({ required: true, unique: true })
   [ApiFields.userId]!: string;
 
