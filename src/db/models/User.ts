@@ -26,10 +26,10 @@ export class User extends Base<string> {
   [ApiFields.dailyLastClaimed]!: Date;
 
   @prop({ ref: () => Waifu })
-  [ApiFields.ownedWaifus]!: Ref<Waifu>[];
+  [ApiFields.ownedWaifus]!: Ref<Waifu, number>[];
 
   @prop({ ref: () => Waifu })
-  [ApiFields.favoriteWaifu]?: Ref<Waifu>;
+  [ApiFields.favoriteWaifu]?: Ref<Waifu, number>;
 
   public static async findOneOrCreate(
     this: ReturnModelType<typeof User>,
