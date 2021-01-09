@@ -1,5 +1,4 @@
 import axios, { AxiosInstance } from 'axios';
-import axiosRateLimit from 'axios-rate-limit';
 import { MwlSeries, MwlWaifu } from './types';
 
 export default class WaifuApi {
@@ -9,14 +8,11 @@ export default class WaifuApi {
 
   constructor(apikey: string) {
     this.apikey = apikey;
-    this.axios = axiosRateLimit(
-      axios.create({
-        baseURL: 'https://mywaifulist.moe/api/v1/',
-        timeout: 0,
-        headers: { apikey },
-      }),
-      { maxRequests: 1, perMilliseconds: 1000 }
-    );
+    this.axios = axios.create({
+      baseURL: 'https://mywaifulist.moe/api/v1/',
+      timeout: 0,
+      headers: { apikey },
+    });
   }
 
   async getWaifu(id: number | string): Promise<MwlWaifu> {

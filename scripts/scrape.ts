@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-await-in-loop */
 import Mongoose from 'mongoose';
 import config from '../src/config';
 import WaifuModel from '../src/db/models/Waifu';
@@ -13,20 +14,30 @@ Mongoose.connect(mongodbUri, {
   useCreateIndex: true,
 }).catch(console.error);
 
+const timer = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
 async function scrape() {
   const results = [];
   const count = parseInt(process.argv[2], 10) ?? 1000;
 
   for (let i = 1; i < count; i += 1) {
     try {
-      // eslint-disable-next-line no-await-in-loop
       const result = await WaifuModel.findOneOrFetchFromMwl(i);
       console.log(
-        `${i}/${count} (${(i / count) * 100}%): ${result[ApiFields.name]}`
+        `${i}/${count} (${Math.round((i / count) * 100)}%): ${
+          result[ApiFields.name]
+        }`
       );
       results.push(result);
     } catch (e) {
-      console.error(`${i}/${count} (${(i / count) * 100}%): ${e.message}`);
+      console.error(
+        `${i}/${count} (${Math.round((i / count) * 100)}%): ${e.message}`
+      );
+      if (e.response && e.response.status === 429) {
+        console.error('Rate limited, waiting 5 seconds');
+        await timer(1000 * 5);
+        i -= 1;
+      }
     }
   }
   console.log('finished.');
