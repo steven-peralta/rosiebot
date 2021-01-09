@@ -17,9 +17,7 @@ export class Studio extends Base<number> {
     this: ReturnModelType<typeof Studio>,
     mwlStudio: MwlStudio
   ): Promise<Studio> {
-    const record = await this.findOne({
-      [ApiFields.mwlId]: mwlStudio[ApiFields.id],
-    });
+    const record = await this.findById(mwlStudio[ApiFields.id]);
 
     if (record) return record;
 
