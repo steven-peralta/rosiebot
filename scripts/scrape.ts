@@ -18,14 +18,22 @@ function scrape() {
   const count: number = parseInt(process.argv[2], 10) ?? 1000;
   for (let i = 1; i <= count; i += 1) {
     promises.push(
-      WaifuModel.findOneOrFetchFromMwl(i).then((waifu) => {
-        console.log(waifu[ApiFields.name]);
-      })
+      WaifuModel.findOneOrFetchFromMwl(i)
+        .then((waifu) => {
+          console.log(waifu[ApiFields.name]);
+        })
+        .catch((err) => {
+          console.log(err);
+        })
     );
   }
-  Promise.all(promises).then(() => {
-    console.log('all done!');
-  });
+  Promise.all(promises)
+    .then((waifus) => {
+      console.log(`${waifus.length} were fetched and scraped`);
+    })
+    .catch((err) => {
+      console.log(err);
+    });
 }
 
 /*
