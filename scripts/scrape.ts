@@ -13,51 +13,24 @@ Mongoose.connect(mongodbUri, {
   useCreateIndex: true,
 }).catch(console.error);
 
-function scrape() {
-  const promises = [];
-  const count: number = parseInt(process.argv[2], 10) ?? 1000;
-  for (let i = 1; i <= count; i += 1) {
-    console.log(`generating promise for waifu ${i}`);
-    promises.push(
-      WaifuModel.findOneOrFetchFromMwl(i)
-        .then((waifu) => {
-          console.log(waifu[ApiFields.name]);
-        })
-        .catch((err) => {
-          console.log(err);
-        })
-    );
-  }
-  Promise.all(promises)
-    .then((waifus) => {
-      console.log(`${waifus.length} were fetched and scraped`);
-    })
-    .catch((err) => {
-      console.log(err);
-    });
-}
-
-/*
 async function scrape() {
   const results = [];
-  for (let i = 1; i < 1000; i += 1) {
+  const count = parseInt(process.argv[2], 10) ?? 1000;
+
+  for (let i = 1; i < count; i += 1) {
     try {
       // eslint-disable-next-line no-await-in-loop
       const result = await WaifuModel.findOneOrFetchFromMwl(i);
-      console.log(`${i}: ${result[ApiFields.name]}`);
+      console.log(
+        `${i}/${count} (${(i / count) * 100}%): ${result[ApiFields.name]}`
+      );
       results.push(result);
     } catch (e) {
-      console.error(`${i}: ${e.message}`);
-      if (e.response && e.response.status === 429) {
-        console.error('Rate limited, waiting 5 seconds');
-        // eslint-disable-next-line no-await-in-loop
-        await timer(1000 * 5);
-        i -= 1;
-      }
-      continue;
+      console.error(`${i}/${count} (${(i / count) * 100}%): ${e.message}`);
     }
   }
-} */
+  console.log('finished.');
+}
 
 db.once('open', async () => {
   console.log('Connected to database');
