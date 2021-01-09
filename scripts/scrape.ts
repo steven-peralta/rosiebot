@@ -15,7 +15,7 @@ Mongoose.connect(mongodbUri, {
 
 function scrape() {
   const promises = [];
-  const count: number = parseInt(process.argv[1], 10) ?? 1000;
+  const count: number = parseInt(process.argv[2], 10) ?? 1000;
   for (let i = 1; i <= count; i += 1) {
     promises.push(
       WaifuModel.findOneOrFetchFromMwl(i).then((waifu) => {
