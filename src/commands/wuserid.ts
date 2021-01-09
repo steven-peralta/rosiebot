@@ -6,17 +6,14 @@ import {
   CommandMetadata,
   CommandProcessor,
 } from './types';
-import UserModel, { User as BotUser } from '../db/models/User';
-import Result, { StatusCode } from './Result';
-import { getId, getUsersFromMentionsStr } from '../discord/utils';
-import ApiFields from '../util/ApiFields';
-import logCommandException from './utils';
 import CommandName from './CommandName';
+import { getId, getUsersFromMentionsStr } from '../discord/utils';
+import Result, { StatusCode } from './Result';
 import { logError } from '../util/logger';
 
 const metadata: CommandMetadata = {
-  name: CommandName.wcoins,
-  description: 'Used to see how many coins you or another user has',
+  name: CommandName.wuserid,
+  description: 'Prints the user id',
   arguments: '[@user]',
   supportsDM: false,
 };
@@ -30,18 +27,10 @@ const command: Command = async (
     ? getId(target.id, guild.id)
     : getId(sender.id, guild.id);
 
-  try {
-    const user: BotUser = await UserModel.findOneOrCreate(userId);
-    return {
-      statusCode: StatusCode.Completed,
-      result: user[ApiFields.coins],
-    };
-  } catch (e) {
-    logCommandException(e, metadata);
-    return {
-      statusCode: StatusCode.Error,
-    };
-  }
+  return {
+    statusCode: StatusCode.Completed,
+    result: userId,
+  };
 };
 
 const processor: CommandProcessor = async (msg, args) => {

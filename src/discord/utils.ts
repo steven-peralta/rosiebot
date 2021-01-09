@@ -1,6 +1,6 @@
 import { Guild, Snowflake, User } from 'discord.js';
 
-export const getId = (userId: Snowflake, serverId?: Snowflake): string =>
+export const getId = (userId: Snowflake, serverId: Snowflake): string =>
   `${userId}${serverId}`;
 
 /**

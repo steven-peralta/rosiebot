@@ -5,17 +5,16 @@ import {
   ReturnModelType,
 } from '@typegoose/typegoose';
 import { Base } from '@typegoose/typegoose/lib/defaultClasses';
-import { MwlId, MwlSlug } from '../../mwl/types';
 import ApiFields from '../../util/ApiFields';
 import SeriesModel, { Series } from './Series';
-import api from '../../mwl/api';
+import mwlApi from '../../mwl/mwlApi';
 
-export class Waifu extends Base {
-  @prop({ unique: true, required: true })
-  public [ApiFields.mwlId]!: MwlId;
+export class Waifu extends Base<number> {
+  @prop()
+  public [ApiFields._id]!: number;
 
   @prop({ unique: true, required: true })
-  public [ApiFields.mwlSlug]!: MwlSlug;
+  public [ApiFields.mwlSlug]!: string;
 
   @prop({ required: true })
   public [ApiFields.mwlCreatorId]!: number;
@@ -103,16 +102,16 @@ export class Waifu extends Base {
 
   public static async findOneOrFetchFromMwl(
     this: ReturnModelType<typeof Waifu>,
-    mwlId: MwlId | MwlSlug
+    mwlId: number | string
   ): Promise<Waifu> {
     const record =
       typeof mwlId === 'number'
-        ? await this.findOne({ [ApiFields.mwlId]: mwlId })
+        ? await this.findById(mwlId)
         : await this.findOne({ [ApiFields.mwlSlug]: mwlId });
 
     if (record) return record;
 
-    const mwlWaifu = await api.getWaifu(mwlId);
+    const mwlWaifu = await mwlApi.getWaifu(mwlId);
     const appearances = (
       await Promise.all(
         (mwlWaifu[ApiFields.appearances] ?? [])
@@ -120,16 +119,22 @@ export class Waifu extends Base {
           .map((slug) => SeriesModel.findOneOrFetchFromMwl(slug))
       )
     ).map((doc) => doc._id);
-    const series = mwlWaifu[ApiFields.series]
-      ? (
-          await SeriesModel.findOneOrFetchFromMwl(
-            mwlWaifu[ApiFields.series]![ApiFields.slug]
-          )
-        )._id
-      : undefined;
+
+    let series;
+    if (
+      mwlWaifu[ApiFields.series] &&
+      mwlWaifu[ApiFields.series]?.[ApiFields.slug]
+    ) {
+      series = (
+        await SeriesModel.findOneOrFetchFromMwl(
+          // we know it won't be null, this is just to get rid of typescript error here
+          mwlWaifu[ApiFields.series]?.[ApiFields.slug] ?? 1
+        )
+      )[ApiFields._id];
+    }
 
     return WaifuModel.create({
-      [ApiFields.mwlId]: mwlWaifu[ApiFields.id],
+      [ApiFields._id]: mwlWaifu[ApiFields.id],
       [ApiFields.mwlSlug]: mwlWaifu[ApiFields.slug],
       [ApiFields.mwlCreatorId]: mwlWaifu[ApiFields.creator].id,
       [ApiFields.mwlCreatorName]: mwlWaifu[ApiFields.creator].name,

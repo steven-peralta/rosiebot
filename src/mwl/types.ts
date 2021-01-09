@@ -1,17 +1,14 @@
 import ApiFields from '../util/ApiFields';
 
-export type MwlId = number;
-export type MwlSlug = string;
-
 export interface MwlStudio {
-  [ApiFields.id]: MwlId;
+  [ApiFields.id]: number;
   [ApiFields.name]: string;
   [ApiFields.originalName]?: string;
 }
 
 export interface MwlSeries {
-  [ApiFields.id]: MwlId;
-  [ApiFields.slug]: MwlSlug;
+  [ApiFields.id]: number;
+  [ApiFields.slug]: string;
   [ApiFields.url]: string;
   [ApiFields.name]: string;
   [ApiFields.type]: string;
@@ -27,8 +24,8 @@ export interface MwlSeries {
 }
 
 export interface MwlWaifu {
-  [ApiFields.id]: MwlId;
-  [ApiFields.slug]: MwlSlug;
+  [ApiFields.id]: number;
+  [ApiFields.slug]: string;
   [ApiFields.creator]: { id: number; name: string };
   [ApiFields.url]: string;
   [ApiFields.name]: string;

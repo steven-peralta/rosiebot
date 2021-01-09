@@ -6,13 +6,12 @@ import {
   ReturnModelType,
 } from '@typegoose/typegoose';
 import { Base } from '@typegoose/typegoose/lib/defaultClasses';
-import * as mongoose from 'mongoose';
 import ApiFields from '../../util/ApiFields';
 import { Waifu } from './Waifu';
 
-export class User extends Base {
-  @prop({ required: true, unique: true })
-  [ApiFields.userId]!: string;
+export class User extends Base<string> {
+  @prop()
+  [ApiFields._id]!: string;
 
   @prop({ default: 200 })
   [ApiFields.coins]!: number;
@@ -30,18 +29,18 @@ export class User extends Base {
   [ApiFields.ownedWaifus]!: Ref<Waifu>[];
 
   @prop({ ref: () => Waifu })
-  [ApiFields.favoriteWaifu]?: Ref<Waifu>[];
+  [ApiFields.favoriteWaifu]?: Ref<Waifu>;
 
   public static async findOneOrCreate(
     this: ReturnModelType<typeof User>,
-    userId: string
-  ) {
-    const record = await this.findOne({ [ApiFields.userId]: userId });
+    id: string
+  ): Promise<User> {
+    const record = await this.findById(id);
     if (record) {
       return record;
     }
     return this.create({
-      [ApiFields.userId]: userId,
+      [ApiFields._id]: id,
       [ApiFields.coins]: 200,
       [ApiFields.created]: new Date(),
       [ApiFields.updated]: new Date(),
@@ -50,7 +49,7 @@ export class User extends Base {
     });
   }
 
-  public setLastUpdated(this: DocumentType<User>) {
+  public setLastUpdated(this: DocumentType<User>): void {
     const now = new Date();
     if (!this[ApiFields.updated] || this[ApiFields.updated] < now) {
       this[ApiFields.updated] = now;
@@ -60,7 +59,7 @@ export class User extends Base {
     }
   }
 
-  public setDailyClaimed(this: DocumentType<User>) {
+  public setDailyClaimed(this: DocumentType<User>): void {
     const now = new Date();
     if (
       !this[ApiFields.dailyLastClaimed] ||
@@ -73,7 +72,7 @@ export class User extends Base {
     }
   }
 
-  public addWaifu(this: DocumentType<User>, id: mongoose.Types.ObjectId) {
+  public addWaifu(this: DocumentType<User>, id: number): void {
     if (!this[ApiFields.ownedWaifus]) {
       this[ApiFields.ownedWaifus] = [id];
       this.setLastUpdated();

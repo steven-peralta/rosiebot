@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import axiosRateLimit from 'axios-rate-limit';
-import { MwlId, MwlSeries, MwlSlug, MwlWaifu } from './types';
+import { MwlSeries, MwlWaifu } from './types';
 
 export default class WaifuApi {
   private apikey: string;
@@ -19,12 +19,12 @@ export default class WaifuApi {
     );
   }
 
-  async getWaifu(id: MwlId | MwlSlug): Promise<MwlWaifu> {
+  async getWaifu(id: number | string): Promise<MwlWaifu> {
     const { data } = await this.axios.get(`waifu/${id}`);
     return data.data as MwlWaifu;
   }
 
-  async getSeries(id: MwlId | MwlSlug): Promise<MwlSeries> {
+  async getSeries(id: number | string): Promise<MwlSeries> {
     const { data } = await this.axios.get(`series/${id}`);
     return data.data as MwlSeries;
   }

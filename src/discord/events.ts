@@ -17,6 +17,9 @@ const parseCommand = (msg: Message) => {
     const args = content.substr(1).split(' ');
     const commandBuilder = commands[args[0]];
 
+    // remove the first arg since we don't need it anymore
+    args.splice(0, 1);
+
     if (commandBuilder) {
       const { processor, formatter, metadata } = commandBuilder;
 

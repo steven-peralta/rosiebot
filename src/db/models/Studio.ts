@@ -1,11 +1,11 @@
 import { getModelForClass, prop, ReturnModelType } from '@typegoose/typegoose';
 import { Base } from '@typegoose/typegoose/lib/defaultClasses';
 import ApiFields from '../../util/ApiFields';
-import { MwlId, MwlStudio } from '../../mwl/types';
+import { MwlStudio } from '../../mwl/types';
 
-export class Studio extends Base {
-  @prop({ type: Number, required: true, unique: true })
-  public [ApiFields.mwlId]!: MwlId;
+export class Studio extends Base<number> {
+  @prop()
+  public [ApiFields._id]!: number;
 
   @prop({ required: true })
   public [ApiFields.name]!: string;
@@ -24,7 +24,7 @@ export class Studio extends Base {
     if (record) return record;
 
     return StudioModel.create({
-      [ApiFields.mwlId]: mwlStudio[ApiFields.id],
+      [ApiFields._id]: mwlStudio[ApiFields.id],
       [ApiFields.name]: mwlStudio[ApiFields.name],
       [ApiFields.originalName]: mwlStudio[ApiFields.originalName] ?? undefined,
     });

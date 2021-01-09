@@ -5,17 +5,17 @@ import {
   ReturnModelType,
 } from '@typegoose/typegoose';
 import { Base } from '@typegoose/typegoose/lib/defaultClasses';
-import { MwlId, MwlSlug, MwlStudio } from '../../mwl/types';
 import ApiFields from '../../util/ApiFields';
 import StudioModel, { Studio } from './Studio';
-import api from '../../mwl/api';
+import mwlApi from '../../mwl/mwlApi';
+import { MwlStudio } from '../../mwl/types';
 
-export class Series extends Base {
-  @prop({ type: Number, unique: true, required: true })
-  public [ApiFields.mwlId]!: MwlId;
+export class Series extends Base<number> {
+  @prop()
+  public [ApiFields._id]!: number;
 
   @prop({ type: String, unique: true, required: true })
-  public [ApiFields.mwlSlug]!: MwlSlug;
+  public [ApiFields.mwlSlug]!: string;
 
   @prop({ required: true })
   public [ApiFields.mwlUrl]!: string;
@@ -55,7 +55,7 @@ export class Series extends Base {
 
   public static async findOneOrFetchFromMwl(
     this: ReturnModelType<typeof Series>,
-    mwlId: MwlId | MwlSlug
+    mwlId: number | string
   ): Promise<Series> {
     const record =
       typeof mwlId === 'number'
@@ -64,7 +64,7 @@ export class Series extends Base {
 
     if (record) return record;
 
-    const mwlSeries = await api.getSeries(mwlId);
+    const mwlSeries = await mwlApi.getSeries(mwlId);
     let studio;
 
     if (mwlSeries[ApiFields.studio]) {
@@ -72,11 +72,11 @@ export class Series extends Base {
         await StudioModel.findOneOrCreate(
           <MwlStudio>mwlSeries[ApiFields.studio]
         )
-      )._id;
+      )[ApiFields._id];
     }
 
     return SeriesModel.create({
-      [ApiFields.mwlId]: mwlSeries[ApiFields.id],
+      [ApiFields._id]: mwlSeries[ApiFields.id],
       [ApiFields.mwlSlug]: mwlSeries[ApiFields.slug],
       [ApiFields.mwlUrl]: mwlSeries[ApiFields.url],
       [ApiFields.name]: mwlSeries[ApiFields.name],
