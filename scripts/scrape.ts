@@ -17,9 +17,15 @@ function scrape() {
   const promises = [];
   const count: number = parseInt(process.argv[1], 10) ?? 1000;
   for (let i = 1; i <= count; i += 1) {
-    promises.push(WaifuModel.findOneOrFetchFromMwl(i));
+    promises.push(
+      WaifuModel.findOneOrFetchFromMwl(i).then((waifu) => {
+        console.log(waifu[ApiFields.name]);
+      })
+    );
   }
-  Promise.all(promises);
+  Promise.all(promises).then(() => {
+    console.log('all done!');
+  });
 }
 
 /*
