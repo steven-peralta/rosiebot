@@ -23,7 +23,7 @@ async function start() {
   const oldUsers = await oldUsersColl.find().toArray();
 
   for (const oldUser of oldUsers) {
-    const newWaifuIds: Types.ObjectId[] = [];
+    const newWaifuIds: number[] = [];
     let coins = oldUser.coins + 2000;
 
     for (const oldWaifu of oldUser.ownedWaifus) {
@@ -40,7 +40,7 @@ async function start() {
 
     // eslint-disable-next-line no-await-in-loop
     await UserModel.create({
-      [ApiFields.userId]: oldUser.userId,
+      [ApiFields._id]: oldUser.userId,
       [ApiFields.coins]: coins,
       [ApiFields.created]: oldUser.dateOfEntry,
       [ApiFields.updated]: oldUser.lastUpdated,

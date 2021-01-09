@@ -13,8 +13,16 @@ Mongoose.connect(mongodbUri, {
   useCreateIndex: true,
 }).catch(console.error);
 
-const timer = (ms: number) => new Promise((res) => setTimeout(res, ms));
+function scrape() {
+  const promises = [];
+  const count: number = parseInt(process.argv[1], 10) ?? 1000;
+  for (let i = 1; i <= count; i += 1) {
+    promises.push(WaifuModel.findOneOrFetchFromMwl(i));
+  }
+  Promise.all(promises);
+}
 
+/*
 async function scrape() {
   const results = [];
   for (let i = 1; i < 1000; i += 1) {
@@ -34,11 +42,11 @@ async function scrape() {
       continue;
     }
   }
-}
+} */
 
 db.once('open', async () => {
   console.log('Connected to database');
-  await scrape();
+  scrape();
 });
 
 db.on('error', () => {
