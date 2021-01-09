@@ -17,6 +17,7 @@ function scrape() {
   const promises = [];
   const count: number = parseInt(process.argv[2], 10) ?? 1000;
   for (let i = 1; i <= count; i += 1) {
+    console.log(`generating promise for waifu ${i}`);
     promises.push(
       WaifuModel.findOneOrFetchFromMwl(i)
         .then((waifu) => {
