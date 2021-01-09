@@ -8,6 +8,7 @@ import {
 import { Base } from '@typegoose/typegoose/lib/defaultClasses';
 import ApiFields from '../../util/ApiFields';
 import { Waifu } from './Waifu';
+import { Series } from './Series';
 
 export class User extends Base<string> {
   @prop()
@@ -25,10 +26,10 @@ export class User extends Base<string> {
   @prop({ default: new Date(0) })
   [ApiFields.dailyLastClaimed]!: Date;
 
-  @prop({ ref: () => Waifu })
+  @prop({ ref: () => Waifu, type: Number })
   [ApiFields.ownedWaifus]!: Ref<Waifu, number>[];
 
-  @prop({ ref: () => Waifu })
+  @prop({ ref: () => Waifu, type: Number })
   [ApiFields.favoriteWaifu]?: Ref<Waifu, number>;
 
   public static async findOneOrCreate(

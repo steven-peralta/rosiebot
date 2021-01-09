@@ -94,10 +94,10 @@ export class Waifu extends Base<number> {
   @prop()
   [ApiFields.trashRank]?: number;
 
-  @prop({ ref: () => Series })
+  @prop({ ref: () => Series, type: Number })
   [ApiFields.appearances]?: Ref<Series, number>[];
 
-  @prop({ ref: () => Series })
+  @prop({ ref: () => Series, type: Number })
   [ApiFields.series]?: Ref<Series, number>;
 
   public static async findOneOrFetchFromMwl(

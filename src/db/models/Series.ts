@@ -50,7 +50,7 @@ export class Series extends Base<number> {
   @prop()
   public [ApiFields.airingEnd]?: string;
 
-  @prop({ ref: () => Studio })
+  @prop({ ref: () => Studio, type: Number })
   public [ApiFields.studio]?: Ref<Studio, number>;
 
   public static async findOneOrFetchFromMwl(
