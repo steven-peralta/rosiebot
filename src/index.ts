@@ -1,34 +1,15 @@
-import { Client as DiscordClient } from 'discord.js';
+import { logModuleInfo } from 'rosiebot/src/util/logger';
+import dbInstance from 'rosiebot/src/db/db';
+import hookDBEvents from 'rosiebot/src/db/events';
+import hookDiscordEvents from 'rosiebot/src/discord/events';
+import discordClientInstance from 'rosiebot/src/discord/client';
 
-import config from './config';
-import commands from './discord/commands';
-import Mongoose from 'mongoose';
-const { discordTokenKey, commandPrefix, mongodbUri } = config;
-const discordClient = new DiscordClient();
-const db = Mongoose.connection;
+const version = process.env.npm_package_version;
 
-Mongoose.connect(mongodbUri, {
-  useNewUrlParser: true,
-  useFindAndModify: true,
-  useUnifiedTopology: true,
-  useCreateIndex: true,
-}).catch(console.error);
+const startBot = () => {
+  logModuleInfo(`Started Rosiebot ${version}`);
+  hookDBEvents(dbInstance);
+  hookDiscordEvents(discordClientInstance);
+};
 
-db.once('open', async () => {
-  console.log('Connected to database');
-});
-
-db.on('error', () => {
-  console.log('Error connecting to database');
-});
-
-discordClient.on('message', async (msg) => {
-  const { content } = msg;
-
-  if (content[0] === commandPrefix) {
-    const commandArgs = content.substr(1).split(' ');
-    const command = commands[commandArgs[0]];
-    if (command) await command(msg, ...commandArgs).catch(console.error);
-  }
-});
-discordClient.login(discordTokenKey).catch(console.error);
+startBot();
