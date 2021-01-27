@@ -35,5 +35,4 @@ jobs:
         path: |
           dist
           package.json
-          node_modules
           yarn.lock
