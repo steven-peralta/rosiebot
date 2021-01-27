@@ -4,7 +4,7 @@ import { QueryOptions } from '@db/types';
 import Waifu from '@db/models/Waifu';
 import APIField from '@util/APIField';
 
-export const parseWaifuSearchArgs = (args: string[]): QueryOptions<Waifu> => {
+const parseWaifuSearchArgs = (args: string[]): QueryOptions<Waifu> => {
   const conditions: FilterQuery<DocumentType<Waifu>> = {};
   const projection: Record<string, unknown> = {};
   const sort: Record<string, number | unknown> = {};
@@ -76,3 +76,5 @@ export const parseWaifuSearchArgs = (args: string[]): QueryOptions<Waifu> => {
     options: {},
   };
 };
+
+export default parseWaifuSearchArgs;

@@ -10,7 +10,7 @@ import {
 import { Command, StatusCode } from '@util/enums';
 import APIField from '@util/APIField';
 import { logCommandException } from '@commands/logging';
-import { formatWaifuResults } from '@commands/formatters';
+import formatWaifuResults from '@commands/formatters';
 import randomOrg from '@api/random-org/randomOrg';
 
 interface Wotd {

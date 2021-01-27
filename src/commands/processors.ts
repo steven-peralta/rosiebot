@@ -7,7 +7,7 @@ import {
 import { getUsersFromMentionsStr } from '@util/string';
 import { StatusCode } from '@util/enums';
 
-export const processTargetedCommand = async <ResultType>(
+const processTargetedCommand = async <ResultType>(
   msg: Message,
   args: string[],
   command: CommandCallback<ResultType, TargetedUserParams>
@@ -31,3 +31,5 @@ export const processTargetedCommand = async <ResultType>(
     statusCode: StatusCode.Error,
   };
 };
+
+export default processTargetedCommand;

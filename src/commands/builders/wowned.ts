@@ -13,8 +13,8 @@ import { Command, StatusCode } from '@util/enums';
 import APIField from '@util/APIField';
 import { isDocumentArray } from '@typegoose/typegoose';
 import { logCommandException } from '@commands/logging';
-import { processTargetedCommand } from '@commands/processors';
-import { formatWaifuResults } from '@commands/formatters';
+import processTargetedCommand from '@commands/processors';
+import formatWaifuResults from '@commands/formatters';
 import { User as DiscordUser } from 'discord.js';
 
 interface WOwnedResponse {

@@ -9,7 +9,7 @@ import {
 import { Command, StatusCode } from '@util/enums';
 import Waifu, { waifuModel } from '@db/models/Waifu';
 import { logCommandException } from '@commands/logging';
-import { formatWaifuResults } from '@commands/formatters';
+import formatWaifuResults from '@commands/formatters';
 
 const metadata: CommandMetadata = {
   name: Command.wrandom,

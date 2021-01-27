@@ -8,10 +8,10 @@ import {
 } from '@commands/types';
 import { Command, StatusCode } from '@util/enums';
 import Waifu, { waifuModel } from '@db/models/Waifu';
-import { parseWaifuSearchArgs } from '@util/args';
+import parseWaifuSearchArgs from '@util/args';
 import { logCommandException } from '@commands/logging';
 import { Message } from 'discord.js';
-import { formatWaifuResults } from '@commands/formatters';
+import formatWaifuResults from '@commands/formatters';
 
 const metadata: CommandMetadata = {
   name: Command.wsearch,

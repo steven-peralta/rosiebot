@@ -14,7 +14,7 @@ import APIField from '@util/APIField';
 import config from '@config';
 import { getWotd } from '@commands/builders/wotd';
 import { logCommandException } from '@commands/logging';
-import { formatWaifuResults } from '@commands/formatters';
+import formatWaifuResults from '@commands/formatters';
 import randomOrg from '@api/random-org/randomOrg';
 
 export interface WRollResponse {

@@ -10,7 +10,7 @@ import {
 import { Command, ErrorMessage, StatusCode } from '@util/enums';
 import APIField from '@util/APIField';
 import { logCommandException } from '@commands/logging';
-import { processTargetedCommand } from '@commands/processors';
+import processTargetedCommand from '@commands/processors';
 import { User as DiscordUser } from 'discord.js';
 import { userModel } from '@db/models/User';
 

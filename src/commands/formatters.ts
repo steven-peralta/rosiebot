@@ -10,7 +10,7 @@ import {
 } from '@discord/embeds/waifu';
 import brandingEmbed from '@discord/embeds/brandingEmbed';
 
-export const formatWaifuResults = (
+const formatWaifuResults = (
   statusCode: StatusCode,
   content: StringResolvable = '',
   data: Waifu[] | Waifu | undefined,
@@ -79,3 +79,5 @@ export const formatWaifuResults = (
     content: `${sender} ${ErrorMessage[statusCode]}`,
   };
 };
+
+export default formatWaifuResults;
