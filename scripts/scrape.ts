@@ -23,12 +23,14 @@ async function scrape() {
   for (let i = 1; i < count; i += 1) {
     try {
       const result = await WaifuModel.findOneOrFetchFromMwl(i);
-      console.log(
-        `${i}/${count} (${Math.round((i / count) * 100)}%): ${
-          result[APIField.name]
-        }`
-      );
-      results.push(result);
+      if (result) {
+        console.log(
+          `${i}/${count} (${Math.round((i / count) * 100)}%): ${
+            result[APIField.name]
+          }`
+        );
+        results.push(result);
+      }
     } catch (e) {
       console.error(
         `${i}/${count} (${Math.round((i / count) * 100)}%): ${e.message}`

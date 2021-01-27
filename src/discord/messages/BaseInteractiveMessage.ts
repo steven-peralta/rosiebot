@@ -285,5 +285,5 @@ export default abstract class BaseInteractiveMessage<T> extends EventEmitter {
     }
   }
 
-  abstract async update(): Promise<void>;
+  abstract update(): Promise<void>;
 }
