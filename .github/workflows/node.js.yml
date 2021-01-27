@@ -28,3 +28,12 @@ jobs:
     - run: yarn
     - run: tsc
     - run: yarn test
+    - name: Archive artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: dist
+        path: |
+          dist
+          package.json
+          node_modules
+          yarn.lock
