@@ -51,6 +51,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/src/bot.js",
+    "lint": "eslint src/",
     "dev": "ts-node-dev -r tsconfig-paths/register --clear --respawn src/bot.ts",
     "test": "echo 'no test'"
   },
