@@ -48,7 +48,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "ts-node-dev -r tsconfig-paths/register --clear --respawn src/index.ts"
+    "dev": "ts-node-dev -r tsconfig-paths/register --clear --respawn src/index.ts",
+    "test": "echo 'no test'"
   },
   "engines": {
     "node": "<=12.x",
