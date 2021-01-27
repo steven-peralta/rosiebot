@@ -2,7 +2,7 @@
 import Mongoose from 'mongoose';
 import config from '../src/config';
 import WaifuModel from '../src/db/models/Waifu';
-import ApiFields from '../src/util/ApiFields';
+import APIField from '../src/util/APIField';
 
 const { mongodbUri } = config;
 const db = Mongoose.connection;
@@ -25,7 +25,7 @@ async function scrape() {
       const result = await WaifuModel.findOneOrFetchFromMwl(i);
       console.log(
         `${i}/${count} (${Math.round((i / count) * 100)}%): ${
-          result[ApiFields.name]
+          result[APIField.name]
         }`
       );
       results.push(result);

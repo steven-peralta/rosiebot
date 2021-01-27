@@ -1,88 +1,114 @@
 import {
+  DocumentType,
   getModelForClass,
+  index,
   prop,
   Ref,
-  DocumentType,
   ReturnModelType,
 } from '@typegoose/typegoose';
 import { Base } from '@typegoose/typegoose/lib/defaultClasses';
-import ApiFields from '../../util/ApiFields';
-import { Waifu } from './Waifu';
-import { Series } from './Series';
+import { Guild, User as DiscordUser } from 'discord.js';
+import APIField from 'rosiebot/src/util/APIField';
+import { Waifu } from 'rosiebot/src/db/models/Waifu';
+import {
+  LoggingModule,
+  logModuleError,
+  logModuleInfo,
+} from 'rosiebot/src/util/logger';
 
-export class User extends Base<string> {
+@index({ [APIField.userId]: 1, [APIField.serverId]: 1 }, { unique: true })
+export class User extends Base {
   @prop()
-  [ApiFields._id]!: string;
+  [APIField.userId]!: string;
+
+  @prop()
+  [APIField.discordTag]!: string;
+
+  @prop()
+  [APIField.serverId]!: string;
+
+  @prop()
+  [APIField.serverName]!: string;
 
   @prop({ default: 200 })
-  [ApiFields.coins]!: number;
+  [APIField.coins]!: number;
 
   @prop({ default: new Date() })
-  [ApiFields.created]!: Date;
+  [APIField.created]!: Date;
 
   @prop({ default: new Date() })
-  [ApiFields.updated]!: Date;
+  [APIField.updated]!: Date;
 
   @prop({ default: new Date(0) })
-  [ApiFields.dailyLastClaimed]!: Date;
+  [APIField.dailyLastClaimed]!: Date;
 
   @prop({ ref: () => Waifu, type: Number })
-  [ApiFields.ownedWaifus]!: Ref<Waifu, number>[];
+  [APIField.ownedWaifus]!: Ref<Waifu, number>[];
 
   @prop({ ref: () => Waifu, type: Number })
-  [ApiFields.favoriteWaifu]?: Ref<Waifu, number>;
+  [APIField.favoriteWaifu]?: Ref<Waifu, number>;
 
   public static async findOneOrCreate(
     this: ReturnModelType<typeof User>,
-    id: string
-  ): Promise<User> {
-    const record = await this.findById(id);
-    if (record) {
-      return record;
+    user: DiscordUser,
+    guild: Guild
+  ): Promise<DocumentType<User> | undefined> {
+    try {
+      const record = await this.findOne({
+        [APIField.userId]: user.id,
+        [APIField.serverId]: guild.id,
+      });
+      if (record) {
+        return record;
+      }
+      logModuleInfo(
+        `Creating user data for ${user.tag} (${user.id}) on server ${guild.name} (${guild.id})`,
+        LoggingModule.DB
+      );
+      return this.create({
+        [APIField.userId]: user.id,
+        [APIField.serverId]: guild.id,
+        [APIField.discordTag]: user.tag,
+        [APIField.serverName]: guild.name,
+        [APIField.coins]: 200,
+        [APIField.created]: new Date(),
+        [APIField.updated]: new Date(),
+        [APIField.dailyLastClaimed]: new Date(0),
+        [APIField.ownedWaifus]: [],
+      });
+    } catch (e) {
+      logModuleError(
+        `Exception caught while finding one or creating User: ${e}`,
+        LoggingModule.DB
+      );
+      return undefined;
     }
-    return this.create({
-      [ApiFields._id]: id,
-      [ApiFields.coins]: 200,
-      [ApiFields.created]: new Date(),
-      [ApiFields.updated]: new Date(),
-      [ApiFields.dailyLastClaimed]: new Date(0),
-      [ApiFields.ownedWaifus]: [],
-    });
   }
 
   public setLastUpdated(this: DocumentType<User>): void {
     const now = new Date();
-    if (!this[ApiFields.updated] || this[ApiFields.updated] < now) {
-      this[ApiFields.updated] = now;
-      this.save().catch((e) => {
-        throw e;
-      });
+    if (!this[APIField.updated] || this[APIField.updated] < now) {
+      this[APIField.updated] = now;
     }
   }
 
   public setDailyClaimed(this: DocumentType<User>): void {
     const now = new Date();
     if (
-      !this[ApiFields.dailyLastClaimed] ||
-      this[ApiFields.dailyLastClaimed] < now
+      !this[APIField.dailyLastClaimed] ||
+      this[APIField.dailyLastClaimed] < now
     ) {
-      this[ApiFields.dailyLastClaimed] = now;
-      this.save().catch((e) => {
-        throw e;
-      });
+      this[APIField.dailyLastClaimed] = now;
     }
   }
 
   public addWaifu(this: DocumentType<User>, id: number): void {
-    if (!this[ApiFields.ownedWaifus]) {
-      this[ApiFields.ownedWaifus] = [id];
+    if (!this[APIField.ownedWaifus]) {
+      this[APIField.ownedWaifus] = [id];
       this.setLastUpdated();
-      // todo: do I need to save here?
     } else {
-      if (this[ApiFields.ownedWaifus].includes(id)) return;
-      this[ApiFields.ownedWaifus].push(id);
+      this[APIField.ownedWaifus].push(id);
       this.setLastUpdated();
-      // todo: do I need to save here?
     }
   }
 }

@@ -1,6 +1,6 @@
 import Mongoose from 'mongoose';
-import config from '../config';
-import { logError } from '../util/logger';
+import { LoggingModule, logModuleError } from 'rosiebot/src/util/logger';
+import config from 'rosiebot/src/config';
 
 const initDb = () => {
   Mongoose.connect(config.mongodbUri, {
@@ -8,11 +8,18 @@ const initDb = () => {
     useFindAndModify: true,
     useUnifiedTopology: true,
     useCreateIndex: true,
-  }).catch((err) => logError(err, 'db'));
+    keepAlive: true,
+    keepAliveInitialDelay: 300000,
+  }).catch((e) =>
+    logModuleError(
+      `Exception caught while connecting to the database: ${e}`,
+      LoggingModule.DB
+    )
+  );
 
   return Mongoose.connection;
 };
 
-const db = initDb();
+const dbInstance = initDb();
 
-export default db;
+export default dbInstance;

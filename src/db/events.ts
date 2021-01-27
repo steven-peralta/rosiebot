@@ -1,13 +1,37 @@
 import { Connection } from 'mongoose';
-import { logInfo } from '../util/logger';
+import {
+  LoggingModule,
+  logModuleError,
+  logModuleInfo,
+} from 'rosiebot/src/util/logger';
 
 const hookEvents = (db: Connection): void => {
   db.on('connecting', () => {
-    logInfo('Connecting to MongoDB', 'db');
+    logModuleInfo('Connecting to MongoDB...', LoggingModule.DB);
   });
 
   db.on('connected', () => {
-    logInfo('Connected to MongoDB', 'db');
+    logModuleInfo('Connected to MongoDB', LoggingModule.DB);
+  });
+
+  db.on('disconnecting', () => {
+    logModuleInfo('Disconnecting from MongoDB...', LoggingModule.DB);
+  });
+
+  db.on('close', () => {
+    logModuleInfo('Disconnected from MongoDB', LoggingModule.DB);
+  });
+
+  db.on('disconnected', () => {
+    logModuleError('Lost connection to MongoDB', LoggingModule.DB);
+  });
+
+  db.on('reconnectFailed', () => {
+    logModuleError('Reconnect to MongoDB failed', LoggingModule.DB);
+  });
+
+  db.on('error', (error) => {
+    logModuleError(`Database error event: ${error}`, LoggingModule.DB);
   });
 };
 

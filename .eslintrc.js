@@ -1,20 +1,27 @@
 module.exports = {
   env: {
-    browser: true,
+    browser: false,
     es2020: true,
   },
   extends: ['airbnb-typescript-prettier'],
-  parser: '@typescript-eslint/parser',
   parserOptions: {
     sourceType: "module",
     tsconfigRootDir: __dirname,
     project: './tsconfig.json',
     ecmaVersion: 11,
   },
-  plugins: ['@typescript-eslint'],
+  settings: {
+    "import/resolver": {
+      "node": {
+        "moduleDirectory": ["node_modules", "src/"]
+      },
+      "typescript": {
+      }
+    },
+  },
   rules: {
     'no-use-before-define': 0,
     'no-underscore-dangle': 0,
-    'no-bitwise': ["error", { "int32Hint": true }]
+    '@typescript-eslint/no-unused-vars': ['error', { "argsIgnorePattern": "^_" }]
   },
 };

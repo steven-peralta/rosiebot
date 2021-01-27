@@ -1,19 +1,19 @@
-export interface Base {
+export interface RandomOrgBase {
   jsonrpc: string;
   id: number;
 }
 
-export interface Request extends Base {
+export interface RandomOrgRequest extends RandomOrgBase {
   method: string;
 }
 
-export interface Error {
+export interface RandomOrgError {
   code: number;
   message: string;
   data: string[];
 }
 
-export interface Result {
+export interface RandomOrgResult {
   random: {
     data: number[] | string[];
     completionTime: string;
@@ -24,12 +24,12 @@ export interface Result {
   advisoryDelay: number;
 }
 
-export interface Response extends Base {
-  error?: Error;
-  result?: Result;
+export interface RandomOrgResponse extends RandomOrgBase {
+  error?: RandomOrgError;
+  result?: RandomOrgResult;
 }
 
-export interface GenerateIntegersRequest extends Request {
+export interface GenerateIntegersRequest extends RandomOrgRequest {
   params: {
     apiKey: string;
     n: number;

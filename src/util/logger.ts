@@ -3,13 +3,22 @@ import { resolve } from 'url';
 import * as fs from 'fs';
 import path from 'path';
 
+export enum LoggingModule {
+  Rosiebot = 'rosiebot',
+  Discord = 'discord',
+  MWL = 'mwl',
+  DB = 'db',
+  RandomOrg = 'random.org',
+}
+
 const resetColor = '\x1b[0m';
+
 const colors: Record<string, string> = {
-  rosiebot: '\x1b[37m',
-  discord: '\x1b[35m',
-  mwl: '\x1b[34m',
-  db: '\x1b[36m',
-  random: '\x1b[30m',
+  [LoggingModule.Rosiebot]: '\x1b[37m',
+  [LoggingModule.Discord]: '\x1b[35m',
+  [LoggingModule.MWL]: '\x1b[34m',
+  [LoggingModule.DB]: '\x1b[36m',
+  [LoggingModule.RandomOrg]: '\x1b[30m',
 };
 
 export const logsDir = resolve(resolve(__dirname, '..'), 'logs');
@@ -32,7 +41,7 @@ const initLogger = () => {
 
   return createLogger({
     format: format.combine(
-      format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+      format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
       format.printf(logFormatter)
     ),
     transports: [
@@ -47,18 +56,33 @@ const initLogger = () => {
         level: 'error',
       }),
     ],
+    exceptionHandlers: [
+      // exceptions
+      new transports.File({
+        filename: path.join(logsDir, 'rosiebot.exceptions.log'),
+      }),
+    ],
   });
 };
 
-export const logInfo = (message: any, module = 'rosiebot'): void => {
+export const logModuleInfo = (
+  message: string,
+  module: LoggingModule = LoggingModule.Rosiebot
+): void => {
   logger.info({ message, module });
 };
 
-export const logError = (message: any, module = 'rosiebot'): void => {
+export const logModuleError = (
+  message: string,
+  module: LoggingModule = LoggingModule.Rosiebot
+): void => {
   logger.error({ message, module });
 };
 
-export const logWarn = (message: any, module = 'rosiebot'): void => {
+export const logModuleWarning = (
+  message: string,
+  module: LoggingModule = LoggingModule.Rosiebot
+): void => {
   logger.warn({ message, module });
 };
 

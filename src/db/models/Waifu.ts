@@ -1,170 +1,379 @@
 import {
+  DocumentType,
   getModelForClass,
+  index,
   prop,
   Ref,
   ReturnModelType,
 } from '@typegoose/typegoose';
 import { Base } from '@typegoose/typegoose/lib/defaultClasses';
-import ApiFields from '../../util/ApiFields';
-import SeriesModel, { Series } from './Series';
-import mwlApi from '../../mwl/mwlApi';
+import { FilterQuery, QueryFindOptions } from 'mongoose';
+import APIField from 'rosiebot/src/util/APIField';
+import SeriesModel, { Series } from 'rosiebot/src/db/models/Series';
+import waifuAPI from 'rosiebot/src/api/mwl/WaifuAPI';
+import randomOrgAPI from 'rosiebot/src/api/random-org/RandomOrgAPI';
+import hash from 'object-hash';
+import {
+  LoggingModule,
+  logModuleError,
+  logModuleInfo,
+} from 'rosiebot/src/util/logger';
+import { QueryOptions } from 'rosiebot/src/db/types';
+import Timeout = NodeJS.Timeout;
 
+const cachedQueries: Record<string, Waifu[]> = {};
+const timeouts: Record<string, Timeout> = {};
+
+export enum Tier {
+  S = 5, // top 1% of waifus
+  A = 4, // next 6% of waifus
+  B = 3, // next 16% of waifus
+  C = 2, // next 26% of waifus
+  D = 1, // next 51% of waifus
+}
+
+@index({
+  [APIField.name]: 'text',
+  [APIField.originalName]: 'text',
+  [APIField.romajiName]: 'text',
+})
 export class Waifu extends Base<number> {
   @prop()
-  public [ApiFields._id]!: number;
+  public [APIField._id]!: number;
 
   @prop({ unique: true, required: true })
-  public [ApiFields.mwlSlug]!: string;
+  public [APIField.mwlSlug]!: string;
 
   @prop({ required: true })
-  public [ApiFields.mwlCreatorId]!: number;
+  public [APIField.mwlCreatorId]!: number;
 
   @prop({ required: true })
-  public [ApiFields.mwlCreatorName]!: string;
+  public [APIField.mwlCreatorName]!: string;
 
   @prop({ required: true })
-  [ApiFields.mwlUrl]!: string;
+  [APIField.mwlUrl]!: string;
 
   @prop({ required: true })
-  [ApiFields.name]!: string;
+  [APIField.name]!: string;
 
   @prop({ required: true })
-  [ApiFields.husbando]!: boolean;
+  [APIField.husbando]!: boolean;
 
   @prop({ required: true })
-  [ApiFields.nsfw]!: boolean;
+  [APIField.nsfw]!: boolean;
 
   @prop({ required: true })
-  [ApiFields.likes]!: number;
+  [APIField.likes]!: number;
 
   @prop({ required: true })
-  [ApiFields.trash]!: number;
+  [APIField.trash]!: number;
 
   @prop()
-  [ApiFields.description]?: string;
+  [APIField.description]?: string;
 
   @prop()
-  [ApiFields.originalName]?: string;
+  [APIField.originalName]?: string;
 
   @prop()
-  [ApiFields.romajiName]?: string;
+  [APIField.romajiName]?: string;
 
   @prop()
-  [ApiFields.mwlDisplayPictureUrl]?: string;
+  [APIField.mwlDisplayPictureUrl]?: string;
 
   @prop()
-  [ApiFields.weight]?: number;
+  [APIField.weight]?: number;
 
   @prop()
-  [ApiFields.height]?: number;
+  [APIField.height]?: number;
 
   @prop()
-  [ApiFields.bust]?: number;
+  [APIField.bust]?: number;
 
   @prop()
-  [ApiFields.hip]?: number;
+  [APIField.hip]?: number;
 
   @prop()
-  [ApiFields.waist]?: number;
+  [APIField.waist]?: number;
 
   @prop()
-  [ApiFields.bloodType]?: string;
+  [APIField.bloodType]?: string;
 
   @prop()
-  [ApiFields.origin]?: string;
+  [APIField.origin]?: string;
 
   @prop()
-  [ApiFields.age]?: number;
+  [APIField.age]?: number;
 
   @prop()
-  [ApiFields.birthdayMonth]?: string;
+  [APIField.birthdayMonth]?: string;
 
   @prop()
-  [ApiFields.birthdayDay]?: number;
+  [APIField.birthdayDay]?: number;
 
   @prop()
-  [ApiFields.birthdayYear]?: string;
+  [APIField.birthdayYear]?: string;
 
   @prop()
-  [ApiFields.popularityRank]?: number;
+  [APIField.score]?: number;
 
   @prop()
-  [ApiFields.likeRank]?: number;
+  [APIField.rank]?: number;
 
   @prop()
-  [ApiFields.trashRank]?: number;
+  [APIField.tier]?: number;
 
   @prop({ ref: () => Series, type: Number })
-  [ApiFields.appearances]?: Ref<Series, number>[];
+  [APIField.appearances]?: Ref<Series, number>[];
 
   @prop({ ref: () => Series, type: Number })
-  [ApiFields.series]?: Ref<Series, number>;
+  [APIField.series]?: Ref<Series, number>;
 
   public static async findOneOrFetchFromMwl(
     this: ReturnModelType<typeof Waifu>,
-    mwlId: number | string
-  ): Promise<Waifu> {
-    const record =
-      typeof mwlId === 'number'
-        ? await this.findById(mwlId)
-        : await this.findOne({ [ApiFields.mwlSlug]: mwlId });
+    mwlId: number | string,
+    updateScores = false
+  ): Promise<Waifu | undefined> {
+    try {
+      const record =
+        typeof mwlId === 'number'
+          ? await this.findById(mwlId)
+          : await this.findOne({ [APIField.mwlSlug]: mwlId });
 
-    if (record) return record;
+      if (record) return record;
 
-    const mwlWaifu = await mwlApi.getWaifu(mwlId);
-    const appearances = (
-      await Promise.all(
-        (mwlWaifu[ApiFields.appearances] ?? [])
-          .map((appearance) => appearance[ApiFields.slug])
-          .map((slug) => SeriesModel.findOneOrFetchFromMwl(slug))
-      )
-    ).map((doc) => doc._id);
+      const mwlWaifu = await waifuAPI.getWaifu(mwlId);
 
-    let series;
-    if (
-      mwlWaifu[ApiFields.series] &&
-      mwlWaifu[ApiFields.series]?.[ApiFields.slug]
-    ) {
-      series = (
-        await SeriesModel.findOneOrFetchFromMwl(
-          // we know it won't be null, this is just to get rid of typescript error here
-          mwlWaifu[ApiFields.series]?.[ApiFields.slug] ?? 1
-        )
-      )[ApiFields._id];
+      if (mwlWaifu) {
+        const appearances = (
+          await Promise.all(
+            (mwlWaifu[APIField.appearances] ?? [])
+              .map((appearance) => appearance[APIField.slug])
+              .map((slug) => SeriesModel.findOneOrFetchFromMwl(slug))
+          )
+        ).map((doc) => doc?.[APIField._id] ?? 0); // if the series doc some how ends up being undefined, use a predetermined id value
+
+        let series;
+        if (
+          mwlWaifu[APIField.series] &&
+          mwlWaifu[APIField.series]?.[APIField.slug]
+        ) {
+          series = await SeriesModel.findOneOrFetchFromMwl(
+            mwlWaifu[APIField.series]?.[APIField.slug] ?? 1
+          );
+          if (series) {
+            series = series[APIField._id];
+          }
+        }
+
+        logModuleInfo(
+          `Caching waifu data for ${mwlWaifu[APIField.name]}`,
+          LoggingModule.DB
+        );
+        const doc = this.create({
+          [APIField._id]: mwlWaifu[APIField.id],
+          [APIField.mwlSlug]: mwlWaifu[APIField.slug],
+          [APIField.mwlCreatorId]: mwlWaifu[APIField.creator].id,
+          [APIField.mwlCreatorName]: mwlWaifu[APIField.creator].name,
+          [APIField.mwlUrl]: mwlWaifu[APIField.url],
+          [APIField.name]: mwlWaifu[APIField.name],
+          [APIField.husbando]: mwlWaifu[APIField.husbando],
+          [APIField.nsfw]: mwlWaifu[APIField.nsfw],
+          [APIField.likes]: mwlWaifu[APIField.likes],
+          [APIField.trash]: mwlWaifu[APIField.trash],
+          [APIField.description]: mwlWaifu[APIField.description],
+          [APIField.originalName]: mwlWaifu[APIField.originalName],
+          [APIField.romajiName]: mwlWaifu[APIField.romajiName],
+          [APIField.mwlDisplayPictureUrl]: mwlWaifu[APIField.displayPicture],
+          [APIField.weight]: mwlWaifu[APIField.weight],
+          [APIField.height]: mwlWaifu[APIField.height],
+          [APIField.bust]: mwlWaifu[APIField.bust],
+          [APIField.hip]: mwlWaifu[APIField.hip],
+          [APIField.waist]: mwlWaifu[APIField.waist],
+          [APIField.bloodType]: mwlWaifu[APIField.bloodType],
+          [APIField.origin]: mwlWaifu[APIField.origin],
+          [APIField.age]: mwlWaifu[APIField.age],
+          [APIField.birthdayMonth]: mwlWaifu[APIField.birthdayMonth],
+          [APIField.birthdayDay]: mwlWaifu[APIField.birthdayDay],
+          [APIField.birthdayYear]: mwlWaifu[APIField.birthdayYear],
+          [APIField.appearances]: appearances,
+          [APIField.series]: series,
+        });
+
+        if (updateScores) {
+          doc.then(() => {
+            this.updateScoresAndTiers();
+          });
+        }
+
+        return doc;
+      }
+      return undefined;
+    } catch (e) {
+      logModuleError(
+        `Exception caught while adding new waifu to database: ${e}`,
+        LoggingModule.DB
+      );
+      return undefined;
     }
+  }
 
-    return WaifuModel.create({
-      [ApiFields._id]: mwlWaifu[ApiFields.id],
-      [ApiFields.mwlSlug]: mwlWaifu[ApiFields.slug],
-      [ApiFields.mwlCreatorId]: mwlWaifu[ApiFields.creator].id,
-      [ApiFields.mwlCreatorName]: mwlWaifu[ApiFields.creator].name,
-      [ApiFields.mwlUrl]: mwlWaifu[ApiFields.url],
-      [ApiFields.name]: mwlWaifu[ApiFields.name],
-      [ApiFields.husbando]: mwlWaifu[ApiFields.husbando],
-      [ApiFields.nsfw]: mwlWaifu[ApiFields.nsfw],
-      [ApiFields.likes]: mwlWaifu[ApiFields.likes],
-      [ApiFields.trash]: mwlWaifu[ApiFields.trash],
-      [ApiFields.description]: mwlWaifu[ApiFields.description],
-      [ApiFields.originalName]: mwlWaifu[ApiFields.originalName],
-      [ApiFields.romajiName]: mwlWaifu[ApiFields.romajiName],
-      [ApiFields.mwlDisplayPictureUrl]: mwlWaifu[ApiFields.displayPicture],
-      [ApiFields.weight]: mwlWaifu[ApiFields.weight],
-      [ApiFields.height]: mwlWaifu[ApiFields.height],
-      [ApiFields.bust]: mwlWaifu[ApiFields.bust],
-      [ApiFields.hip]: mwlWaifu[ApiFields.hip],
-      [ApiFields.waist]: mwlWaifu[ApiFields.waist],
-      [ApiFields.bloodType]: mwlWaifu[ApiFields.bloodType],
-      [ApiFields.origin]: mwlWaifu[ApiFields.origin],
-      [ApiFields.age]: mwlWaifu[ApiFields.age],
-      [ApiFields.birthdayMonth]: mwlWaifu[ApiFields.birthdayMonth],
-      [ApiFields.birthdayDay]: mwlWaifu[ApiFields.birthdayDay],
-      [ApiFields.birthdayYear]: mwlWaifu[ApiFields.birthdayYear],
-      [ApiFields.popularityRank]: mwlWaifu[ApiFields.popularityRank],
-      [ApiFields.likeRank]: mwlWaifu[ApiFields.likeRank],
-      [ApiFields.trashRank]: mwlWaifu[ApiFields.trashRank],
-      [ApiFields.appearances]: appearances,
-      [ApiFields.series]: series,
-    });
+  public static async getRandom(
+    this: ReturnModelType<typeof Waifu>,
+    conditions: FilterQuery<DocumentType<Waifu>> = {}
+  ): Promise<Waifu | undefined> {
+    try {
+      const query = await this.leanWaifuQuery(conditions, {}, {}, {}, 0);
+      if (query && query.length > 0) {
+        const max = query.length;
+        const min = 0;
+        const randInt = await randomOrgAPI.generateInteger(min, max);
+        const waifu = query[randInt];
+        if (waifu) return waifu;
+      }
+      return undefined;
+    } catch (e) {
+      logModuleError(
+        `Exception caught while fetching random waifu from the database: ${e}`,
+        LoggingModule.DB
+      );
+      return undefined;
+    }
+  }
+
+  public static updateScoresAndTiers(
+    this: ReturnModelType<typeof Waifu>
+  ): void {
+    logModuleInfo('Updating waifu scores and tiers...', LoggingModule.DB);
+    const getTier = (pos: number, total: number): Tier => {
+      if (pos / total <= 1 / 100) return Tier.S;
+      if (pos / total <= 6 / 100) return Tier.A;
+      if (pos / total <= 16 / 100) return Tier.B;
+      if (pos / total <= 26 / 100) return Tier.C;
+      return Tier.D;
+    };
+    // fetch the waifus with a combined like + trash count of 100+,
+    // score = (likes + 1 / trash + 1) * (total # of votes)
+    // apply score to our documents
+    // sort in descending order
+    this.aggregate([
+      {
+        $project: {
+          [APIField.likes]: 1,
+          [APIField.trash]: 1,
+          total: {
+            $add: [`$${APIField.likes}`, `$${APIField.trash}`],
+          },
+        },
+      },
+      { $match: { total: { $gt: 100 } } },
+      {
+        $addFields: {
+          [APIField.score]: {
+            $multiply: [
+              {
+                $divide: [
+                  { $add: [`$${APIField.likes}`, 1] },
+                  { $add: [`$${APIField.trash}`, 1] },
+                ],
+              },
+              { $add: [`$${APIField.likes}`, `$${APIField.trash}`] },
+            ],
+          },
+        },
+      },
+      { $sort: { [APIField.score]: -1 } },
+    ])
+      .exec()
+      .then((scores: { _id: number; score: number }[]) => {
+        scores.forEach((score, i) => {
+          this.findByIdAndUpdate(
+            score._id,
+            {
+              $set: {
+                [APIField.rank]: i + 1,
+                [APIField.score]: score.score,
+                [APIField.tier]: getTier(i + 1, scores.length),
+              },
+            },
+            { new: true, strict: false }
+          ).exec();
+        });
+      });
+    logModuleInfo('Done updating waifu scores and tiers', LoggingModule.DB);
+  }
+
+  public static async leanWaifuQuery(
+    this: ReturnModelType<typeof Waifu>,
+    conditions: FilterQuery<DocumentType<Waifu>>,
+    sort: string | unknown = {},
+    projection: unknown | null = {},
+    options: QueryFindOptions = {},
+    limit = 100,
+    cache = true,
+    ttl = 30000
+  ): Promise<Waifu[] | undefined> {
+    const hashedOptions = hash({
+      conditions,
+      sort,
+      projection,
+      options,
+      limit,
+    } as QueryOptions<Waifu>);
+
+    const timeout = (key: string) => {
+      logModuleInfo(`${key} deleted from query cache.`, LoggingModule.DB);
+      delete cachedQueries[key];
+    };
+
+    if (cachedQueries[hashedOptions] && cache) {
+      if (timeouts[hashedOptions]) {
+        // reset our timer
+        clearTimeout(timeouts[hashedOptions]);
+        logModuleInfo(
+          `Timeout reset for query ${hashedOptions}`,
+          LoggingModule.DB
+        );
+        timeouts[hashedOptions] = setTimeout(() => {
+          timeout(hashedOptions);
+        }, ttl);
+      } else {
+        logModuleInfo(
+          `Setting timeout for query ${hashedOptions}`,
+          LoggingModule.DB
+        );
+        timeouts[hashedOptions] = setTimeout(() => {
+          timeout(hashedOptions);
+        }, ttl);
+      }
+      return cachedQueries[hashedOptions];
+    }
+    try {
+      const query = await this.find(conditions, projection, options)
+        .limit(limit)
+        .sort(sort)
+        .lean()
+        .populate(APIField.appearances)
+        .populate(APIField.series);
+      if (cache) {
+        cachedQueries[hashedOptions] = query;
+        // set our ttl
+        logModuleInfo(
+          `Setting timeout for query ${hashedOptions}`,
+          LoggingModule.DB
+        );
+        timeouts[hashedOptions] = setTimeout(() => {
+          timeout(hashedOptions);
+        }, ttl);
+      }
+
+      return query;
+    } catch (e) {
+      logModuleError(
+        `Exception caught when trying to execute a lean Waifu query: ${e}`,
+        LoggingModule.DB
+      );
+      return undefined;
+    }
   }
 }
 

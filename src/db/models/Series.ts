@@ -1,96 +1,124 @@
 import {
   getModelForClass,
+  index,
   prop,
   Ref,
   ReturnModelType,
 } from '@typegoose/typegoose';
 import { Base } from '@typegoose/typegoose/lib/defaultClasses';
-import ApiFields from '../../util/ApiFields';
-import StudioModel, { Studio } from './Studio';
-import mwlApi from '../../mwl/mwlApi';
-import { MwlStudio } from '../../mwl/types';
+import APIField from 'rosiebot/src/util/APIField';
+import StudioModel, { Studio } from 'rosiebot/src/db/models/Studio';
+import { MwlStudio } from 'rosiebot/src/api/mwl/types';
+import waifuAPI from 'rosiebot/src/api/mwl/WaifuAPI';
+import {
+  LoggingModule,
+  logModuleError,
+  logModuleInfo,
+} from 'rosiebot/src/util/logger';
 
+@index({
+  [APIField.name]: 'text',
+  [APIField.originalName]: 'text',
+  [APIField.romajiName]: 'text',
+})
 export class Series extends Base<number> {
   @prop()
-  public [ApiFields._id]!: number;
+  public [APIField._id]!: number;
 
   @prop({ type: String, unique: true, required: true })
-  public [ApiFields.mwlSlug]!: string;
+  public [APIField.mwlSlug]!: string;
 
   @prop({ required: true })
-  public [ApiFields.mwlUrl]!: string;
+  public [APIField.mwlUrl]!: string;
 
   @prop({ required: true })
-  public [ApiFields.name]!: string;
+  public [APIField.name]!: string;
 
   @prop()
-  public [ApiFields.type]?: string;
+  public [APIField.type]?: string;
 
   @prop()
-  public [ApiFields.originalName]?: string;
+  public [APIField.originalName]?: string;
 
   @prop()
-  public [ApiFields.romajiName]?: string;
+  public [APIField.romajiName]?: string;
 
   @prop()
-  public [ApiFields.description]?: string;
+  public [APIField.description]?: string;
 
   @prop()
-  public [ApiFields.mwlDisplayPictureUrl]?: string;
+  public [APIField.mwlDisplayPictureUrl]?: string;
 
   @prop()
-  public [ApiFields.releaseDate]?: string;
+  public [APIField.releaseDate]?: string;
 
   @prop()
-  public [ApiFields.episodeCount]?: number;
+  public [APIField.episodeCount]?: number;
 
   @prop()
-  public [ApiFields.airingStart]?: string;
+  public [APIField.airingStart]?: string;
 
   @prop()
-  public [ApiFields.airingEnd]?: string;
+  public [APIField.airingEnd]?: string;
 
   @prop({ ref: () => Studio, type: Number })
-  public [ApiFields.studio]?: Ref<Studio, number>;
+  public [APIField.studio]?: Ref<Studio, number>;
 
   public static async findOneOrFetchFromMwl(
     this: ReturnModelType<typeof Series>,
     mwlId: number | string
-  ): Promise<Series> {
-    const record =
-      typeof mwlId === 'number'
-        ? await this.findOne({ [ApiFields.mwlId]: mwlId })
-        : await this.findOne({ [ApiFields.mwlSlug]: mwlId });
+  ): Promise<Series | undefined> {
+    try {
+      const record =
+        typeof mwlId === 'number'
+          ? await this.findOne({ [APIField.mwlId]: mwlId })
+          : await this.findOne({ [APIField.mwlSlug]: mwlId });
 
-    if (record) return record;
+      if (record) return record;
+      const mwlSeries = await waifuAPI.getSeries(mwlId);
 
-    const mwlSeries = await mwlApi.getSeries(mwlId);
-    let studio;
+      if (mwlSeries) {
+        let studio;
 
-    if (mwlSeries[ApiFields.studio]) {
-      studio = (
-        await StudioModel.findOneOrCreate(
-          <MwlStudio>mwlSeries[ApiFields.studio]
-        )
-      )[ApiFields._id];
+        if (mwlSeries[APIField.studio]) {
+          studio = await StudioModel.findOneOrCreate(
+            <MwlStudio>mwlSeries[APIField.studio]
+          );
+
+          if (studio) {
+            studio = studio[APIField._id];
+          }
+        }
+
+        logModuleInfo(
+          `Caching series data for ${mwlSeries[APIField.name]}`,
+          LoggingModule.DB
+        );
+        return SeriesModel.create({
+          [APIField._id]: mwlSeries[APIField.id],
+          [APIField.mwlSlug]: mwlSeries[APIField.slug],
+          [APIField.mwlUrl]: mwlSeries[APIField.url],
+          [APIField.name]: mwlSeries[APIField.name],
+          [APIField.type]: mwlSeries[APIField.type],
+          [APIField.originalName]: mwlSeries[APIField.originalName],
+          [APIField.romajiName]: mwlSeries[APIField.romajiName],
+          [APIField.description]: mwlSeries[APIField.description],
+          [APIField.mwlDisplayPictureUrl]: mwlSeries[APIField.displayPicture],
+          [APIField.releaseDate]: mwlSeries[APIField.releaseDate],
+          [APIField.episodeCount]: mwlSeries[APIField.episodeCount],
+          [APIField.airingStart]: mwlSeries[APIField.airingStart],
+          [APIField.airingEnd]: mwlSeries[APIField.airingEnd],
+          [APIField.studio]: studio,
+        });
+      }
+      return undefined;
+    } catch (e) {
+      logModuleError(
+        `Exception caught when trying to find one or create Series: ${e}`,
+        LoggingModule.DB
+      );
+      return undefined;
     }
-
-    return SeriesModel.create({
-      [ApiFields._id]: mwlSeries[ApiFields.id],
-      [ApiFields.mwlSlug]: mwlSeries[ApiFields.slug],
-      [ApiFields.mwlUrl]: mwlSeries[ApiFields.url],
-      [ApiFields.name]: mwlSeries[ApiFields.name],
-      [ApiFields.type]: mwlSeries[ApiFields.type],
-      [ApiFields.originalName]: mwlSeries[ApiFields.originalName],
-      [ApiFields.romajiName]: mwlSeries[ApiFields.romajiName],
-      [ApiFields.description]: mwlSeries[ApiFields.description],
-      [ApiFields.mwlDisplayPictureUrl]: mwlSeries[ApiFields.displayPicture],
-      [ApiFields.releaseDate]: mwlSeries[ApiFields.releaseDate],
-      [ApiFields.episodeCount]: mwlSeries[ApiFields.episodeCount],
-      [ApiFields.airingStart]: mwlSeries[ApiFields.airingStart],
-      [ApiFields.airingEnd]: mwlSeries[ApiFields.airingEnd],
-      [ApiFields.studio]: studio,
-    });
   }
 }
 

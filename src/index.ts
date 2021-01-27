@@ -1,15 +1,15 @@
-import { logInfo } from './util/logger';
-import hookDiscordEvents from './discord/events';
-import hookDbEvents from './db/events';
-import client from './discord/client';
-import db from './db/db';
+import { logModuleInfo } from 'rosiebot/src/util/logger';
+import dbInstance from 'rosiebot/src/db/db';
+import hookDBEvents from 'rosiebot/src/db/events';
+import hookDiscordEvents from 'rosiebot/src/discord/events';
+import discordClientInstance from 'rosiebot/src/discord/client';
 
 const version = process.env.npm_package_version;
 
 const startBot = () => {
-  logInfo(`Started Rosiebot ${version}`);
-  hookDbEvents(db);
-  hookDiscordEvents(client);
+  logModuleInfo(`Started Rosiebot ${version}`);
+  hookDBEvents(dbInstance);
+  hookDiscordEvents(discordClientInstance);
 };
 
 startBot();

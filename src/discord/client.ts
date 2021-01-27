@@ -1,16 +1,15 @@
 import { Client } from 'discord.js';
-import config from '../config';
-import { logError, logInfo } from '../util/logger';
+import config from 'rosiebot/src/config';
+import { LoggingModule, logModuleError } from 'rosiebot/src/util/logger';
 
 const initDiscord = () => {
   const discordClient = new Client();
   discordClient
     .login(config.discordTokenKey)
-    .then(() => logInfo('Logged in to Discord', 'discord'))
-    .catch((err) => logError(err, 'discord'));
+    .catch((err) => logModuleError(err, LoggingModule.Discord));
   return discordClient;
 };
 
-const client = initDiscord();
+const discordClientInstance = initDiscord();
 
-export default client;
+export default discordClientInstance;
