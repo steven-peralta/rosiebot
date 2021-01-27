@@ -1,5 +1,5 @@
 import { ColorResolvable, MessageEmbedOptions } from 'discord.js';
-import discordClientInstance from 'rosiebot/src/discord/client';
+import client from '@discord/client';
 
 const brandingColor = '#7752a0';
 
@@ -13,7 +13,7 @@ const brandingEmbed = (
       text: `rosiebot v${process.env.npm_package_version}${
         queryTime ? ` (${queryTime}ms)` : ''
       }`,
-      iconURL: discordClientInstance.user?.displayAvatarURL(),
+      iconURL: client.user?.displayAvatarURL(),
     },
   };
 };

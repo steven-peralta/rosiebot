@@ -1,27 +1,27 @@
+import Waifu, { waifuModel } from '@db/models/Waifu';
+import User, { userModel } from '@db/models/User';
 import {
   CommandBuilder,
-  CommandFormatter,
   CommandCallback,
+  CommandFormatter,
   CommandMetadata,
   CommandProcessor,
   CommandResult,
   UserParams,
-} from 'rosiebot/src/commands/types';
-import { Command, StatusCode, ErrorMessage } from 'rosiebot/src/util/enums';
-import WaifuModel, { Waifu } from 'rosiebot/src/db/models/Waifu';
-import randomOrgAPIInstance from 'rosiebot/src/api/random-org/RandomOrgAPI';
-import APIField from 'rosiebot/src/util/APIField';
-import UserModel, { User } from 'rosiebot/src/db/models/User';
-import { logCommandException } from 'rosiebot/src/commands/logging';
-import config from 'rosiebot/src/config';
-import { getWotd } from 'rosiebot/src/commands/builders/wotd';
-import { formatWaifuResults } from 'rosiebot/src/commands/formatters';
+} from '@commands/types';
+import { Command, ErrorMessage, StatusCode } from '@util/enums';
+import APIField from '@util/APIField';
+import config from '@config';
+import { getWotd } from '@commands/builders/wotd';
+import { logCommandException } from '@commands/logging';
+import { formatWaifuResults } from '@commands/formatters';
+import randomOrg from '@api/random-org/randomOrg';
 
 export interface WRollResponse {
   waifu: Waifu;
   criticalRoll: boolean;
   wotdRoll: boolean;
-  userModel: User;
+  userDoc: User;
 }
 
 const metadata: CommandMetadata = {
@@ -37,12 +37,12 @@ const command: CommandCallback<WRollResponse, UserParams> = async (
     const { sender, guild }: UserParams = params;
 
     try {
-      const user = await UserModel.findOneOrCreate(sender, guild);
+      const user = await userModel.findOneOrCreate(sender, guild);
 
       if (user) {
         if (user[APIField.coins] >= config.rollCost) {
           const start = Date.now();
-          const roll = await randomOrgAPIInstance.generateInteger(1, 100);
+          const roll = await randomOrg.generateInteger(1, 100);
           let criticalRoll = false;
           let wotdRoll = false;
           let waifu: Waifu | undefined;
@@ -53,13 +53,13 @@ const command: CommandCallback<WRollResponse, UserParams> = async (
             wotdRoll = true;
           } else if (roll >= 2 && roll <= 21) {
             // ranked waifu roll
-            waifu = await WaifuModel.getRandom({
+            waifu = await waifuModel.getRandom({
               [APIField.tier]: { $ne: undefined },
             });
             criticalRoll = true;
           } else {
             // regular roll
-            waifu = await WaifuModel.getRandom();
+            waifu = await waifuModel.getRandom();
           }
 
           if (waifu) {
@@ -79,7 +79,7 @@ const command: CommandCallback<WRollResponse, UserParams> = async (
                 waifu,
                 criticalRoll,
                 wotdRoll,
-                userModel: user,
+                userDoc: user,
               },
               time: Date.now() - start,
             };
@@ -119,7 +119,7 @@ const formatter: CommandFormatter<WRollResponse, Waifu> = (result, user) => {
   const { statusCode, data, time } = result;
   if (statusCode === StatusCode.Success) {
     if (data) {
-      const { waifu, criticalRoll, wotdRoll, userModel } = data;
+      const { waifu, criticalRoll, wotdRoll, userDoc } = data;
       const criticalRollContent = ` :sparkles: **CRITICAL ROLL!!** :sparkles:`;
       const wotdRollContent = ` :star2: **You rolled the Waifu of the Day. Congrats!**`;
 
@@ -130,7 +130,7 @@ const formatter: CommandFormatter<WRollResponse, Waifu> = (result, user) => {
         } Here's who you rolled:\n`,
         waifu,
         user,
-        userModel,
+        userDoc,
         [user],
         time
       );

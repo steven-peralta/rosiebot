@@ -32,3 +32,22 @@ export const ErrorMessage: Record<StatusCode, string> = {
   [StatusCode.InsufficentCoins]: "You don't have enough coins!",
   [StatusCode.UserOwnsNoWaifus]: "Specified user doesn't own any waifus.",
 };
+
+export enum Tier {
+  S = 5, // top 1% of waifus
+  A = 4, // next 6% of waifus
+  B = 3, // next 16% of waifus
+  C = 2, // next 26% of waifus
+  D = 1, // next 51% of waifus
+}
+
+export enum Button {
+  Forward = '▶️',
+  Backward = '◀️',
+  FastForward = '⏭',
+  Rewind = '⏮',
+  Jump = '⤴️',
+  Checkmark = '✅',
+  Cancel = '🚫',
+  MoneyBag = '💰',
+}

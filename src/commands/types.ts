@@ -1,3 +1,9 @@
+/**
+ * command metadata includes things like a description of the command and what
+ * type of arguments are needed, as well as some permissions needed to run the
+ * command
+ */
+import { Command, StatusCode } from '@util/enums';
 import {
   Guild,
   Message,
@@ -5,14 +11,8 @@ import {
   StringResolvable,
   User,
 } from 'discord.js';
-import { Command, StatusCode } from 'rosiebot/src/util/enums';
-import BaseInteractiveMessage from 'rosiebot/src/discord/messages/BaseInteractiveMessage';
+import BaseInteractiveMessage from '@discord/messages/BaseInteractiveMessage';
 
-/**
- * command metadata includes things like a description of the command and what
- * type of arguments are needed, as well as some permissions needed to run the
- * command
- */
 export interface CommandMetadata {
   name: Command;
   description: string;

@@ -1,8 +1,9 @@
 /* eslint-disable no-console, no-await-in-loop */
+import config from '@config';
 import Mongoose from 'mongoose';
-import config from '../src/config';
-import WaifuModel from '../src/db/models/Waifu';
-import APIField from '../src/util/APIField';
+
+import { waifuModel } from '@db/models/Waifu';
+import APIField from '@util/APIField';
 
 const { mongodbUri } = config;
 const db = Mongoose.connection;
@@ -22,7 +23,7 @@ async function scrape() {
 
   for (let i = 1; i < count; i += 1) {
     try {
-      const result = await WaifuModel.findOneOrFetchFromMwl(i);
+      const result = await waifuModel.findOneOrFetchFromMwl(i);
       if (result) {
         console.log(
           `${i}/${count} (${Math.round((i / count) * 100)}%): ${

@@ -1,25 +1,25 @@
-import { isDocumentArray } from '@typegoose/typegoose';
+import Waifu from '@db/models/Waifu';
+import User, { userModel } from '@db/models/User';
 import {
   CommandBuilder,
-  CommandFormatter,
   CommandCallback,
+  CommandFormatter,
   CommandMetadata,
   CommandProcessor,
   CommandResult,
   TargetedUserParams,
-} from 'rosiebot/src/commands/types';
-import { Command, StatusCode } from 'rosiebot/src/util/enums';
-import { Waifu } from 'rosiebot/src/db/models/Waifu';
-import UserModel, { User } from 'rosiebot/src/db/models/User';
-import APIField from 'rosiebot/src/util/APIField';
-import { processTargetedCommand } from 'rosiebot/src/commands/processors';
-import { formatWaifuResults } from 'rosiebot/src/commands/formatters';
-import { logCommandException } from 'rosiebot/src/commands/logging';
+} from '@commands/types';
+import { Command, StatusCode } from '@util/enums';
+import APIField from '@util/APIField';
+import { isDocumentArray } from '@typegoose/typegoose';
+import { logCommandException } from '@commands/logging';
+import { processTargetedCommand } from '@commands/processors';
+import { formatWaifuResults } from '@commands/formatters';
 import { User as DiscordUser } from 'discord.js';
 
 interface WOwnedResponse {
   ownedWaifus: Waifu[];
-  userModel?: User;
+  userDoc?: User;
   target?: DiscordUser;
 }
 
@@ -37,8 +37,8 @@ const command: CommandCallback<WOwnedResponse, TargetedUserParams> = async (
     const { sender, guild, target } = params as TargetedUserParams;
     const start = Date.now();
     const user = target
-      ? await UserModel.findOneOrCreate(target, guild)
-      : await UserModel.findOneOrCreate(sender, guild);
+      ? await userModel.findOneOrCreate(target, guild)
+      : await userModel.findOneOrCreate(sender, guild);
 
     if (user) {
       await user
@@ -58,9 +58,9 @@ const command: CommandCallback<WOwnedResponse, TargetedUserParams> = async (
           statusCode: StatusCode.Success,
           data: {
             ownedWaifus,
-            userModel: target
+            userDoc: target
               ? undefined
-              : await UserModel.findOneOrCreate(sender, guild),
+              : await userModel.findOneOrCreate(sender, guild),
           },
           time: Date.now() - start,
         };
@@ -86,7 +86,7 @@ const formatter: CommandFormatter<WOwnedResponse, Waifu> = (
     `${user}`,
     result.data?.ownedWaifus,
     user,
-    result.data?.userModel,
+    result.data?.userDoc,
     user ? [user] : [],
     result.time
   );

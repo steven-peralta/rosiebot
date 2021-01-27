@@ -1,15 +1,14 @@
-import axios, { AxiosInstance } from 'axios';
 import axiosRateLimit from 'axios-rate-limit';
-import { MwlSeries, MwlWaifu } from 'rosiebot/src/api/mwl/types';
-import config from 'rosiebot/src/config';
+import { MwlSeries, MwlWaifu } from '@api/mwl/types';
 import {
   LoggingModule,
   logModuleError,
   logModuleInfo,
   logModuleWarning,
-} from 'rosiebot/src/util/logger';
+} from '@util/logger';
+import axios, { AxiosInstance } from 'axios';
 
-class WaifuAPI {
+export default class MWLAPI {
   private apikey: string;
 
   private axios: AxiosInstance;
@@ -84,7 +83,3 @@ class WaifuAPI {
     }
   }
 }
-
-const waifuAPIInstance = new WaifuAPI(config.waifuApiKey);
-
-export default waifuAPIInstance;

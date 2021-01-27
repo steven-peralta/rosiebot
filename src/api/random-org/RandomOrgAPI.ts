@@ -1,18 +1,13 @@
 import axios, { AxiosInstance } from 'axios';
 import axiosRateLimit from 'axios-rate-limit';
-import config from 'rosiebot/src/config';
-import {
-  LoggingModule,
-  logModuleError,
-  logModuleInfo,
-} from 'rosiebot/src/util/logger';
 import {
   GenerateIntegersRequest,
   RandomOrgResponse,
   RandomOrgResult,
-} from 'rosiebot/src/api/random-org/types';
+} from '@api/random-org/types';
+import { LoggingModule, logModuleError, logModuleInfo } from '@util/logger';
 
-class RandomOrgAPI {
+export default class RandomOrgAPI {
   private readonly apiKey: string;
 
   private axios: AxiosInstance;
@@ -115,7 +110,3 @@ class RandomOrgAPI {
     }
   }
 }
-
-const randomOrgAPIInstance = new RandomOrgAPI(config.randomOrgApiKey);
-
-export default randomOrgAPIInstance;

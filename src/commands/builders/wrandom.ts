@@ -1,15 +1,15 @@
 import {
   CommandBuilder,
-  CommandFormatter,
   CommandCallback,
+  CommandFormatter,
   CommandMetadata,
   CommandProcessor,
   CommandResult,
-} from 'rosiebot/src/commands/types';
-import { Command, StatusCode } from 'rosiebot/src/util/enums';
-import WaifuModel, { Waifu } from 'rosiebot/src/db/models/Waifu';
-import { formatWaifuResults } from 'rosiebot/src/commands/formatters';
-import { logCommandException } from 'rosiebot/src/commands/logging';
+} from '@commands/types';
+import { Command, StatusCode } from '@util/enums';
+import Waifu, { waifuModel } from '@db/models/Waifu';
+import { logCommandException } from '@commands/logging';
+import { formatWaifuResults } from '@commands/formatters';
 
 const metadata: CommandMetadata = {
   name: Command.wrandom,
@@ -22,7 +22,7 @@ const command: CommandCallback<Waifu, undefined> = async (): Promise<
 > => {
   try {
     const start = Date.now();
-    const doc = await WaifuModel.getRandom();
+    const doc = await waifuModel.getRandom();
     if (doc) {
       return {
         data: doc,
@@ -52,11 +52,11 @@ const formatter: CommandFormatter<Waifu, Waifu> = (result, user) =>
     result.time
   );
 
-const builder: CommandBuilder<Waifu, undefined, Waifu> = {
+const wrandom: CommandBuilder<Waifu, undefined, Waifu> = {
   metadata,
   processor,
   formatter,
   command,
 };
 
-export default builder;
+export default wrandom;

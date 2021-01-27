@@ -1,35 +1,32 @@
 import { DocumentType } from '@typegoose/typegoose';
+import User, { userModel } from '@db/models/User';
 import {
   EmbedFieldData,
   Guild,
   MessageEmbedOptions,
   User as DiscordUser,
 } from 'discord.js';
-import UserModel, { User } from 'rosiebot/src/db/models/User';
-import { Command, ErrorMessage, StatusCode } from 'rosiebot/src/util/enums';
+import Waifu, { waifuModel } from '@db/models/Waifu';
 import {
   CommandBuilder,
-  CommandFormatter,
   CommandCallback,
+  CommandFormatter,
   CommandMetadata,
   CommandProcessor,
   TradeParams,
-} from 'rosiebot/src/commands/types';
-import WaifuModel, { Waifu } from 'rosiebot/src/db/models/Waifu';
-import APIField from 'rosiebot/src/util/APIField';
-import { getUsersFromMentionsStr } from 'rosiebot/src/util/string';
-import InteractiveMessage from 'rosiebot/src/discord/messages/InteractiveMessage';
-import { logModuleWarning } from 'rosiebot/src/util/logger';
-import {
-  Button,
-  ButtonCallback,
-} from 'rosiebot/src/discord/messages/BaseInteractiveMessage';
+} from '@commands/types';
+import { Button, Command, ErrorMessage, StatusCode } from '@util/enums';
+import APIField from '@util/APIField';
+import { getUsersFromMentionsStr } from '@util/string';
+import { logModuleWarning } from '@util/logger';
+import InteractiveMessage from '@discord/messages/InteractiveMessage';
+import { ButtonCallback } from '@discord/messages/BaseInteractiveMessage';
 
 interface WTradeResponse {
   target: DiscordUser;
   trade?: {
-    userModel: DocumentType<User>;
-    targetModel: DocumentType<User>;
+    userDoc: DocumentType<User>;
+    targetDoc: DocumentType<User>;
     guild: Guild;
     has: { [id: number]: { name: string } };
     wants: { [id: number]: { name: string } };
@@ -55,38 +52,38 @@ const command: CommandCallback<WTradeResponse, TradeParams> = async (
   const start = Date.now();
   if (params) {
     const { sender, guild, target, has, wants } = params;
-    const senderModel = await UserModel.findOne({
+    const senderDoc = await userModel.findOne({
       [APIField.userId]: sender.id,
       [APIField.serverId]: guild.id,
     });
-    const targetModel = await UserModel.findOne({
+    const targetDoc = await userModel.findOne({
       [APIField.userId]: target.id,
       [APIField.serverId]: guild.id,
     });
 
-    if (senderModel && targetModel) {
+    if (senderDoc && targetDoc) {
       let senderDoesntOwn;
       let targetDoesntOwn;
       let senderOwns;
       let targetOwns;
       const satisfiesWantsConstraints = wants.every((ref) => {
-        if (senderModel[APIField.ownedWaifus].includes(ref)) {
-          senderOwns = WaifuModel.findById(ref).lean();
+        if (senderDoc[APIField.ownedWaifus].includes(ref)) {
+          senderOwns = waifuModel.findById(ref).lean();
           return false;
         }
-        if (!targetModel[APIField.ownedWaifus].includes(ref)) {
-          targetDoesntOwn = WaifuModel.findById(ref).lean();
+        if (!targetDoc[APIField.ownedWaifus].includes(ref)) {
+          targetDoesntOwn = waifuModel.findById(ref).lean();
           return false;
         }
         return true;
       });
       const satisfiesHasConstraints = has.every((ref) => {
-        if (!senderModel[APIField.ownedWaifus].includes(ref)) {
-          senderDoesntOwn = WaifuModel.findById(ref).lean();
+        if (!senderDoc[APIField.ownedWaifus].includes(ref)) {
+          senderDoesntOwn = waifuModel.findById(ref).lean();
           return false;
         }
-        if (targetModel[APIField.ownedWaifus].includes(ref)) {
-          targetOwns = WaifuModel.findById(ref).lean();
+        if (targetDoc[APIField.ownedWaifus].includes(ref)) {
+          targetOwns = waifuModel.findById(ref).lean();
           return false;
         }
         return true;
@@ -110,7 +107,7 @@ const command: CommandCallback<WTradeResponse, TradeParams> = async (
 
       if (satisfiesWantsConstraints && satisfiesHasConstraints) {
         const hasObj = (
-          await Promise.all(has.map((id) => WaifuModel.findById(id)))
+          await Promise.all(has.map((id) => waifuModel.findById(id)))
         ).reduce((acc, val) => {
           if (val) {
             acc[val[APIField._id]] = { name: val[APIField.name] };
@@ -118,7 +115,7 @@ const command: CommandCallback<WTradeResponse, TradeParams> = async (
           return acc;
         }, {} as { [id: number]: { name: string } });
         const wantsObj = (
-          await Promise.all(wants.map((id) => WaifuModel.findById(id)))
+          await Promise.all(wants.map((id) => waifuModel.findById(id)))
         ).reduce((acc, val) => {
           if (val) {
             acc[val[APIField._id]] = { name: val[APIField.name] };
@@ -131,8 +128,8 @@ const command: CommandCallback<WTradeResponse, TradeParams> = async (
           data: {
             target,
             trade: {
-              userModel: senderModel,
-              targetModel,
+              userDoc: senderDoc,
+              targetDoc,
               guild,
               has: hasObj,
               wants: wantsObj,
@@ -239,7 +236,7 @@ const formatter: CommandFormatter<WTradeResponse, WTradeResponse> = (
     if (trade && target) {
       const singleTarget = Array.isArray(target) ? target[0] : target;
       if (singleTarget) {
-        const { userModel, targetModel, has, wants } = trade;
+        const { userDoc, targetDoc, has, wants } = trade;
         const hasStr = Object.values(has)
           .map((obj) => `• ${obj.name}`)
           .join('\n');
@@ -268,8 +265,8 @@ const formatter: CommandFormatter<WTradeResponse, WTradeResponse> = (
           [singleTarget.id]
         );
         const confirmationButton: ButtonCallback<WTradeResponse> = async () => {
-          const trader1Waifus = userModel[APIField.ownedWaifus];
-          const trader2Waifus = targetModel[APIField.ownedWaifus];
+          const trader1Waifus = userDoc[APIField.ownedWaifus];
+          const trader2Waifus = targetDoc[APIField.ownedWaifus];
           Object.keys(has).forEach((id) => {
             const waifuId = Number.parseInt(id, 10);
             trader1Waifus.splice(trader1Waifus.indexOf(waifuId), 1);
@@ -280,8 +277,8 @@ const formatter: CommandFormatter<WTradeResponse, WTradeResponse> = (
             trader2Waifus.splice(trader2Waifus.indexOf(waifuId), 1);
             trader1Waifus.push(waifuId);
           });
-          await userModel.save();
-          await targetModel.save();
+          await userDoc.save();
+          await targetDoc.save();
           confirmationMessage.setContent(
             `${user} ${target} You accepted the trade.`
           );

@@ -3,9 +3,9 @@ import {
   CommandCallback,
   CommandResult,
   TargetedUserParams,
-} from 'rosiebot/src/commands/types';
-import { getUsersFromMentionsStr } from 'rosiebot/src/util/string';
-import { StatusCode } from 'rosiebot/src/util/enums';
+} from '@commands/types';
+import { getUsersFromMentionsStr } from '@util/string';
+import { StatusCode } from '@util/enums';
 
 export const processTargetedCommand = async <ResultType>(
   msg: Message,

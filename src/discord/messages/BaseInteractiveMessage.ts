@@ -1,3 +1,4 @@
+import { EventEmitter } from 'events';
 import {
   DMChannel,
   Guild,
@@ -7,32 +8,18 @@ import {
   TextChannel,
   User,
 } from 'discord.js';
-import {
-  logModuleError,
-  logModuleInfo,
-  logModuleWarning,
-} from 'rosiebot/src/util/logger';
-import { EventEmitter } from 'events';
-import { StatusCode } from 'rosiebot/src/util/enums';
-
-export enum Button {
-  Forward = '▶️',
-  Backward = '◀️',
-  FastForward = '⏭',
-  Rewind = '⏮',
-  Jump = '⤴️',
-  Checkmark = '✅',
-  Cancel = '🚫',
-  MoneyBag = '💰',
-}
+import { logModuleError, logModuleInfo, logModuleWarning } from '@util/logger';
+import { Button, StatusCode } from '@util/enums';
 
 export type Buttons<T> = Partial<Record<Button, ButtonCallback<T>>>;
+
 export type ButtonCallback<T> = (
   instance: BaseInteractiveMessage<T>,
   sender: User,
   guild?: Guild,
   data?: T
 ) => Promise<StatusCode>;
+
 export default abstract class BaseInteractiveMessage<T> extends EventEmitter {
   protected _deleteOnTimeout: boolean;
 

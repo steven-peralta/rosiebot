@@ -1,18 +1,18 @@
-import { User as DiscordUser } from 'discord.js';
 import {
   CommandBuilder,
-  CommandFormatter,
   CommandCallback,
+  CommandFormatter,
   CommandMetadata,
   CommandProcessor,
   CommandResult,
   TargetedUserParams,
-} from 'rosiebot/src/commands/types';
-import UserModel from 'rosiebot/src/db/models/User';
-import { Command, StatusCode, ErrorMessage } from 'rosiebot/src/util/enums';
-import APIField from 'rosiebot/src/util/APIField';
-import { processTargetedCommand } from 'rosiebot/src/commands/processors';
-import { logCommandException } from 'rosiebot/src/commands/logging';
+} from '@commands/types';
+import { Command, ErrorMessage, StatusCode } from '@util/enums';
+import APIField from '@util/APIField';
+import { logCommandException } from '@commands/logging';
+import { processTargetedCommand } from '@commands/processors';
+import { User as DiscordUser } from 'discord.js';
+import { userModel } from '@db/models/User';
 
 export interface WCoinsResponse {
   coins: number;
@@ -35,8 +35,8 @@ const command: CommandCallback<WCoinsResponse, TargetedUserParams> = async (
 
     try {
       const user = target
-        ? await UserModel.findOneOrCreate(target, guild)
-        : await UserModel.findOneOrCreate(sender, guild);
+        ? await userModel.findOneOrCreate(target, guild)
+        : await userModel.findOneOrCreate(sender, guild);
       if (user) {
         return {
           statusCode: StatusCode.Success,

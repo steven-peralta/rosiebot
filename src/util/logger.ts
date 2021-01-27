@@ -1,5 +1,5 @@
-import { createLogger, format, transports } from 'winston';
 import { resolve } from 'url';
+import { createLogger, format, transports } from 'winston';
 import * as fs from 'fs';
 import path from 'path';
 

@@ -1,10 +1,8 @@
+import BaseInteractiveMessage from '@discord/messages/BaseInteractiveMessage';
+import InteractiveMessage from '@discord/messages/InteractiveMessage';
 import { Message, Snowflake, StringResolvable, User } from 'discord.js';
-import { logModuleWarning } from 'rosiebot/src/util/logger';
-import BaseInteractiveMessage, {
-  Button,
-} from 'rosiebot/src/discord/messages/BaseInteractiveMessage';
-import InteractiveMessage from 'rosiebot/src/discord/messages/InteractiveMessage';
-import { StatusCode } from 'rosiebot/src/util/enums';
+import { Button, StatusCode } from '@util/enums';
+import { logModuleWarning } from '@util/logger';
 
 export default class PaginationMessage<T> extends BaseInteractiveMessage<T> {
   private _currentPage: number;

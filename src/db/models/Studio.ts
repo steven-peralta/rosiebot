@@ -1,3 +1,4 @@
+import APIField from '@util/APIField';
 import {
   getModelForClass,
   index,
@@ -5,15 +6,14 @@ import {
   ReturnModelType,
 } from '@typegoose/typegoose';
 import { Base } from '@typegoose/typegoose/lib/defaultClasses';
-import APIField from 'rosiebot/src/util/APIField';
-import { MwlStudio } from 'rosiebot/src/api/mwl/types';
-import { LoggingModule, logModuleError } from 'rosiebot/src/util/logger';
+import { MwlStudio } from '@api/mwl/types';
+import { LoggingModule, logModuleError } from '@util/logger';
 
 @index({
   [APIField.name]: 'text',
   [APIField.originalName]: 'text',
 })
-export class Studio extends Base<number> {
+export default class Studio extends Base<number> {
   @prop()
   public [APIField._id]!: number;
 
@@ -32,7 +32,7 @@ export class Studio extends Base<number> {
 
       if (record) return record;
 
-      return StudioModel.create({
+      return studioModel.create({
         [APIField._id]: mwlStudio[APIField.id],
         [APIField.name]: mwlStudio[APIField.name],
         [APIField.originalName]: mwlStudio[APIField.originalName],
@@ -47,6 +47,4 @@ export class Studio extends Base<number> {
   }
 }
 
-const StudioModel = getModelForClass(Studio);
-
-export default StudioModel;
+export const studioModel = getModelForClass(Studio);

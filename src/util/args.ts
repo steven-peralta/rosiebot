@@ -1,8 +1,8 @@
-import { QueryOptions } from 'rosiebot/src/db/types';
-import { FilterQuery } from 'mongoose';
 import { DocumentType } from '@typegoose/typegoose';
-import APIField from 'rosiebot/src/util/APIField';
-import { Waifu } from 'rosiebot/src/db/models/Waifu';
+import { FilterQuery } from 'mongoose';
+import { QueryOptions } from '@db/types';
+import Waifu from '@db/models/Waifu';
+import APIField from '@util/APIField';
 
 export const parseWaifuSearchArgs = (args: string[]): QueryOptions<Waifu> => {
   const conditions: FilterQuery<DocumentType<Waifu>> = {};

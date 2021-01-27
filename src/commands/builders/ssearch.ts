@@ -6,15 +6,15 @@ import {
   CommandProcessor,
   DiscordResponseContent,
   SeriesSearchParams,
-} from 'rosiebot/src/commands/types';
-import { Command, ErrorMessage, StatusCode } from 'rosiebot/src/util/enums';
-import SeriesModel, { Series } from 'rosiebot/src/db/models/Series';
-import WaifuModel, { Waifu } from 'rosiebot/src/db/models/Waifu';
-import StudioModel, { Studio } from 'rosiebot/src/db/models/Studio';
-import APIField from 'rosiebot/src/util/APIField';
-import { pagedInteractiveSeriesMessage } from 'rosiebot/src/discord/embeds/series';
-import brandingEmbed from 'rosiebot/src/discord/embeds/branding';
-import { pagedInteractiveWaifuMessage } from 'rosiebot/src/discord/embeds/waifu';
+} from '@commands/types';
+import { Command, ErrorMessage, StatusCode } from '@util/enums';
+import Studio, { studioModel } from '@db/models/Studio';
+import Series, { seriesModel } from '@db/models/Series';
+import Waifu, { waifuModel } from '@db/models/Waifu';
+import APIField from '@util/APIField';
+import { pagedInteractiveSeriesMessage } from '@discord/embeds/series';
+import brandingEmbed from '@discord/embeds/brandingEmbed';
+import { pagedInteractiveWaifuMessage } from '@discord/embeds/waifu';
 
 const metadata: CommandMetadata = {
   name: Command.ssearch,
@@ -36,34 +36,33 @@ const command: CommandCallback<SeriesResults, SeriesSearchParams> = async (
   if (params) {
     const { text } = params;
     if (params.studio) {
-      const [studioDoc] = await StudioModel.find(
-        { $text: { $search: text } },
-        { score: { $meta: 'textScore' } }
-      )
+      const [studioDoc] = await studioModel
+        .find({ $text: { $search: text } }, { score: { $meta: 'textScore' } })
         .sort({ score: { $meta: 'textScore' } })
         .limit(1)
         .lean()
         .populate(APIField.series);
-      const seriesDocs = await SeriesModel.find({
-        [APIField.studio]: studioDoc[APIField._id],
-      }).lean();
+      const seriesDocs = await seriesModel
+        .find({
+          [APIField.studio]: studioDoc[APIField._id],
+        })
+        .lean();
       return {
         time: Date.now() - start,
         statusCode: StatusCode.Success,
         data: { studio: studioDoc, series: seriesDocs },
       };
     }
-    const [seriesDoc] = await SeriesModel.find(
-      { $text: { $search: text } },
-      { score: { $meta: 'textScore' } }
-    )
+    const [seriesDoc] = await seriesModel
+      .find({ $text: { $search: text } }, { score: { $meta: 'textScore' } })
       .sort({ score: { $meta: 'textScore' } })
       .limit(1)
       .lean()
       .populate(APIField.studio);
-    const waifuDocs = await WaifuModel.find({
-      [APIField.series]: seriesDoc[APIField._id],
-    })
+    const waifuDocs = await waifuModel
+      .find({
+        [APIField.series]: seriesDoc[APIField._id],
+      })
       .sort({ [APIField.likes]: -1 })
       .lean()
       .populate(APIField.appearances);

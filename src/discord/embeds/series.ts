@@ -1,9 +1,9 @@
+import Series from '@db/models/Series';
 import { MessageEmbedOptions, StringResolvable, User } from 'discord.js';
-import { Series } from 'rosiebot/src/db/models/Series';
-import APIField from 'rosiebot/src/util/APIField';
-import { truncateString } from 'rosiebot/src/util/string';
-import PaginationMessage from 'rosiebot/src/discord/messages/PaginationMessage';
-import InteractiveMessage from 'rosiebot/src/discord/messages/InteractiveMessage';
+import APIField from '@util/APIField';
+import { truncateString } from '@util/string';
+import PaginationMessage from '@discord/messages/PaginationMessage';
+import InteractiveMessage from '@discord/messages/InteractiveMessage';
 
 export const seriesEmbed = (series: Series): MessageEmbedOptions => {
   const {

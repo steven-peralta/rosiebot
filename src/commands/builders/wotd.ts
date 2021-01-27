@@ -1,17 +1,17 @@
-import WaifuModel, { Waifu } from 'rosiebot/src/db/models/Waifu';
+import Waifu, { waifuModel } from '@db/models/Waifu';
 import {
   CommandBuilder,
-  CommandFormatter,
   CommandCallback,
+  CommandFormatter,
   CommandMetadata,
   CommandProcessor,
   CommandResult,
-} from 'rosiebot/src/commands/types';
-import randomOrgAPI from 'rosiebot/src/api/random-org/RandomOrgAPI';
-import { Command, StatusCode } from 'rosiebot/src/util/enums';
-import APIField from 'rosiebot/src/util/APIField';
-import { formatWaifuResults } from 'rosiebot/src/commands/formatters';
-import { logCommandException } from 'rosiebot/src/commands/logging';
+} from '@commands/types';
+import { Command, StatusCode } from '@util/enums';
+import APIField from '@util/APIField';
+import { logCommandException } from '@commands/logging';
+import { formatWaifuResults } from '@commands/formatters';
+import randomOrg from '@api/random-org/randomOrg';
 
 interface Wotd {
   waifu: Waifu;
@@ -28,8 +28,8 @@ const metadata: CommandMetadata = {
 
 export const getWotd = async (): Promise<Wotd | undefined> => {
   if (!currentWotd || Date.now() >= currentWotd.expiresOn.getTime()) {
-    const random = await randomOrgAPI.generateInteger(1, 5);
-    const waifu = await WaifuModel.getRandom({ [APIField.tier]: random });
+    const random = await randomOrg.generateInteger(1, 5);
+    const waifu = await waifuModel.getRandom({ [APIField.tier]: random });
     const expiresOn = new Date();
     expiresOn.setHours(24, 0, 0, 0);
     if (waifu) {

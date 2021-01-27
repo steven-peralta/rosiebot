@@ -5,24 +5,18 @@ import {
   MessageEditOptions,
   MessageEmbed,
 } from 'discord.js';
-import config from 'rosiebot/src/config';
-import commands from 'rosiebot/src/commands/commands';
-import { Command } from 'rosiebot/src/util/enums';
+import config from '@config';
+import commands from '@commands/commands';
+import { Command } from '@util/enums';
 import {
   LoggingModule,
   logModuleError,
   logModuleInfo,
   logModuleWarning,
-} from 'rosiebot/src/util/logger';
-import {
-  logCommandException,
-  logCommandStatus,
-} from 'rosiebot/src/commands/logging';
-import {
-  CommandFormatter,
-  CommandResponseType,
-} from 'rosiebot/src/commands/types';
-import { Waifu } from 'rosiebot/src/db/models/Waifu';
+} from '@util/logger';
+import { CommandFormatter, CommandResponseType } from '@commands/types';
+import Waifu from '@db/models/Waifu';
+import { logCommandException, logCommandStatus } from '@commands/logging';
 
 const parseCommand = async (msg: Message) => {
   const { content, channel, author } = msg;
@@ -122,7 +116,7 @@ const parseCommand = async (msg: Message) => {
   }
 };
 
-const hookEvents = (client: Client): void => {
+const discordEvents = (client: Client): void => {
   client.on('ready', () => {
     logModuleInfo(
       `Discord client ready. Logged in as ${client.user?.tag}`,
@@ -170,4 +164,4 @@ const hookEvents = (client: Client): void => {
   });
 };
 
-export default hookEvents;
+export default discordEvents;

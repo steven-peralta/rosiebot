@@ -1,8 +1,8 @@
-import { MessageEmbedOptions, Snowflake, StringResolvable } from 'discord.js';
-import { logModuleWarning } from 'rosiebot/src/util/logger';
 import BaseInteractiveMessage, {
   Buttons,
-} from 'rosiebot/src/discord/messages/BaseInteractiveMessage';
+} from '@discord/messages/BaseInteractiveMessage';
+import { MessageEmbedOptions, Snowflake, StringResolvable } from 'discord.js';
+import { logModuleWarning } from '@util/logger';
 
 export default class InteractiveMessage<T> extends BaseInteractiveMessage<T> {
   private _embed?: MessageEmbedOptions;

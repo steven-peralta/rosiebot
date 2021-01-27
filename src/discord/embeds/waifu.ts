@@ -1,18 +1,17 @@
+import Waifu from '@db/models/Waifu';
 import {
   MessageEmbedOptions,
   StringResolvable,
   User as DiscordUser,
 } from 'discord.js';
-import { Waifu } from 'rosiebot/src/db/models/Waifu';
-import APIField from 'rosiebot/src/util/APIField';
-import { truncateString } from 'rosiebot/src/util/string';
-import { Series } from 'rosiebot/src/db/models/Series';
-import { Button } from 'rosiebot/src/discord/messages/BaseInteractiveMessage';
-import UserModel, { User } from 'rosiebot/src/db/models/User';
-import { StatusCode } from 'rosiebot/src/util/enums';
-import config from 'rosiebot/src/config';
-import PaginationMessage from 'rosiebot/src/discord/messages/PaginationMessage';
-import InteractiveMessage from 'rosiebot/src/discord/messages/InteractiveMessage';
+import APIField from '@util/APIField';
+import { truncateString } from '@util/string';
+import PaginationMessage from '@discord/messages/PaginationMessage';
+import InteractiveMessage from '@discord/messages/InteractiveMessage';
+import { Button, StatusCode } from '@util/enums';
+import User, { userModel } from '@db/models/User';
+import Series from '@db/models/Series';
+import config from '@config';
 
 export const waifuEmbed = (waifu: Waifu): MessageEmbedOptions => {
   const {
@@ -227,7 +226,7 @@ export const pagedInteractiveWaifuMessage = (
   deleteOnTimeout = false,
   content?: StringResolvable,
   authorizedUsers?: DiscordUser[],
-  userModel?: User
+  userDoc?: User
 ): PaginationMessage<Waifu> => {
   const paginationMessage = new PaginationMessage<Waifu>(
     deleteOnTimeout,
@@ -239,10 +238,8 @@ export const pagedInteractiveWaifuMessage = (
   );
   const interactiveEmbeds = waifu.map((w) => {
     let showSellButton = false;
-    if (userModel) {
-      showSellButton = userModel[APIField.ownedWaifus].includes(
-        w[APIField._id]
-      );
+    if (userDoc) {
+      showSellButton = userDoc[APIField.ownedWaifus].includes(w[APIField._id]);
     }
     return interactiveWaifuMessage(
       w,
@@ -274,7 +271,7 @@ export const sellConfirmation = (
       [Button.Checkmark]: async (instance, _user, guild) => {
         const typedInstance = instance as InteractiveMessage<Waifu>;
         if (guild) {
-          const dbUser = await UserModel.findOne({
+          const dbUser = await userModel.findOne({
             [APIField.userId]: user.id,
             [APIField.serverId]: guild.id,
           });

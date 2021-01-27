@@ -5,23 +5,19 @@ import {
   Ref,
   ReturnModelType,
 } from '@typegoose/typegoose';
+import APIField from '@util/APIField';
 import { Base } from '@typegoose/typegoose/lib/defaultClasses';
-import APIField from 'rosiebot/src/util/APIField';
-import StudioModel, { Studio } from 'rosiebot/src/db/models/Studio';
-import { MwlStudio } from 'rosiebot/src/api/mwl/types';
-import waifuAPI from 'rosiebot/src/api/mwl/WaifuAPI';
-import {
-  LoggingModule,
-  logModuleError,
-  logModuleInfo,
-} from 'rosiebot/src/util/logger';
+import Studio, { studioModel } from '@db/models/Studio';
+import { MwlStudio } from '@api/mwl/types';
+import mwl from '@api/mwl/mwl';
+import { LoggingModule, logModuleError, logModuleInfo } from '@util/logger';
 
 @index({
   [APIField.name]: 'text',
   [APIField.originalName]: 'text',
   [APIField.romajiName]: 'text',
 })
-export class Series extends Base<number> {
+export default class Series extends Base<number> {
   @prop()
   public [APIField._id]!: number;
 
@@ -75,13 +71,13 @@ export class Series extends Base<number> {
           : await this.findOne({ [APIField.mwlSlug]: mwlId });
 
       if (record) return record;
-      const mwlSeries = await waifuAPI.getSeries(mwlId);
+      const mwlSeries = await mwl.getSeries(mwlId);
 
       if (mwlSeries) {
         let studio;
 
         if (mwlSeries[APIField.studio]) {
-          studio = await StudioModel.findOneOrCreate(
+          studio = await studioModel.findOneOrCreate(
             <MwlStudio>mwlSeries[APIField.studio]
           );
 
@@ -94,7 +90,7 @@ export class Series extends Base<number> {
           `Caching series data for ${mwlSeries[APIField.name]}`,
           LoggingModule.DB
         );
-        return SeriesModel.create({
+        return seriesModel.create({
           [APIField._id]: mwlSeries[APIField.id],
           [APIField.mwlSlug]: mwlSeries[APIField.slug],
           [APIField.mwlUrl]: mwlSeries[APIField.url],
@@ -122,6 +118,4 @@ export class Series extends Base<number> {
   }
 }
 
-const SeriesModel = getModelForClass(Series);
-
-export default SeriesModel;
+export const seriesModel = getModelForClass(Series);

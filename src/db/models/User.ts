@@ -1,23 +1,19 @@
 import {
-  DocumentType,
   getModelForClass,
   index,
   prop,
   Ref,
   ReturnModelType,
+  DocumentType,
 } from '@typegoose/typegoose';
+import APIField from '@util/APIField';
 import { Base } from '@typegoose/typegoose/lib/defaultClasses';
-import { Guild, User as DiscordUser } from 'discord.js';
-import APIField from 'rosiebot/src/util/APIField';
-import { Waifu } from 'rosiebot/src/db/models/Waifu';
-import {
-  LoggingModule,
-  logModuleError,
-  logModuleInfo,
-} from 'rosiebot/src/util/logger';
+import Waifu from '@db/models/Waifu';
+import { User as DiscordUser, Guild } from 'discord.js';
+import { LoggingModule, logModuleError, logModuleInfo } from '@util/logger';
 
 @index({ [APIField.userId]: 1, [APIField.serverId]: 1 }, { unique: true })
-export class User extends Base {
+export default class User extends Base {
   @prop()
   [APIField.userId]!: string;
 
@@ -113,6 +109,4 @@ export class User extends Base {
   }
 }
 
-const UserModel = getModelForClass(User);
-
-export default UserModel;
+export const userModel = getModelForClass(User);

@@ -3,7 +3,12 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "rosiebot/*": ["./*"],
+      "@api/*": ["./src/api/*"],
+      "@commands/*": ["./src/commands/*"],
+      "@db/*": ["./src/db/*"],
+      "@discord/*": ["./src/discord/*"],
+      "@util/*": ["./src/util/*"],
+      "@config": ["./src/config"]
     },
     "incremental": true,
     "experimentalDecorators": true,
@@ -17,8 +22,8 @@
     "alwaysStrict": true,                  /* Parse in strict mode and emit "use strict" for each source file. */
     "resolveJsonModule": true,
     "outDir": "dist",
-    "sourceMap": true,
-    "moduleResolution": "node",
+    "sourceMap": false,
+    "moduleResolution": "node"
   },
   "include": ["src/**/*", "scripts/**/*"],
   "exclude": ["node_modules", "**/*.spec.ts"]

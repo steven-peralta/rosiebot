@@ -1,10 +1,10 @@
 /* eslint-disable no-console, no-await-in-loop, no-restricted-syntax, no-continue */
-
 import Mongoose from 'mongoose';
+
 import { Client, Snowflake } from 'discord.js';
-import config from '../src/config';
-import WaifuModel from '../src/db/models/Waifu';
-import UserModel from '../src/db/models/User';
+import { userModel } from '@db/models/User';
+import { waifuModel } from '@db/models/Waifu';
+import config from '@config';
 
 const { mongodbUri } = config;
 const db = Mongoose.connection;
@@ -55,7 +55,7 @@ async function start() {
 
     const newWaifuList = [];
     for (let i = 0; i < ownedWaifus.length; i += 1) {
-      const waifu = await WaifuModel.findById(ownedWaifus[i]).lean();
+      const waifu = await waifuModel.findById(ownedWaifus[i]).lean();
       if (!waifu) {
         coins += 200;
       } else {
@@ -75,7 +75,7 @@ async function start() {
       owned_waifus: newWaifuList,
     };
 
-    await UserModel.create(newUserData);
+    await userModel.create(newUserData);
   }
 
   console.log('done');

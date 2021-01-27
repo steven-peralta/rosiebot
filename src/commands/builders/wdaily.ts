@@ -1,4 +1,3 @@
-import { Command, ErrorMessage, StatusCode } from 'rosiebot/src/util/enums';
 import {
   CommandBuilder,
   CommandCallback,
@@ -6,11 +5,12 @@ import {
   CommandMetadata,
   CommandProcessor,
   UserParams,
-} from 'rosiebot/src/commands/types';
-import RandomOrgAPI from 'rosiebot/src/api/random-org/RandomOrgAPI';
-import config from 'src/config';
-import UserModel from 'rosiebot/src/db/models/User';
-import APIField from 'rosiebot/src/util/APIField';
+} from '@commands/types';
+import { Command, ErrorMessage, StatusCode } from '@util/enums';
+import APIField from '@util/APIField';
+import config from '@config';
+import { userModel } from '@db/models/User';
+import randomOrg from '@api/random-org/randomOrg';
 
 const metadata: CommandMetadata = {
   name: Command.wdaily,
@@ -28,11 +28,11 @@ interface WDailyResponse {
 const command: CommandCallback<WDailyResponse, UserParams> = async (params) => {
   if (params) {
     const { sender, guild } = params;
-    const user = await UserModel.findOneOrCreate(sender, guild);
+    const user = await userModel.findOneOrCreate(sender, guild);
     if (user) {
       const { [APIField.dailyLastClaimed]: lastClaimed } = user;
       if ((Date.now() - lastClaimed.getTime()) / 1000 > 86400) {
-        const roll = await RandomOrgAPI.generateInteger(1, 100);
+        const roll = await randomOrg.generateInteger(1, 100);
         let coins = config.daily;
         let criticalRoll = false;
         if (roll === 1) {

@@ -1,6 +1,6 @@
 import Mongoose from 'mongoose';
-import { LoggingModule, logModuleError } from 'rosiebot/src/util/logger';
-import config from 'rosiebot/src/config';
+import config from '@config';
+import { LoggingModule, logModuleError } from '@util/logger';
 
 const initDb = () => {
   Mongoose.connect(config.mongodbUri, {
@@ -20,6 +20,6 @@ const initDb = () => {
   return Mongoose.connection;
 };
 
-const dbInstance = initDb();
+const db = initDb();
 
-export default dbInstance;
+export default db;

@@ -1,10 +1,6 @@
-import {
-  logModuleError,
-  logModuleInfo,
-  logModuleWarning,
-} from 'rosiebot/src/util/logger';
-import { CommandMetadata } from 'rosiebot/src/commands/types';
-import { StatusCode } from 'rosiebot/src/util/enums';
+import { CommandMetadata } from '@commands/types';
+import { logModuleError, logModuleInfo, logModuleWarning } from '@util/logger';
+import { StatusCode } from '@util/enums';
 
 export const logCommandException = (
   exception: Error,

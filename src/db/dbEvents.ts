@@ -1,11 +1,7 @@
 import { Connection } from 'mongoose';
-import {
-  LoggingModule,
-  logModuleError,
-  logModuleInfo,
-} from 'rosiebot/src/util/logger';
+import { LoggingModule, logModuleError, logModuleInfo } from '@util/logger';
 
-const hookEvents = (db: Connection): void => {
+const dbEvents = (db: Connection): void => {
   db.on('connecting', () => {
     logModuleInfo('Connecting to MongoDB...', LoggingModule.DB);
   });
@@ -35,4 +31,4 @@ const hookEvents = (db: Connection): void => {
   });
 };
 
-export default hookEvents;
+export default dbEvents;

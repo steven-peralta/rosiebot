@@ -6,38 +6,26 @@ import {
   Ref,
   ReturnModelType,
 } from '@typegoose/typegoose';
+import APIField from '@util/APIField';
 import { Base } from '@typegoose/typegoose/lib/defaultClasses';
+import Series, { seriesModel } from '@db/models/Series';
+import mwl from '@api/mwl/mwl';
+import { LoggingModule, logModuleError, logModuleInfo } from '@util/logger';
 import { FilterQuery, QueryFindOptions } from 'mongoose';
-import APIField from 'rosiebot/src/util/APIField';
-import SeriesModel, { Series } from 'rosiebot/src/db/models/Series';
-import waifuAPI from 'rosiebot/src/api/mwl/WaifuAPI';
-import randomOrgAPI from 'rosiebot/src/api/random-org/RandomOrgAPI';
+import randomOrg from '@api/random-org/randomOrg';
+import { Tier } from '@util/enums';
+import { QueryOptions } from '@db/types';
 import hash from 'object-hash';
-import {
-  LoggingModule,
-  logModuleError,
-  logModuleInfo,
-} from 'rosiebot/src/util/logger';
-import { QueryOptions } from 'rosiebot/src/db/types';
 import Timeout = NodeJS.Timeout;
 
-const cachedQueries: Record<string, Waifu[]> = {};
-const timeouts: Record<string, Timeout> = {};
-
-export enum Tier {
-  S = 5, // top 1% of waifus
-  A = 4, // next 6% of waifus
-  B = 3, // next 16% of waifus
-  C = 2, // next 26% of waifus
-  D = 1, // next 51% of waifus
-}
-
+export const cachedQueries: Record<string, Waifu[]> = {};
+export const timeouts: Record<string, Timeout> = {};
 @index({
   [APIField.name]: 'text',
   [APIField.originalName]: 'text',
   [APIField.romajiName]: 'text',
 })
-export class Waifu extends Base<number> {
+export default class Waifu extends Base<number> {
   @prop()
   public [APIField._id]!: number;
 
@@ -141,14 +129,14 @@ export class Waifu extends Base<number> {
 
       if (record) return record;
 
-      const mwlWaifu = await waifuAPI.getWaifu(mwlId);
+      const mwlWaifu = await mwl.getWaifu(mwlId);
 
       if (mwlWaifu) {
         const appearances = (
           await Promise.all(
             (mwlWaifu[APIField.appearances] ?? [])
               .map((appearance) => appearance[APIField.slug])
-              .map((slug) => SeriesModel.findOneOrFetchFromMwl(slug))
+              .map((slug) => seriesModel.findOneOrFetchFromMwl(slug))
           )
         ).map((doc) => doc?.[APIField._id] ?? 0); // if the series doc some how ends up being undefined, use a predetermined id value
 
@@ -157,7 +145,7 @@ export class Waifu extends Base<number> {
           mwlWaifu[APIField.series] &&
           mwlWaifu[APIField.series]?.[APIField.slug]
         ) {
-          series = await SeriesModel.findOneOrFetchFromMwl(
+          series = await seriesModel.findOneOrFetchFromMwl(
             mwlWaifu[APIField.series]?.[APIField.slug] ?? 1
           );
           if (series) {
@@ -226,7 +214,7 @@ export class Waifu extends Base<number> {
       if (query && query.length > 0) {
         const max = query.length;
         const min = 0;
-        const randInt = await randomOrgAPI.generateInteger(min, max);
+        const randInt = await randomOrg.generateInteger(min, max);
         const waifu = query[randInt];
         if (waifu) return waifu;
       }
@@ -377,6 +365,4 @@ export class Waifu extends Base<number> {
   }
 }
 
-const WaifuModel = getModelForClass(Waifu);
-
-export default WaifuModel;
+export const waifuModel = getModelForClass(Waifu);

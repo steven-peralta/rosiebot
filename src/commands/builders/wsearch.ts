@@ -1,17 +1,17 @@
-import { Message } from 'discord.js';
 import {
   CommandBuilder,
-  CommandFormatter,
   CommandCallback,
+  CommandFormatter,
   CommandMetadata,
   CommandProcessor,
   CommandResult,
-} from 'rosiebot/src/commands/types';
-import { Command, StatusCode } from 'rosiebot/src/util/enums';
-import WaifuModel, { Waifu } from 'rosiebot/src/db/models/Waifu';
-import { formatWaifuResults } from 'rosiebot/src/commands/formatters';
-import { logCommandException } from 'rosiebot/src/commands/logging';
-import { parseWaifuSearchArgs } from 'rosiebot/src/util/args';
+} from '@commands/types';
+import { Command, StatusCode } from '@util/enums';
+import Waifu, { waifuModel } from '@db/models/Waifu';
+import { parseWaifuSearchArgs } from '@util/args';
+import { logCommandException } from '@commands/logging';
+import { Message } from 'discord.js';
+import { formatWaifuResults } from '@commands/formatters';
 
 const metadata: CommandMetadata = {
   name: Command.wsearch,
@@ -27,7 +27,7 @@ const command: CommandCallback<Waifu[], { args: string[] }> = async (
     try {
       const start = Date.now();
       const queryOptions = parseWaifuSearchArgs(args.args);
-      const data = await WaifuModel.leanWaifuQuery(
+      const data = await waifuModel.leanWaifuQuery(
         queryOptions.conditions,
         queryOptions.sort,
         queryOptions.projection
@@ -67,11 +67,11 @@ const formatter: CommandFormatter<Waifu[], Waifu> = (result, user) =>
     result.time
   );
 
-const builder: CommandBuilder<Waifu[], { args: string[] }, Waifu> = {
+const wsearch: CommandBuilder<Waifu[], { args: string[] }, Waifu> = {
   metadata,
   processor,
   formatter,
   command,
 };
 
-export default builder;
+export default wsearch;

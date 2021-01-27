@@ -1,21 +1,21 @@
+import { ErrorMessage, StatusCode } from '@util/enums';
 import { StringResolvable, User as DiscordUser } from 'discord.js';
-import { Waifu } from 'rosiebot/src/db/models/Waifu';
-import { ErrorMessage, StatusCode } from 'rosiebot/src/util/enums';
+import Waifu from '@db/models/Waifu';
+import User from '@db/models/User';
+import { DiscordResponseContent } from '@commands/types';
+import APIField from '@util/APIField';
 import {
   interactiveWaifuMessage,
   pagedInteractiveWaifuMessage,
-} from 'rosiebot/src/discord/embeds/waifu';
-import brandingEmbed from 'rosiebot/src/discord/embeds/branding';
-import { User } from 'rosiebot/src/db/models/User';
-import APIField from 'rosiebot/src/util/APIField';
-import { DiscordResponseContent } from 'rosiebot/src/commands/types';
+} from '@discord/embeds/waifu';
+import brandingEmbed from '@discord/embeds/brandingEmbed';
 
 export const formatWaifuResults = (
   statusCode: StatusCode,
   content: StringResolvable = '',
   data: Waifu[] | Waifu | undefined,
   sender: DiscordUser,
-  userModel?: User,
+  userDoc?: User,
   authorizedUsers?: DiscordUser[],
   time?: number
 ): DiscordResponseContent<Waifu> => {
@@ -30,8 +30,8 @@ export const formatWaifuResults = (
         if (data.length === 1) {
           const waifu = data[0];
           let showSellButton = false;
-          if (userModel) {
-            showSellButton = userModel[APIField.ownedWaifus].includes(
+          if (userDoc) {
+            showSellButton = userDoc[APIField.ownedWaifus].includes(
               waifu[APIField._id]
             );
           }
@@ -53,13 +53,13 @@ export const formatWaifuResults = (
             false,
             content,
             authorizedUsers,
-            userModel
+            userDoc
           ),
         };
       }
       let showSellButton = false;
-      if (userModel) {
-        showSellButton = userModel[APIField.ownedWaifus].includes(
+      if (userDoc) {
+        showSellButton = userDoc[APIField.ownedWaifus].includes(
           data[APIField._id]
         );
       }

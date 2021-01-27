@@ -5,7 +5,7 @@
     "type": "git",
     "url": "https://github.com/steven-peralta/rosiebot"
   },
-  "main": "src/index.ts",
+  "main": "src/bot.ts",
   "license": "MIT",
   "dependencies": {
     "@typegoose/typegoose": "^7.4.5",
@@ -15,6 +15,9 @@
     "axios": "^0.21.1",
     "axios-rate-limit": "^1.2.1",
     "discord.js": "^12.2.0",
+    "eslint-import-resolver-alias": "^1.1.2",
+    "eslint-import-resolver-node": "^0.3.4",
+    "module-alias": "^2.2.2",
     "mongodb": "^3.6.3",
     "mongoose": "^5.9.25",
     "object-hash": "^2.1.1",
@@ -47,8 +50,8 @@
   },
   "scripts": {
     "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "ts-node-dev -r tsconfig-paths/register --clear --respawn src/index.ts",
+    "start": "node dist/src/bot.js",
+    "dev": "ts-node-dev -r tsconfig-paths/register --clear --respawn src/bot.ts",
     "test": "echo 'no test'"
   },
   "engines": {
@@ -78,5 +81,13 @@
         "prerelease": true
       }
     ]
+  },
+  "_moduleAliases": {
+    "@api": "./dist/src/api",
+    "@commands": "./dist/src/commands",
+    "@db": "./dist/src/db",
+    "@discord": "./dist/src/discord",
+    "@util": "./dist/src/util",
+    "@config": "./dist/src/config.js"
   }
 }
