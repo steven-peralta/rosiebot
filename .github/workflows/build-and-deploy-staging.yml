@@ -16,15 +16,22 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Build and test (Node ${{ matrix.node-version }})
+    - name: Setup Node ${{ matrix.node-version }})
       uses: actions/setup-node@v1
       with:
         node-version: ${{ matrix.node-version }}
-      run: |
-        yarn
-        yarn lint
-        tsc
-        yarn test
+
+    - name: Install dependencies
+      run: yarn
+
+    - name: Lint
+      run: yarn lint
+
+    - name: Build
+      run: tsc
+
+    - name: Test
+      run: yarn test
 
     - name: Archive artifacts
       uses: actions/upload-artifact@v2
