@@ -4,7 +4,7 @@ WORKDIR /usr/rosiebot
 
 COPY package*.json ./
 
-RUN npm install --global yarn && yarn
+RUN yarn
 
 COPY . .
 
