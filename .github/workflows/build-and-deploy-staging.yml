@@ -48,7 +48,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     env:
-      AWS_REGION: us-east-2
+      AWS_REGION: us-east-1
       ECR_REPOSITORY: rosiebot-staging
       ECS_SERVICE: rosiebot-staging
       ECS_CLUSTER: rosiebot-staging
