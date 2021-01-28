@@ -56,13 +56,13 @@ jobs:
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
           task-definition: .aws/rosiebot-staging.json
-          container-name: $CONTAINER_NAME
+          container-name: staging
           image: $image
 
       - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: $ECS_SERVICE
-          cluster: $ECS_CLUSTER
+          service: rosiebot-staging
+          cluster: rosiebot-staging
           wait-for-service-stability: true
