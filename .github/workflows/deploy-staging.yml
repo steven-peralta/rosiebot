@@ -2,9 +2,9 @@ name: Deploy to Amazon ECS
 
 on:
   push:
-    branches: [staging]
+    branches: [master, staging]
   pull_request:
-    branches: [staging]
+    branches: [master, staging]
 
 env:
   AWS_REGION: us-east-2                   # set this to your preferred AWS region, e.g. us-west-1
