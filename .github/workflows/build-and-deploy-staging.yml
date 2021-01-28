@@ -16,7 +16,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Setup Node ${{ matrix.node-version }})
+    - name: Setup Node ${{ matrix.node-version }}
       uses: actions/setup-node@v1
       with:
         node-version: ${{ matrix.node-version }}
@@ -38,6 +38,7 @@ jobs:
       with:
         name: rosiebot-${{ matrix.node-version }}
         path: |
+          .aws
           dist
           package.json
           yarn.lock
