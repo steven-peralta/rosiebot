@@ -55,7 +55,7 @@ jobs:
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
-          task-definition: $ECS_TASK_DEFINITION
+          task-definition: .aws/rosiebot-staging.json
           container-name: $CONTAINER_NAME
           image: $image
 
