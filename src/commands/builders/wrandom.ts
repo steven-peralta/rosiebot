@@ -22,7 +22,7 @@ const command: CommandCallback<Waifu, undefined> = async (): Promise<
 > => {
   try {
     const start = Date.now();
-    const doc = await waifuModel.getRandom();
+    const doc = await waifuModel.random();
     if (doc) {
       return {
         data: doc,

@@ -11,7 +11,7 @@ import { Command, StatusCode } from '@util/enums';
 import APIField from '@util/APIField';
 import { logCommandException } from '@commands/logging';
 import formatWaifuResults from '@commands/formatters';
-import randomOrg from '@api/random-org/randomOrg';
+import * as crypto from 'crypto';
 
 interface Wotd {
   waifu: Waifu;
@@ -28,8 +28,8 @@ const metadata: CommandMetadata = {
 
 export const getWotd = async (): Promise<Wotd | undefined> => {
   if (!currentWotd || Date.now() >= currentWotd.expiresOn.getTime()) {
-    const random = await randomOrg.generateInteger(1, 5);
-    const waifu = await waifuModel.getRandom({ [APIField.tier]: random });
+    const random = crypto.randomInt(1, 5);
+    const waifu = await waifuModel.random({ [APIField.tier]: random });
     const expiresOn = new Date();
     expiresOn.setHours(24, 0, 0, 0);
     if (waifu) {

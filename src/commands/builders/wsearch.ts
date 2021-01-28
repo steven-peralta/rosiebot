@@ -27,7 +27,7 @@ const command: CommandCallback<Waifu[], { args: string[] }> = async (
     try {
       const start = Date.now();
       const queryOptions = parseWaifuSearchArgs(args.args);
-      const data = await waifuModel.leanWaifuQuery(
+      const data = await waifuModel.leanFind(
         queryOptions.conditions,
         queryOptions.sort,
         queryOptions.projection

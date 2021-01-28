@@ -1,6 +1,6 @@
 {
   "name": "rosiebot",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/steven-peralta/rosiebot"
@@ -52,7 +52,7 @@
     "build": "tsc",
     "start": "node dist/src/bot.js",
     "lint": "eslint src/",
-    "dev": "ts-node-dev -r tsconfig-paths/register --clear --respawn src/bot.ts",
+    "dev": "ts-node-dev --cache-directory tmp/ -r tsconfig-paths/register --debug --clear --respawn src/bot.ts",
     "test": "echo 'no test'"
   },
   "engines": {

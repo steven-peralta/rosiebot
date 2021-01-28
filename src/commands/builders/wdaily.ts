@@ -10,7 +10,7 @@ import { Command, ErrorMessage, StatusCode } from '@util/enums';
 import APIField from '@util/APIField';
 import config from '@config';
 import { userModel } from '@db/models/User';
-import randomOrg from '@api/random-org/randomOrg';
+import * as crypto from 'crypto';
 
 const metadata: CommandMetadata = {
   name: Command.wdaily,
@@ -32,7 +32,7 @@ const command: CommandCallback<WDailyResponse, UserParams> = async (params) => {
     if (user) {
       const { [APIField.dailyLastClaimed]: lastClaimed } = user;
       if ((Date.now() - lastClaimed.getTime()) / 1000 > 86400) {
-        const roll = await randomOrg.generateInteger(1, 100);
+        const roll = crypto.randomInt(1, 100);
         let coins = config.daily;
         let criticalRoll = false;
         if (roll === 1) {

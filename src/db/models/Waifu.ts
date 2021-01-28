@@ -12,14 +12,8 @@ import Series, { seriesModel } from '@db/models/Series';
 import mwl from '@api/mwl/mwl';
 import { LoggingModule, logModuleError, logModuleInfo } from '@util/logger';
 import { FilterQuery, QueryFindOptions } from 'mongoose';
-import randomOrg from '@api/random-org/randomOrg';
 import { Tier } from '@util/enums';
-import { QueryOptions } from '@db/types';
-import hash from 'object-hash';
-import Timeout = NodeJS.Timeout;
 
-export const cachedQueries: Record<string, Waifu[]> = {};
-export const timeouts: Record<string, Timeout> = {};
 @index({
   [APIField.name]: 'text',
   [APIField.originalName]: 'text',
@@ -205,18 +199,17 @@ export default class Waifu extends Base<number> {
     }
   }
 
-  public static async getRandom(
+  public static async random(
     this: ReturnModelType<typeof Waifu>,
     conditions: FilterQuery<DocumentType<Waifu>> = {}
   ): Promise<Waifu | undefined> {
     try {
-      const query = await this.leanWaifuQuery(conditions, {}, {}, {}, 0);
+      const query = await this.aggregate([
+        { $match: conditions },
+        { $sample: { size: 1 } },
+      ]);
       if (query && query.length > 0) {
-        const max = query.length;
-        const min = 0;
-        const randInt = await randomOrg.generateInteger(min, max);
-        const waifu = query[randInt];
-        if (waifu) return waifu;
+        return query[0] as Waifu;
       }
       return undefined;
     } catch (e) {
@@ -290,71 +283,21 @@ export default class Waifu extends Base<number> {
     logModuleInfo('Done updating waifu scores and tiers', LoggingModule.DB);
   }
 
-  public static async leanWaifuQuery(
+  public static async leanFind(
     this: ReturnModelType<typeof Waifu>,
     conditions: FilterQuery<DocumentType<Waifu>>,
     sort: string | unknown = {},
     projection: unknown | null = {},
     options: QueryFindOptions = {},
-    limit = 100,
-    cache = true,
-    ttl = 30000
+    limit = 100
   ): Promise<Waifu[] | undefined> {
-    const hashedOptions = hash({
-      conditions,
-      sort,
-      projection,
-      options,
-      limit,
-    } as QueryOptions<Waifu>);
-
-    const timeout = (key: string) => {
-      logModuleInfo(`${key} deleted from query cache.`, LoggingModule.DB);
-      delete cachedQueries[key];
-    };
-
-    if (cachedQueries[hashedOptions] && cache) {
-      if (timeouts[hashedOptions]) {
-        // reset our timer
-        clearTimeout(timeouts[hashedOptions]);
-        logModuleInfo(
-          `Timeout reset for query ${hashedOptions}`,
-          LoggingModule.DB
-        );
-        timeouts[hashedOptions] = setTimeout(() => {
-          timeout(hashedOptions);
-        }, ttl);
-      } else {
-        logModuleInfo(
-          `Setting timeout for query ${hashedOptions}`,
-          LoggingModule.DB
-        );
-        timeouts[hashedOptions] = setTimeout(() => {
-          timeout(hashedOptions);
-        }, ttl);
-      }
-      return cachedQueries[hashedOptions];
-    }
     try {
-      const query = await this.find(conditions, projection, options)
+      return await this.find(conditions, projection, options)
         .limit(limit)
         .sort(sort)
         .lean()
         .populate(APIField.appearances)
         .populate(APIField.series);
-      if (cache) {
-        cachedQueries[hashedOptions] = query;
-        // set our ttl
-        logModuleInfo(
-          `Setting timeout for query ${hashedOptions}`,
-          LoggingModule.DB
-        );
-        timeouts[hashedOptions] = setTimeout(() => {
-          timeout(hashedOptions);
-        }, ttl);
-      }
-
-      return query;
     } catch (e) {
       logModuleError(
         `Exception caught when trying to execute a lean Waifu query: ${e}`,
