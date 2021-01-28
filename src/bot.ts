@@ -1,4 +1,4 @@
-// import 'module-alias/register';
+import 'module-alias/register';
 import { logModuleInfo } from '@util/logger';
 import dbEvents from '@db/dbEvents';
 import db from '@db/db';
