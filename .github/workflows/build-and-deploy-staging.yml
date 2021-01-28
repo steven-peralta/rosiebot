@@ -53,7 +53,7 @@ jobs:
       ECS_SERVICE: rosiebot-staging
       ECS_CLUSTER: rosiebot-staging
       ECS_TASK_DEFINITION: .aws/rosiebot-staging.json
-      CONTAINER_NAME: staging
+      CONTAINER_NAME: rosiebot-staging
 
     steps:
       - name: Download artifacts
