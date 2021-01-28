@@ -7,14 +7,12 @@ on:
     branches: [master, staging]
 
 env:
-  AWS_REGION: us-east-2                   # set this to your preferred AWS region, e.g. us-west-1
-  ECR_REPOSITORY: rosiebot           # set this to your Amazon ECR repository name
-  ECS_SERVICE: rosiebot-staging                 # set this to your Amazon ECS service name
-  ECS_CLUSTER: rosiebot-staging                 # set this to your Amazon ECS cluster name
-  ECS_TASK_DEFINITION: .aws/rosiebot-staging.json # set this to the path to your Amazon ECS task definition
-                                               # file, e.g. .aws/task-definition.json
-  CONTAINER_NAME: staging           # set this to the name of the container in the
-                                               # containerDefinitions section of your task definition
+  AWS_REGION: us-east-2
+  ECR_REPOSITORY: rosiebot
+  ECS_SERVICE: rosiebot-staging
+  ECS_CLUSTER: rosiebot-staging
+  ECS_TASK_DEFINITION: .aws/rosiebot-staging.json
+  CONTAINER_NAME: staging
 
 defaults:
   run:
