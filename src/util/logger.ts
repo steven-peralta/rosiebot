@@ -2,6 +2,7 @@ import { resolve } from 'url';
 import { createLogger, format, transports } from 'winston';
 import * as fs from 'fs';
 import path from 'path';
+import WinstonCloudwatch from 'winston-cloudwatch';
 
 export enum LoggingModule {
   Rosiebot = 'rosiebot',
@@ -39,7 +40,7 @@ const initLogger = () => {
     fs.mkdirSync(logsDir);
   }
 
-  return createLogger({
+  const logger = createLogger({
     format: format.combine(
       format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
       format.printf(logFormatter)
@@ -63,6 +64,26 @@ const initLogger = () => {
       }),
     ],
   });
+
+  if (process.env.NODE_ENV === 'staging') {
+    logger.add(
+      new WinstonCloudwatch({
+        logGroupName: 'rosiebot-staging',
+        logStreamName: 'rosiebot-staging-info',
+        awsRegion: 'us-east-1',
+      })
+    );
+    logger.add(
+      new WinstonCloudwatch({
+        level: 'error',
+        logGroupName: 'rosiebot-staging',
+        logStreamName: 'rosiebot-staging-error',
+        awsRegion: 'us-east-1',
+      })
+    );
+  }
+
+  return logger;
 };
 
 export const logModuleInfo = (
