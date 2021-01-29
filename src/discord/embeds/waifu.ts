@@ -146,12 +146,20 @@ export const waifuEmbed = (waifu: Waifu): MessageEmbedOptions => {
     });
   }
 
-  if (series && typeof series === 'object') {
-    embed.fields?.push({
-      name: ':book: Series',
-      value: `${(<Series>series)[APIField.name]}`,
-      inline: true,
-    });
+  if (series) {
+    let temp;
+    if (Array.isArray(series) && series.length > 0) {
+      [temp] = series;
+    } else if (typeof series === 'object') {
+      temp = series;
+    }
+    if (temp) {
+      embed.fields?.push({
+        name: ':book: Series',
+        value: `${(<Series>temp)[APIField.name]}`,
+        inline: true,
+      });
+    }
   }
 
   // at this point, push empty fields because flexbox will cause the last row to look

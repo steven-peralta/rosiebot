@@ -206,6 +206,22 @@ export default class Waifu extends Base<number> {
     try {
       const query = await this.aggregate([
         { $match: conditions },
+        {
+          $lookup: {
+            from: 'series',
+            localField: APIField.series,
+            foreignField: APIField._id,
+            as: APIField.series,
+          },
+        },
+        {
+          $lookup: {
+            from: 'series',
+            localField: APIField.appearances,
+            foreignField: APIField._id,
+            as: APIField.appearances,
+          },
+        },
         { $sample: { size: 1 } },
       ]);
       if (query && query.length > 0) {

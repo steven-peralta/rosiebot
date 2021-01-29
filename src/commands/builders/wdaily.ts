@@ -86,7 +86,7 @@ const formatter: CommandFormatter<WDailyResponse, never> = (result, user) => {
         hoursRemaining >= 10 ? `${hoursRemaining}` : `0${hoursRemaining}`;
 
       return {
-        content: `${user} You've already claimed your daily for today. You can claim again in in ${hours}:${minutes}:${seconds}`,
+        content: `${user} You've already claimed your daily for today. You can claim again in ${hours}:${minutes}:${seconds}`,
       };
     }
     if (coins && criticalRoll) {
