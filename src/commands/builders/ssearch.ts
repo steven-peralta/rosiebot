@@ -59,17 +59,22 @@ const command: CommandCallback<SeriesResults, SeriesSearchParams> = async (
       .limit(1)
       .lean()
       .populate(APIField.studio);
-    const waifuDocs = await waifuModel
-      .find({
-        [APIField.series]: seriesDoc[APIField._id],
-      })
-      .sort({ [APIField.likes]: -1 })
-      .lean()
-      .populate(APIField.appearances);
+    if (seriesDoc) {
+      const waifuDocs = await waifuModel
+        .find({
+          [APIField.series]: seriesDoc[APIField._id],
+        })
+        .sort({ [APIField.likes]: -1 })
+        .lean()
+        .populate(APIField.appearances);
+      return {
+        statusCode: StatusCode.Success,
+        time: Date.now() - start,
+        data: { series: seriesDoc, waifu: waifuDocs },
+      };
+    }
     return {
-      statusCode: StatusCode.Success,
-      time: Date.now() - start,
-      data: { series: seriesDoc, waifu: waifuDocs },
+      statusCode: StatusCode.NoData,
     };
   }
   return {

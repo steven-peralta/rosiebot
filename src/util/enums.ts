@@ -19,6 +19,10 @@ export enum StatusCode {
   NoPermission,
   InsufficentCoins,
   UserOwnsNoWaifus,
+  SeriesNotFound,
+  WaifuNotFound,
+  StudioNotFound,
+  UserNotFound,
 }
 
 export const ErrorMessage: Record<StatusCode, string> = {
@@ -31,6 +35,11 @@ export const ErrorMessage: Record<StatusCode, string> = {
   [StatusCode.NoPermission]: "You don't have permission to run that command",
   [StatusCode.InsufficentCoins]: "You don't have enough coins!",
   [StatusCode.UserOwnsNoWaifus]: "Specified user doesn't own any waifus.",
+  [StatusCode.WaifuNotFound]: 'Waifu was not found.',
+  [StatusCode.SeriesNotFound]: 'Series was not found.',
+  [StatusCode.StudioNotFound]: 'Studio was not found.',
+  [StatusCode.UserNotFound]:
+    "User was not found. (Are you sure you @'d them correctly?)",
 };
 
 export enum Tier {

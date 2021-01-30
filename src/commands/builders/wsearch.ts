@@ -32,7 +32,7 @@ const command: CommandCallback<Waifu[], { args: string[] }> = async (
         queryOptions.sort,
         queryOptions.projection
       );
-      if (data) {
+      if (data && Array.isArray(data) && data.length > 0) {
         return {
           data,
           statusCode: StatusCode.Success,
@@ -40,7 +40,7 @@ const command: CommandCallback<Waifu[], { args: string[] }> = async (
         };
       }
       return {
-        statusCode: StatusCode.NoData,
+        statusCode: StatusCode.WaifuNotFound,
       };
     } catch (e) {
       logCommandException(e, metadata);
@@ -52,9 +52,8 @@ const command: CommandCallback<Waifu[], { args: string[] }> = async (
   };
 };
 
-const processor: CommandProcessor<Waifu[]> = async (msg: Message, args) => {
-  return command({ args });
-};
+const processor: CommandProcessor<Waifu[]> = async (msg: Message, args) =>
+  command({ args });
 
 const formatter: CommandFormatter<Waifu[], Waifu> = (result, user) =>
   formatWaifuResults(

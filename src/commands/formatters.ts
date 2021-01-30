@@ -22,13 +22,8 @@ const formatWaifuResults = (
   if (statusCode === StatusCode.Success) {
     if (data) {
       if (Array.isArray(data)) {
-        if (data.length === 0) {
-          return {
-            content: `${sender} No waifus were found for your specified search query.`,
-          };
-        }
         if (data.length === 1) {
-          const waifu = data[0];
+          const [waifu] = data;
           let showSellButton = false;
           if (userDoc) {
             showSellButton = userDoc[APIField.ownedWaifus].includes(
