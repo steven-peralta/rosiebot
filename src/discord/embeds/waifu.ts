@@ -302,10 +302,10 @@ export const sellConfirmation = (
                 interactiveMessage.pages.splice(i, 1);
                 if (interactiveMessage.pages.length === 0) {
                   interactiveMessage.cleanup();
-                } else if (i === 0) {
-                  await interactiveMessage.nextPage();
-                } else {
+                } else if (i === interactiveMessage.pages.length) {
                   await interactiveMessage.previousPage();
+                } else {
+                  await interactiveMessage.nextPage();
                 }
               }
             } else if (interactiveMessage instanceof InteractiveMessage) {
