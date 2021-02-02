@@ -1,3 +1,4 @@
+import { User as DiscordUser } from 'discord.js';
 import {
   CommandBuilder,
   CommandCallback,
@@ -6,13 +7,12 @@ import {
   CommandProcessor,
   CommandResult,
   TargetedUserParams,
-} from '@commands/types';
-import { Command, ErrorMessage, StatusCode } from '@util/enums';
-import APIField from '@util/APIField';
-import { logCommandException } from '@commands/logging';
-import processTargetedCommand from '@commands/processors';
-import { User as DiscordUser } from 'discord.js';
-import { userModel } from '@db/models/User';
+} from '$commands/types';
+import { Command, ErrorMessage, StatusCode } from '$util/enums';
+import APIField from '$util/APIField';
+import { logCommandException } from '$commands/logging';
+import processTargetedCommand from '$commands/processors';
+import { userModel } from '$db/models/User';
 
 export interface WCoinsResponse {
   coins: number;

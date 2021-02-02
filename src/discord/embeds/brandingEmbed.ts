@@ -1,5 +1,5 @@
 import { ColorResolvable, MessageEmbedOptions } from 'discord.js';
-import client from '@discord/client';
+import client from '$discord/client';
 
 const brandingColor = '#7752a0';
 

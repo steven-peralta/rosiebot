@@ -1,4 +1,5 @@
-import Waifu, { waifuModel } from '@db/models/Waifu';
+import * as crypto from 'crypto';
+import Waifu, { waifuModel } from '$db/models/Waifu';
 import {
   CommandBuilder,
   CommandCallback,
@@ -6,12 +7,11 @@ import {
   CommandMetadata,
   CommandProcessor,
   CommandResult,
-} from '@commands/types';
-import { Command, StatusCode } from '@util/enums';
-import APIField from '@util/APIField';
-import { logCommandException } from '@commands/logging';
-import formatWaifuResults from '@commands/formatters';
-import * as crypto from 'crypto';
+} from '$commands/types';
+import { Command, StatusCode } from '$util/enums';
+import APIField from '$util/APIField';
+import { logCommandException } from '$commands/logging';
+import formatWaifuResults from '$commands/formatters';
 
 interface Wotd {
   waifu: Waifu;

@@ -20,9 +20,9 @@
     "module-alias": "^2.2.2",
     "mongodb": "^3.6.3",
     "mongoose": "^5.9.25",
-    "object-hash": "^2.1.1",
     "winston": "^3.3.3",
-    "winston-cloudwatch": "^2.5.0"
+    "winston-cloudwatch": "^2.5.0",
+    "tsconfig-paths": "^3.9.0"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^5.0.1",
@@ -46,14 +46,15 @@
     "semantic-release": "^17.1.1",
     "ts-node": "^8.10.2",
     "ts-node-dev": "^1.1.1",
-    "tsconfig-paths": "^3.9.0",
     "typescript": "^3.9.5"
   },
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/src/bot.js",
+    "build-ts": "tsc",
+    "build": "NODE_ENV=production yarn run build-ts",
+    "start": "node -r ./scripts/prod-paths.js ./dist/bot.js",
+    "prod": "NODE_ENV=production yarn run build && yarn run start",
     "lint": "eslint src/",
-    "dev": "ts-node-dev --cache-directory tmp/ -r tsconfig-paths/register --debug --clear --respawn src/bot.ts",
+    "dev": "NODE_ENV=development ts-node-dev -r tsconfig-paths/register --respawn ./src/bot.ts",
     "test": "echo 'no test'"
   },
   "engines": {

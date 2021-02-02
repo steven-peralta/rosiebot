@@ -1,12 +1,12 @@
 import axiosRateLimit from 'axios-rate-limit';
-import { MwlSeries, MwlWaifu } from '@api/mwl/types';
+import axios, { AxiosInstance } from 'axios';
+import { MwlSeries, MwlWaifu } from '$api/mwl/types';
 import {
   LoggingModule,
   logModuleError,
   logModuleInfo,
   logModuleWarning,
-} from '@util/logger';
-import axios, { AxiosInstance } from 'axios';
+} from '$util/logger';
 
 export default class MWLAPI {
   private apikey: string;

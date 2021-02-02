@@ -1,4 +1,3 @@
-import APIField from '@util/APIField';
 import {
   getModelForClass,
   index,
@@ -6,8 +5,9 @@ import {
   ReturnModelType,
 } from '@typegoose/typegoose';
 import { Base } from '@typegoose/typegoose/lib/defaultClasses';
-import { MwlStudio } from '@api/mwl/types';
-import { LoggingModule, logModuleError } from '@util/logger';
+import APIField from '$util/APIField';
+import { MwlStudio } from '$api/mwl/types';
+import { LoggingModule, logModuleError } from '$util/logger';
 
 @index({
   [APIField.name]: 'text',

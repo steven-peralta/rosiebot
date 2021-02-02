@@ -1,6 +1,6 @@
 import { Client } from 'discord.js';
-import config from '@config';
-import { LoggingModule, logModuleError } from '@util/logger';
+import config from '$config';
+import { LoggingModule, logModuleError } from '$util/logger';
 
 const initDiscord = () => {
   const discordClient = new Client();

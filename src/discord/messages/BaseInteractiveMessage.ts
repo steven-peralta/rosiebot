@@ -8,8 +8,8 @@ import {
   TextChannel,
   User,
 } from 'discord.js';
-import { logModuleError, logModuleInfo, logModuleWarning } from '@util/logger';
-import { Button, StatusCode } from '@util/enums';
+import { logModuleError, logModuleInfo, logModuleWarning } from '$util/logger';
+import { Button, StatusCode } from '$util/enums';
 
 export type Buttons<T> = Partial<Record<Button, ButtonCallback<T>>>;
 

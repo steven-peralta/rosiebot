@@ -5,18 +5,18 @@ import {
   MessageEditOptions,
   MessageEmbed,
 } from 'discord.js';
-import config from '@config';
-import commands from '@commands/commands';
-import { Command } from '@util/enums';
+import config from '$config';
+import commands from '$commands/commands';
+import { Command } from '$util/enums';
 import {
   LoggingModule,
   logModuleError,
   logModuleInfo,
   logModuleWarning,
-} from '@util/logger';
-import { CommandFormatter, CommandResponseType } from '@commands/types';
-import Waifu from '@db/models/Waifu';
-import { logCommandException, logCommandStatus } from '@commands/logging';
+} from '$util/logger';
+import { CommandFormatter, CommandResponseType } from '$commands/types';
+import Waifu from '$db/models/Waifu';
+import { logCommandException, logCommandStatus } from '$commands/logging';
 
 const parseCommand = async (msg: Message) => {
   const { content, channel, author } = msg;

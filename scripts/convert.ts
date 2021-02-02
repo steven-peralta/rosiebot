@@ -2,9 +2,9 @@
 import Mongoose from 'mongoose';
 
 import { Client, Snowflake } from 'discord.js';
-import { userModel } from '@db/models/User';
-import { waifuModel } from '@db/models/Waifu';
-import config from '@config';
+import { userModel } from '$db/models/User';
+import { waifuModel } from '$db/models/Waifu';
+import config from '$config';
 
 const { mongodbUri } = config;
 const db = Mongoose.connection;

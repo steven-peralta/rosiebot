@@ -1,6 +1,6 @@
 import Mongoose from 'mongoose';
-import config from '@config';
-import { LoggingModule, logModuleError } from '@util/logger';
+import config from '$config';
+import { LoggingModule, logModuleError } from '$util/logger';
 
 const initDb = () => {
   Mongoose.connect(config.mongodbUri, {

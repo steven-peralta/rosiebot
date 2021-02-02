@@ -6,15 +6,15 @@ import {
   CommandProcessor,
   DiscordResponseContent,
   SeriesSearchParams,
-} from '@commands/types';
-import { Command, ErrorMessage, StatusCode } from '@util/enums';
-import Studio, { studioModel } from '@db/models/Studio';
-import Series, { seriesModel } from '@db/models/Series';
-import Waifu, { waifuModel } from '@db/models/Waifu';
-import APIField from '@util/APIField';
-import { pagedInteractiveSeriesMessage } from '@discord/embeds/series';
-import brandingEmbed from '@discord/embeds/brandingEmbed';
-import { pagedInteractiveWaifuMessage } from '@discord/embeds/waifu';
+} from '$commands/types';
+import { Command, ErrorMessage, StatusCode } from '$util/enums';
+import Studio, { studioModel } from '$db/models/Studio';
+import Series, { seriesModel } from '$db/models/Series';
+import Waifu, { waifuModel } from '$db/models/Waifu';
+import APIField from '$util/APIField';
+import { pagedInteractiveSeriesMessage } from '$discord/embeds/series';
+import brandingEmbed from '$discord/embeds/brandingEmbed';
+import { pagedInteractiveWaifuMessage } from '$discord/embeds/waifu';
 
 const metadata: CommandMetadata = {
   name: Command.ssearch,
@@ -23,7 +23,7 @@ const metadata: CommandMetadata = {
   supportsDM: true,
 };
 
-interface SeriesResults {
+export interface SeriesResults {
   studio?: Studio;
   series: Series | Series[];
   waifu?: Waifu[];

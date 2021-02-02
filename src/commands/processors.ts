@@ -3,9 +3,9 @@ import {
   CommandCallback,
   CommandResult,
   TargetedUserParams,
-} from '@commands/types';
-import { getUsersFromMentionsStr } from '@util/string';
-import { StatusCode } from '@util/enums';
+} from '$commands/types';
+import { getUsersFromMentionsStr } from '$util/string';
+import { StatusCode } from '$util/enums';
 
 const processTargetedCommand = async <ResultType>(
   msg: Message,

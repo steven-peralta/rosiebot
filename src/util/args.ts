@@ -1,8 +1,8 @@
 import { DocumentType } from '@typegoose/typegoose';
 import { FilterQuery } from 'mongoose';
-import { QueryOptions } from '@db/types';
-import Waifu from '@db/models/Waifu';
-import APIField from '@util/APIField';
+import { QueryOptions } from '$db/types';
+import Waifu from '$db/models/Waifu';
+import APIField from '$util/APIField';
 
 const parseWaifuSearchArgs = (args: string[]): QueryOptions<Waifu> => {
   const conditions: FilterQuery<DocumentType<Waifu>> = {};

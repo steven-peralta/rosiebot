@@ -6,13 +6,13 @@ import {
   Ref,
   ReturnModelType,
 } from '@typegoose/typegoose';
-import APIField from '@util/APIField';
 import { Base } from '@typegoose/typegoose/lib/defaultClasses';
-import Series, { seriesModel } from '@db/models/Series';
-import mwl from '@api/mwl/mwl';
-import { LoggingModule, logModuleError, logModuleInfo } from '@util/logger';
 import { FilterQuery, QueryFindOptions } from 'mongoose';
-import { Tier } from '@util/enums';
+import APIField from '$util/APIField';
+import Series, { seriesModel } from '$db/models/Series';
+import mwl from '$api/mwl/mwl';
+import { LoggingModule, logModuleError, logModuleInfo } from '$util/logger';
+import { Tier } from '$util/enums';
 
 @index({
   [APIField.name]: 'text',

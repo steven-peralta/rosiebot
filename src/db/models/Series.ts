@@ -5,12 +5,12 @@ import {
   Ref,
   ReturnModelType,
 } from '@typegoose/typegoose';
-import APIField from '@util/APIField';
 import { Base } from '@typegoose/typegoose/lib/defaultClasses';
-import Studio, { studioModel } from '@db/models/Studio';
-import { MwlStudio } from '@api/mwl/types';
-import mwl from '@api/mwl/mwl';
-import { LoggingModule, logModuleError, logModuleInfo } from '@util/logger';
+import APIField from '$util/APIField';
+import Studio, { studioModel } from '$db/models/Studio';
+import { MwlStudio } from '$api/mwl/types';
+import mwl from '$api/mwl/mwl';
+import { LoggingModule, logModuleError, logModuleInfo } from '$util/logger';
 
 @index({
   [APIField.name]: 'text',

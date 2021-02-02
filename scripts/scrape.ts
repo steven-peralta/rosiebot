@@ -1,9 +1,8 @@
-/* eslint-disable no-console, no-await-in-loop */
-import config from '@config';
 import Mongoose from 'mongoose';
+import config from '$config';
 
-import { waifuModel } from '@db/models/Waifu';
-import APIField from '@util/APIField';
+import { waifuModel } from '$db/models/Waifu';
+import APIField from '$util/APIField';
 
 const { mongodbUri } = config;
 const db = Mongoose.connection;

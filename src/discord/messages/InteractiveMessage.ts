@@ -1,8 +1,8 @@
+import { MessageEmbedOptions, Snowflake, StringResolvable } from 'discord.js';
 import BaseInteractiveMessage, {
   Buttons,
-} from '@discord/messages/BaseInteractiveMessage';
-import { MessageEmbedOptions, Snowflake, StringResolvable } from 'discord.js';
-import { logModuleWarning } from '@util/logger';
+} from '$discord/messages/BaseInteractiveMessage';
+import { logModuleWarning } from '$util/logger';
 
 export default class InteractiveMessage<T> extends BaseInteractiveMessage<T> {
   private _embed?: MessageEmbedOptions;

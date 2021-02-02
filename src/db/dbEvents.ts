@@ -1,5 +1,5 @@
 import { Connection } from 'mongoose';
-import { LoggingModule, logModuleError, logModuleInfo } from '@util/logger';
+import { LoggingModule, logModuleError, logModuleInfo } from '$util/logger';
 
 const dbEvents = (db: Connection): void => {
   db.on('connecting', () => {

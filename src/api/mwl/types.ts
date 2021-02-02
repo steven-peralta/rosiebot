@@ -1,4 +1,4 @@
-import APIField from '@util/APIField';
+import APIField from '$util/APIField';
 
 export interface MwlStudio {
   [APIField.id]: number;

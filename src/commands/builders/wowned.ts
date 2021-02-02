@@ -1,5 +1,7 @@
-import Waifu from '@db/models/Waifu';
-import User, { userModel } from '@db/models/User';
+import { isDocumentArray } from '@typegoose/typegoose';
+import { User as DiscordUser } from 'discord.js';
+import Waifu from '$db/models/Waifu';
+import User, { userModel } from '$db/models/User';
 import {
   CommandBuilder,
   CommandCallback,
@@ -8,17 +10,15 @@ import {
   CommandProcessor,
   CommandResult,
   TargetedUserParams,
-} from '@commands/types';
-import { Command, StatusCode } from '@util/enums';
-import APIField from '@util/APIField';
-import { isDocumentArray } from '@typegoose/typegoose';
-import { logCommandException } from '@commands/logging';
-import formatWaifuResults from '@commands/formatters';
-import { User as DiscordUser } from 'discord.js';
-import { getUsersFromMentionsStr } from '@util/string';
-import parseWaifuSearchArgs from '@util/args';
+} from '$commands/types';
+import { Command, StatusCode } from '$util/enums';
+import APIField from '$util/APIField';
+import { logCommandException } from '$commands/logging';
+import formatWaifuResults from '$commands/formatters';
+import { getUsersFromMentionsStr } from '$util/string';
+import parseWaifuSearchArgs from '$util/args';
 
-interface WOwnedResponse {
+export interface WOwnedResponse {
   ownedWaifus: Waifu[];
   userDoc?: User;
   target?: DiscordUser;

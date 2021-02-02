@@ -39,8 +39,10 @@ jobs:
         name: rosiebot-${{ matrix.node-version }}
         path: |
           .aws
+          scripts/prod-paths.js
           dist
           package.json
+          tsconfig.json
           yarn.lock
           Dockerfile
 

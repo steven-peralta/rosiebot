@@ -1,5 +1,6 @@
-import Waifu, { waifuModel } from '@db/models/Waifu';
-import User, { userModel } from '@db/models/User';
+import * as crypto from 'crypto';
+import Waifu, { waifuModel } from '$db/models/Waifu';
+import User, { userModel } from '$db/models/User';
 import {
   CommandBuilder,
   CommandCallback,
@@ -8,14 +9,13 @@ import {
   CommandProcessor,
   CommandResult,
   UserParams,
-} from '@commands/types';
-import { Command, ErrorMessage, StatusCode } from '@util/enums';
-import APIField from '@util/APIField';
-import config from '@config';
-import { getWotd } from '@commands/builders/wotd';
-import { logCommandException } from '@commands/logging';
-import formatWaifuResults from '@commands/formatters';
-import * as crypto from 'crypto';
+} from '$commands/types';
+import { Command, ErrorMessage, StatusCode } from '$util/enums';
+import APIField from '$util/APIField';
+import config from '$config';
+import { getWotd } from '$commands/builders/wotd';
+import { logCommandException } from '$commands/logging';
+import formatWaifuResults from '$commands/formatters';
 
 export interface WRollResponse {
   waifu: Waifu;

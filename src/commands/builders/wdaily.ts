@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 import {
   CommandBuilder,
   CommandCallback,
@@ -5,12 +6,11 @@ import {
   CommandMetadata,
   CommandProcessor,
   UserParams,
-} from '@commands/types';
-import { Command, ErrorMessage, StatusCode } from '@util/enums';
-import APIField from '@util/APIField';
-import config from '@config';
-import { userModel } from '@db/models/User';
-import * as crypto from 'crypto';
+} from '$commands/types';
+import { Command, ErrorMessage, StatusCode } from '$util/enums';
+import APIField from '$util/APIField';
+import config from '$config';
+import { userModel } from '$db/models/User';
 
 const metadata: CommandMetadata = {
   name: Command.wdaily,
@@ -19,7 +19,7 @@ const metadata: CommandMetadata = {
   supportsDM: false,
 };
 
-interface WDailyResponse {
+export interface WDailyResponse {
   coins?: number;
   criticalRoll?: boolean;
   lastClaimed?: Date;

@@ -1,12 +1,12 @@
 import { DocumentType } from '@typegoose/typegoose';
-import User, { userModel } from '@db/models/User';
 import {
   EmbedFieldData,
   Guild,
   MessageEmbedOptions,
   User as DiscordUser,
 } from 'discord.js';
-import Waifu, { waifuModel } from '@db/models/Waifu';
+import User, { userModel } from '$db/models/User';
+import Waifu, { waifuModel } from '$db/models/Waifu';
 import {
   CommandBuilder,
   CommandCallback,
@@ -14,15 +14,15 @@ import {
   CommandMetadata,
   CommandProcessor,
   TradeParams,
-} from '@commands/types';
-import { Button, Command, ErrorMessage, StatusCode } from '@util/enums';
-import APIField from '@util/APIField';
-import { getUsersFromMentionsStr } from '@util/string';
-import { logModuleWarning } from '@util/logger';
-import InteractiveMessage from '@discord/messages/InteractiveMessage';
-import { ButtonCallback } from '@discord/messages/BaseInteractiveMessage';
+} from '$commands/types';
+import { Button, Command, ErrorMessage, StatusCode } from '$util/enums';
+import APIField from '$util/APIField';
+import { getUsersFromMentionsStr } from '$util/string';
+import { logModuleWarning } from '$util/logger';
+import InteractiveMessage from '$discord/messages/InteractiveMessage';
+import { ButtonCallback } from '$discord/messages/BaseInteractiveMessage';
 
-interface WTradeResponse {
+export interface WTradeResponse {
   target: DiscordUser;
   trade?: {
     userDoc: DocumentType<User>;

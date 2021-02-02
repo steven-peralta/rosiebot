@@ -6,11 +6,11 @@ import {
   ReturnModelType,
   DocumentType,
 } from '@typegoose/typegoose';
-import APIField from '@util/APIField';
 import { Base } from '@typegoose/typegoose/lib/defaultClasses';
-import Waifu from '@db/models/Waifu';
 import { User as DiscordUser, Guild } from 'discord.js';
-import { LoggingModule, logModuleError, logModuleInfo } from '@util/logger';
+import APIField from '$util/APIField';
+import Waifu from '$db/models/Waifu';
+import { LoggingModule, logModuleError, logModuleInfo } from '$util/logger';
 
 @index({ [APIField.userId]: 1, [APIField.serverId]: 1 }, { unique: true })
 export default class User extends Base {

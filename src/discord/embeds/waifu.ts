@@ -1,17 +1,17 @@
-import Waifu from '@db/models/Waifu';
 import {
   MessageEmbedOptions,
   StringResolvable,
   User as DiscordUser,
 } from 'discord.js';
-import APIField from '@util/APIField';
-import { truncateString } from '@util/string';
-import PaginationMessage from '@discord/messages/PaginationMessage';
-import InteractiveMessage from '@discord/messages/InteractiveMessage';
-import { Button, StatusCode } from '@util/enums';
-import User, { userModel } from '@db/models/User';
-import Series from '@db/models/Series';
-import config from '@config';
+import Waifu from '$db/models/Waifu';
+import APIField from '$util/APIField';
+import { truncateString } from '$util/string';
+import PaginationMessage from '$discord/messages/PaginationMessage';
+import InteractiveMessage from '$discord/messages/InteractiveMessage';
+import { Button, StatusCode } from '$util/enums';
+import User, { userModel } from '$db/models/User';
+import Series from '$db/models/Series';
+import config from '$config';
 
 export const waifuEmbed = (waifu: Waifu): MessageEmbedOptions => {
   const {

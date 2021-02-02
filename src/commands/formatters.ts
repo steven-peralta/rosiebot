@@ -1,14 +1,14 @@
-import { ErrorMessage, StatusCode } from '@util/enums';
 import { StringResolvable, User as DiscordUser } from 'discord.js';
-import Waifu from '@db/models/Waifu';
-import User from '@db/models/User';
-import { DiscordResponseContent } from '@commands/types';
-import APIField from '@util/APIField';
+import { ErrorMessage, StatusCode } from '$util/enums';
+import Waifu from '$db/models/Waifu';
+import User from '$db/models/User';
+import { DiscordResponseContent } from '$commands/types';
+import APIField from '$util/APIField';
 import {
   interactiveWaifuMessage,
   pagedInteractiveWaifuMessage,
-} from '@discord/embeds/waifu';
-import brandingEmbed from '@discord/embeds/brandingEmbed';
+} from '$discord/embeds/waifu';
+import brandingEmbed from '$discord/embeds/brandingEmbed';
 
 const formatWaifuResults = (
   statusCode: StatusCode,
