@@ -10,6 +10,7 @@ const initDb = () => {
     useCreateIndex: true,
     keepAlive: true,
     keepAliveInitialDelay: 300000,
+    autoIndex: process.env.NODE_ENV !== 'production',
   }).catch((e) =>
     logModuleError(
       `Exception caught while connecting to the database: ${e}`,
