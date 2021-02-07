@@ -300,11 +300,15 @@ export const sellConfirmation = (
                   (value) => value.data === waifu
                 );
                 interactiveMessage.pages.splice(i, 1);
+
                 if (interactiveMessage.pages.length === 0) {
                   interactiveMessage.cleanup();
                 } else if (i === interactiveMessage.pages.length) {
                   await interactiveMessage.previousPage();
                 } else {
+                  interactiveMessage.setCurrentPage(
+                    interactiveMessage.currentPage - 1
+                  );
                   await interactiveMessage.nextPage();
                 }
               }

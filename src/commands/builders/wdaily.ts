@@ -12,6 +12,8 @@ import APIField from '$util/APIField';
 import config from '$config';
 import { userModel } from '$db/models/User';
 
+const fullDay = 86400; // in seconds
+
 const metadata: CommandMetadata = {
   name: Command.wdaily,
   description: 'Get your daily dose of waifu coins',
@@ -31,7 +33,7 @@ const command: CommandCallback<WDailyResponse, UserParams> = async (params) => {
     const user = await userModel.findOneOrCreate(sender, guild);
     if (user) {
       const { [APIField.dailyLastClaimed]: lastClaimed } = user;
-      if ((Date.now() - lastClaimed.getTime()) / 1000 > 86400) {
+      if ((Date.now() - lastClaimed.getTime()) / 1000 > fullDay) {
         const roll = crypto.randomInt(1, 100);
         let coins = config.daily;
         let criticalRoll = false;
@@ -74,9 +76,11 @@ const formatter: CommandFormatter<WDailyResponse, never> = (result, user) => {
   if (data) {
     const { lastClaimed, coins, criticalRoll } = data;
     if (lastClaimed) {
-      const secondsRemaining = 60 - lastClaimed.getSeconds();
-      const minutesRemaining = 59 - lastClaimed.getMinutes();
-      const hoursRemaining = 23 - lastClaimed.getHours();
+      const timeSince = Math.floor((Date.now() - lastClaimed.getTime()) / 1000);
+
+      const hoursRemaining = Math.floor((fullDay - timeSince) / 60 / 60);
+      const minutesRemaining = Math.floor(((fullDay - timeSince) / 60) % 60);
+      const secondsRemaining = Math.floor((fullDay - timeSince) % 60);
 
       const seconds =
         secondsRemaining >= 10 ? `${secondsRemaining}` : `0${secondsRemaining}`;

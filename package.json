@@ -84,13 +84,5 @@
         "prerelease": true
       }
     ]
-  },
-  "_moduleAliases": {
-    "@api": "./dist/src/api",
-    "@commands": "./dist/src/commands",
-    "@db": "./dist/src/db",
-    "@discord": "./dist/src/discord",
-    "@util": "./dist/src/util",
-    "@config": "./dist/src/config.js"
   }
 }

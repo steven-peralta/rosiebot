@@ -129,7 +129,7 @@ const discordEvents = (client: Client): void => {
 
     client.user?.setActivity('Type !rhelp for available commands!');
     client
-      .generateInvite({ permissions: ['SEND_MESSAGES', 'MANAGE_CHANNELS'] })
+      .generateInvite({ permissions: ['SEND_MESSAGES', 'MANAGE_MESSAGES'] })
       .then((link) => {
         logModuleInfo(
           `Generated bot invite link: ${link}`,
