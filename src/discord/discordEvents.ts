@@ -5,18 +5,18 @@ import {
   MessageEditOptions,
   MessageEmbed,
 } from 'discord.js';
-import config from '@config';
-import commands from '@commands/commands';
-import { Command } from '@util/enums';
+import config from '$config';
+import commands from '$commands/commands';
+import { Command } from '$util/enums';
 import {
   LoggingModule,
   logModuleError,
   logModuleInfo,
   logModuleWarning,
-} from '@util/logger';
-import { CommandFormatter, CommandResponseType } from '@commands/types';
-import Waifu from '@db/models/Waifu';
-import { logCommandException, logCommandStatus } from '@commands/logging';
+} from '$util/logger';
+import { CommandFormatter, CommandResponseType } from '$commands/types';
+import Waifu from '$db/models/Waifu';
+import { logCommandException, logCommandStatus } from '$commands/logging';
 
 const parseCommand = async (msg: Message) => {
   const { content, channel, author } = msg;
@@ -129,7 +129,7 @@ const discordEvents = (client: Client): void => {
 
     client.user?.setActivity('Type !rhelp for available commands!');
     client
-      .generateInvite({ permissions: ['SEND_MESSAGES', 'MANAGE_CHANNELS'] })
+      .generateInvite({ permissions: ['SEND_MESSAGES', 'MANAGE_MESSAGES'] })
       .then((link) => {
         logModuleInfo(
           `Generated bot invite link: ${link}`,

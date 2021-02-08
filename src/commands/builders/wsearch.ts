@@ -1,3 +1,4 @@
+import { Message } from 'discord.js';
 import {
   CommandBuilder,
   CommandCallback,
@@ -5,13 +6,12 @@ import {
   CommandMetadata,
   CommandProcessor,
   CommandResult,
-} from '@commands/types';
-import { Command, StatusCode } from '@util/enums';
-import Waifu, { waifuModel } from '@db/models/Waifu';
-import parseWaifuSearchArgs from '@util/args';
-import { logCommandException } from '@commands/logging';
-import { Message } from 'discord.js';
-import formatWaifuResults from '@commands/formatters';
+} from '$commands/types';
+import { Command, StatusCode } from '$util/enums';
+import Waifu, { waifuModel } from '$db/models/Waifu';
+import parseWaifuSearchArgs from '$util/args';
+import { logCommandException } from '$commands/logging';
+import formatWaifuResults from '$commands/formatters';
 
 const metadata: CommandMetadata = {
   name: Command.wsearch,
@@ -27,12 +27,12 @@ const command: CommandCallback<Waifu[], { args: string[] }> = async (
     try {
       const start = Date.now();
       const queryOptions = parseWaifuSearchArgs(args.args);
-      const data = await waifuModel.leanWaifuQuery(
+      const data = await waifuModel.leanFind(
         queryOptions.conditions,
         queryOptions.sort,
         queryOptions.projection
       );
-      if (data) {
+      if (data && Array.isArray(data) && data.length > 0) {
         return {
           data,
           statusCode: StatusCode.Success,
@@ -40,7 +40,7 @@ const command: CommandCallback<Waifu[], { args: string[] }> = async (
         };
       }
       return {
-        statusCode: StatusCode.NoData,
+        statusCode: StatusCode.WaifuNotFound,
       };
     } catch (e) {
       logCommandException(e, metadata);
@@ -52,9 +52,8 @@ const command: CommandCallback<Waifu[], { args: string[] }> = async (
   };
 };
 
-const processor: CommandProcessor<Waifu[]> = async (msg: Message, args) => {
-  return command({ args });
-};
+const processor: CommandProcessor<Waifu[]> = async (msg: Message, args) =>
+  command({ args });
 
 const formatter: CommandFormatter<Waifu[], Waifu> = (result, user) =>
   formatWaifuResults(

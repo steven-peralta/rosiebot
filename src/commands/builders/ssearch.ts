@@ -6,15 +6,15 @@ import {
   CommandProcessor,
   DiscordResponseContent,
   SeriesSearchParams,
-} from '@commands/types';
-import { Command, ErrorMessage, StatusCode } from '@util/enums';
-import Studio, { studioModel } from '@db/models/Studio';
-import Series, { seriesModel } from '@db/models/Series';
-import Waifu, { waifuModel } from '@db/models/Waifu';
-import APIField from '@util/APIField';
-import { pagedInteractiveSeriesMessage } from '@discord/embeds/series';
-import brandingEmbed from '@discord/embeds/brandingEmbed';
-import { pagedInteractiveWaifuMessage } from '@discord/embeds/waifu';
+} from '$commands/types';
+import { Command, ErrorMessage, StatusCode } from '$util/enums';
+import Studio, { studioModel } from '$db/models/Studio';
+import Series, { seriesModel } from '$db/models/Series';
+import Waifu, { waifuModel } from '$db/models/Waifu';
+import APIField from '$util/APIField';
+import { pagedInteractiveSeriesMessage } from '$discord/embeds/series';
+import brandingEmbed from '$discord/embeds/brandingEmbed';
+import { pagedInteractiveWaifuMessage } from '$discord/embeds/waifu';
 
 const metadata: CommandMetadata = {
   name: Command.ssearch,
@@ -23,7 +23,7 @@ const metadata: CommandMetadata = {
   supportsDM: true,
 };
 
-interface SeriesResults {
+export interface SeriesResults {
   studio?: Studio;
   series: Series | Series[];
   waifu?: Waifu[];
@@ -59,17 +59,22 @@ const command: CommandCallback<SeriesResults, SeriesSearchParams> = async (
       .limit(1)
       .lean()
       .populate(APIField.studio);
-    const waifuDocs = await waifuModel
-      .find({
-        [APIField.series]: seriesDoc[APIField._id],
-      })
-      .sort({ [APIField.likes]: -1 })
-      .lean()
-      .populate(APIField.appearances);
+    if (seriesDoc) {
+      const waifuDocs = await waifuModel
+        .find({
+          [APIField.series]: seriesDoc[APIField._id],
+        })
+        .sort({ [APIField.likes]: -1 })
+        .lean()
+        .populate(APIField.appearances);
+      return {
+        statusCode: StatusCode.Success,
+        time: Date.now() - start,
+        data: { series: seriesDoc, waifu: waifuDocs },
+      };
+    }
     return {
-      statusCode: StatusCode.Success,
-      time: Date.now() - start,
-      data: { series: seriesDoc, waifu: waifuDocs },
+      statusCode: StatusCode.NoData,
     };
   }
   return {

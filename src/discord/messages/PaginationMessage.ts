@@ -1,8 +1,8 @@
-import BaseInteractiveMessage from '@discord/messages/BaseInteractiveMessage';
-import InteractiveMessage from '@discord/messages/InteractiveMessage';
 import { Message, Snowflake, StringResolvable, User } from 'discord.js';
-import { Button, StatusCode } from '@util/enums';
-import { logModuleWarning } from '@util/logger';
+import BaseInteractiveMessage from '$discord/messages/BaseInteractiveMessage';
+import InteractiveMessage from '$discord/messages/InteractiveMessage';
+import { Button, StatusCode } from '$util/enums';
+import { logModuleWarning } from '$util/logger';
 
 export default class PaginationMessage<T> extends BaseInteractiveMessage<T> {
   private _currentPage: number;

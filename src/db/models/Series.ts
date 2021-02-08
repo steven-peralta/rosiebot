@@ -1,17 +1,27 @@
 import {
+  DocumentType,
   getModelForClass,
   index,
+  pre,
   prop,
   Ref,
   ReturnModelType,
 } from '@typegoose/typegoose';
-import APIField from '@util/APIField';
 import { Base } from '@typegoose/typegoose/lib/defaultClasses';
-import Studio, { studioModel } from '@db/models/Studio';
-import { MwlStudio } from '@api/mwl/types';
-import mwl from '@api/mwl/mwl';
-import { LoggingModule, logModuleError, logModuleInfo } from '@util/logger';
+import APIField from '$util/APIField';
+import Studio, { studioModel } from '$db/models/Studio';
+import { MwlStudio } from '$api/mwl/types';
+import mwl from '$api/mwl/mwl';
+import { LoggingModule, logModuleError, logModuleInfo } from '$util/logger';
 
+function setLastUpdated(this: DocumentType<Series>) {
+  const now = new Date();
+  if (!this[APIField.updated] || this[APIField.updated] < now) {
+    this[APIField.updated] = now;
+  }
+}
+
+@pre<Series>('save', setLastUpdated)
 @index({
   [APIField.name]: 'text',
   [APIField.originalName]: 'text',
@@ -29,6 +39,12 @@ export default class Series extends Base<number> {
 
   @prop({ required: true })
   public [APIField.name]!: string;
+
+  @prop({ default: new Date() })
+  [APIField.created]!: Date;
+
+  @prop({ default: new Date() })
+  [APIField.updated]!: Date;
 
   @prop()
   public [APIField.type]?: string;
@@ -60,24 +76,18 @@ export default class Series extends Base<number> {
   @prop({ ref: () => Studio, type: Number })
   public [APIField.studio]?: Ref<Studio, number>;
 
-  public static async findOneOrFetchFromMwl(
+  public static async updateFromMWL(
     this: ReturnModelType<typeof Series>,
     mwlId: number | string
   ): Promise<Series | undefined> {
     try {
-      const record =
-        typeof mwlId === 'number'
-          ? await this.findOne({ [APIField.mwlId]: mwlId })
-          : await this.findOne({ [APIField.mwlSlug]: mwlId });
-
-      if (record) return record;
       const mwlSeries = await mwl.getSeries(mwlId);
 
       if (mwlSeries) {
         let studio;
 
         if (mwlSeries[APIField.studio]) {
-          studio = await studioModel.findOneOrCreate(
+          studio = await studioModel.updateFromMWL(
             <MwlStudio>mwlSeries[APIField.studio]
           );
 
@@ -90,7 +100,8 @@ export default class Series extends Base<number> {
           `Caching series data for ${mwlSeries[APIField.name]}`,
           LoggingModule.DB
         );
-        return seriesModel.create({
+
+        const updateOpts = {
           [APIField._id]: mwlSeries[APIField.id],
           [APIField.mwlSlug]: mwlSeries[APIField.slug],
           [APIField.mwlUrl]: mwlSeries[APIField.url],
@@ -105,7 +116,20 @@ export default class Series extends Base<number> {
           [APIField.airingStart]: mwlSeries[APIField.airingStart],
           [APIField.airingEnd]: mwlSeries[APIField.airingEnd],
           [APIField.studio]: studio,
-        });
+          [APIField.updated]: new Date(),
+        };
+
+        let record = await this.findById(mwlSeries[APIField.id]);
+        if (record) {
+          await record.updateOne(updateOpts);
+        } else {
+          record = await this.create({
+            ...updateOpts,
+            [APIField.created]: new Date(),
+          });
+        }
+
+        return record;
       }
       return undefined;
     } catch (e) {

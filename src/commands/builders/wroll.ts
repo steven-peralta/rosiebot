@@ -1,5 +1,6 @@
-import Waifu, { waifuModel } from '@db/models/Waifu';
-import User, { userModel } from '@db/models/User';
+import * as crypto from 'crypto';
+import Waifu, { waifuModel } from '$db/models/Waifu';
+import User, { userModel } from '$db/models/User';
 import {
   CommandBuilder,
   CommandCallback,
@@ -8,14 +9,13 @@ import {
   CommandProcessor,
   CommandResult,
   UserParams,
-} from '@commands/types';
-import { Command, ErrorMessage, StatusCode } from '@util/enums';
-import APIField from '@util/APIField';
-import config from '@config';
-import { getWotd } from '@commands/builders/wotd';
-import { logCommandException } from '@commands/logging';
-import formatWaifuResults from '@commands/formatters';
-import randomOrg from '@api/random-org/randomOrg';
+} from '$commands/types';
+import { Command, ErrorMessage, StatusCode } from '$util/enums';
+import APIField from '$util/APIField';
+import config from '$config';
+import { getWotd } from '$commands/builders/wotd';
+import { logCommandException } from '$commands/logging';
+import formatWaifuResults from '$commands/formatters';
 
 export interface WRollResponse {
   waifu: Waifu;
@@ -42,7 +42,7 @@ const command: CommandCallback<WRollResponse, UserParams> = async (
       if (user) {
         if (user[APIField.coins] >= config.rollCost) {
           const start = Date.now();
-          const roll = await randomOrg.generateInteger(1, 100);
+          const roll = crypto.randomInt(1, 100);
           let criticalRoll = false;
           let wotdRoll = false;
           let waifu: Waifu | undefined;
@@ -53,13 +53,13 @@ const command: CommandCallback<WRollResponse, UserParams> = async (
             wotdRoll = true;
           } else if (roll >= 2 && roll <= 21) {
             // ranked waifu roll
-            waifu = await waifuModel.getRandom({
+            waifu = await waifuModel.random({
               [APIField.tier]: { $ne: undefined },
             });
             criticalRoll = true;
           } else {
             // regular roll
-            waifu = await waifuModel.getRandom();
+            waifu = await waifuModel.random();
           }
 
           if (waifu) {

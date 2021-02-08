@@ -3,7 +3,6 @@
  * type of arguments are needed, as well as some permissions needed to run the
  * command
  */
-import { Command, StatusCode } from '@util/enums';
 import {
   Guild,
   Message,
@@ -11,7 +10,8 @@ import {
   StringResolvable,
   User,
 } from 'discord.js';
-import BaseInteractiveMessage from '@discord/messages/BaseInteractiveMessage';
+import { Command, StatusCode } from '$util/enums';
+import BaseInteractiveMessage from '$discord/messages/BaseInteractiveMessage';
 
 export interface CommandMetadata {
   name: Command;

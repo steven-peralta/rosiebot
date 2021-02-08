@@ -1,17 +1,17 @@
-import Waifu from '@db/models/Waifu';
 import {
   MessageEmbedOptions,
   StringResolvable,
   User as DiscordUser,
 } from 'discord.js';
-import APIField from '@util/APIField';
-import { truncateString } from '@util/string';
-import PaginationMessage from '@discord/messages/PaginationMessage';
-import InteractiveMessage from '@discord/messages/InteractiveMessage';
-import { Button, StatusCode } from '@util/enums';
-import User, { userModel } from '@db/models/User';
-import Series from '@db/models/Series';
-import config from '@config';
+import Waifu from '$db/models/Waifu';
+import APIField from '$util/APIField';
+import { truncateString } from '$util/string';
+import PaginationMessage from '$discord/messages/PaginationMessage';
+import InteractiveMessage from '$discord/messages/InteractiveMessage';
+import { Button, StatusCode } from '$util/enums';
+import User, { userModel } from '$db/models/User';
+import Series from '$db/models/Series';
+import config from '$config';
 
 export const waifuEmbed = (waifu: Waifu): MessageEmbedOptions => {
   const {
@@ -146,12 +146,20 @@ export const waifuEmbed = (waifu: Waifu): MessageEmbedOptions => {
     });
   }
 
-  if (series && typeof series === 'object') {
-    embed.fields?.push({
-      name: ':book: Series',
-      value: `${(<Series>series)[APIField.name]}`,
-      inline: true,
-    });
+  if (series) {
+    let temp;
+    if (Array.isArray(series) && series.length > 0) {
+      [temp] = series;
+    } else if (typeof series === 'object') {
+      temp = series;
+    }
+    if (temp) {
+      embed.fields?.push({
+        name: ':book: Series',
+        value: `${(<Series>temp)[APIField.name]}`,
+        inline: true,
+      });
+    }
   }
 
   // at this point, push empty fields because flexbox will cause the last row to look
@@ -292,12 +300,16 @@ export const sellConfirmation = (
                   (value) => value.data === waifu
                 );
                 interactiveMessage.pages.splice(i, 1);
+
                 if (interactiveMessage.pages.length === 0) {
                   interactiveMessage.cleanup();
-                } else if (i === 0) {
-                  await interactiveMessage.nextPage();
-                } else {
+                } else if (i === interactiveMessage.pages.length) {
                   await interactiveMessage.previousPage();
+                } else {
+                  interactiveMessage.setCurrentPage(
+                    interactiveMessage.currentPage - 1
+                  );
+                  await interactiveMessage.nextPage();
                 }
               }
             } else if (interactiveMessage instanceof InteractiveMessage) {

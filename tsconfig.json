@@ -3,28 +3,31 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@api/*": ["./src/api/*"],
-      "@commands/*": ["./src/commands/*"],
-      "@db/*": ["./src/db/*"],
-      "@discord/*": ["./src/discord/*"],
-      "@util/*": ["./src/util/*"],
-      "@config": ["./src/config"]
+      "$api/*": ["src/api/*"],
+      "$commands/*": ["src/commands/*"],
+      "$config": ["src/config"],
+      "$db/*": ["src/db/*"],
+      "$discord/*": ["src/discord/*"],
+      "$util/*": ["src/util/*"]
     },
-    "incremental": true,
-    "experimentalDecorators": true,
+    "alwaysStrict": true,
+    "declaration": true,
     "emitDecoratorMetadata": true,
-    "noImplicitAny": true,                 /* Raise error on expressions and declarations with an implied 'any' type. */
-    "strictNullChecks": true,              /* Enable strict null checks. */
-    "strictFunctionTypes": true,           /* Enable strict checking of function types. */
-    "strictBindCallApply": true,           /* Enable strict 'bind', 'call', and 'apply' methods on functions. */
-    "strictPropertyInitialization": true,  /* Enable strict checking of property initialization in classes. */
-    "noImplicitThis": true,                /* Raise error on 'this' expressions with an implied 'any' type. */
-    "alwaysStrict": true,                  /* Parse in strict mode and emit "use strict" for each source file. */
-    "resolveJsonModule": true,
+    "experimentalDecorators": true,
+    "incremental": true,
+    "moduleResolution": "node",
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
     "outDir": "dist",
-    "sourceMap": false,
-    "moduleResolution": "node"
+    "removeComments": true,
+    "resolveJsonModule": true,
+    "sourceMap": true,
+    "strictBindCallApply": true,
+    "strictFunctionTypes": true,
+    "strictNullChecks": true,
+    "strictPropertyInitialization": true
   },
   "include": ["src/**/*", "scripts/**/*"],
-  "exclude": ["node_modules", "**/*.spec.ts"]
+  "exclude": ["node_modules", "dist", "**/*.spec.ts"]
 }

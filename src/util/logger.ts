@@ -1,7 +1,10 @@
 import { resolve } from 'url';
-import { createLogger, format, transports } from 'winston';
+import { createLogger, format, Logger, transports } from 'winston';
 import * as fs from 'fs';
 import path from 'path';
+import TransportStream from 'winston-transport';
+
+let loggerInst: Logger;
 
 export enum LoggingModule {
   Rosiebot = 'rosiebot',
@@ -34,7 +37,10 @@ const logFormatter = (info: Record<string, string>) =>
         .colorize()
         .colorize(info.level, info.level.toUpperCase())}]: ${info.message}`;
 
-const initLogger = () => {
+export const initLogger = (
+  name = 'rosiebot',
+  addtlTransports: TransportStream[] = []
+): Logger => {
   if (!fs.existsSync(logsDir)) {
     fs.mkdirSync(logsDir);
   }
@@ -48,20 +54,21 @@ const initLogger = () => {
       new transports.Console(),
       // combined
       new transports.File({
-        filename: path.join(logsDir, 'rosiebot.log'),
+        filename: path.join(logsDir, `${name}.log`),
       }),
       // error
       new transports.File({
-        filename: path.join(logsDir, 'rosiebot.error.log'),
+        filename: path.join(logsDir, `${name}.error.log`),
         level: 'error',
       }),
     ],
     exceptionHandlers: [
       // exceptions
       new transports.File({
-        filename: path.join(logsDir, 'rosiebot.exceptions.log'),
+        filename: path.join(logsDir, `${name}.exceptions.log`),
       }),
     ],
+    ...addtlTransports,
   });
 };
 
@@ -69,23 +76,31 @@ export const logModuleInfo = (
   message: string,
   module: LoggingModule = LoggingModule.Rosiebot
 ): void => {
-  logger.info({ message, module });
+  logger().info({ message, module });
 };
 
 export const logModuleError = (
   message: string,
   module: LoggingModule = LoggingModule.Rosiebot
 ): void => {
-  logger.error({ message, module });
+  logger().error({ message, module });
 };
 
 export const logModuleWarning = (
   message: string,
   module: LoggingModule = LoggingModule.Rosiebot
 ): void => {
-  logger.warn({ message, module });
+  logger().warn({ message, module });
 };
 
-const logger = initLogger();
+const logger = (): Logger => {
+  if (!loggerInst) {
+    loggerInst = initLogger();
+  }
+  return loggerInst;
+};
 
+export const setLogger = (l: Logger): void => {
+  loggerInst = l;
+};
 export default logger;

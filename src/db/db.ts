@@ -1,6 +1,6 @@
 import Mongoose from 'mongoose';
-import config from '@config';
-import { LoggingModule, logModuleError } from '@util/logger';
+import config from '$config';
+import { LoggingModule, logModuleError } from '$util/logger';
 
 const initDb = () => {
   Mongoose.connect(config.mongodbUri, {
@@ -10,6 +10,7 @@ const initDb = () => {
     useCreateIndex: true,
     keepAlive: true,
     keepAliveInitialDelay: 300000,
+    autoIndex: process.env.NODE_ENV !== 'production',
   }).catch((e) =>
     logModuleError(
       `Exception caught while connecting to the database: ${e}`,

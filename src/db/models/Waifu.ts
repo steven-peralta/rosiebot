@@ -2,24 +2,27 @@ import {
   DocumentType,
   getModelForClass,
   index,
+  pre,
   prop,
   Ref,
   ReturnModelType,
 } from '@typegoose/typegoose';
-import APIField from '@util/APIField';
 import { Base } from '@typegoose/typegoose/lib/defaultClasses';
-import Series, { seriesModel } from '@db/models/Series';
-import mwl from '@api/mwl/mwl';
-import { LoggingModule, logModuleError, logModuleInfo } from '@util/logger';
 import { FilterQuery, QueryFindOptions } from 'mongoose';
-import randomOrg from '@api/random-org/randomOrg';
-import { Tier } from '@util/enums';
-import { QueryOptions } from '@db/types';
-import hash from 'object-hash';
-import Timeout = NodeJS.Timeout;
+import APIField from '$util/APIField';
+import Series, { seriesModel } from '$db/models/Series';
+import mwl from '$api/mwl/mwl';
+import { LoggingModule, logModuleError, logModuleInfo } from '$util/logger';
+import { Tier } from '$util/enums';
 
-export const cachedQueries: Record<string, Waifu[]> = {};
-export const timeouts: Record<string, Timeout> = {};
+function setLastUpdated(this: DocumentType<Waifu>) {
+  const now = new Date();
+  if (!this[APIField.updated] || this[APIField.updated] < now) {
+    this[APIField.updated] = now;
+  }
+}
+
+@pre<Waifu>('save', setLastUpdated)
 @index({
   [APIField.name]: 'text',
   [APIField.originalName]: 'text',
@@ -55,6 +58,12 @@ export default class Waifu extends Base<number> {
 
   @prop({ required: true })
   [APIField.trash]!: number;
+
+  @prop({ default: new Date() })
+  [APIField.created]!: Date;
+
+  @prop({ default: new Date() })
+  [APIField.updated]!: Date;
 
   @prop()
   [APIField.description]?: string;
@@ -116,19 +125,12 @@ export default class Waifu extends Base<number> {
   @prop({ ref: () => Series, type: Number })
   [APIField.series]?: Ref<Series, number>;
 
-  public static async findOneOrFetchFromMwl(
+  public static async updateFromMWL(
     this: ReturnModelType<typeof Waifu>,
     mwlId: number | string,
     updateScores = false
   ): Promise<Waifu | undefined> {
     try {
-      const record =
-        typeof mwlId === 'number'
-          ? await this.findById(mwlId)
-          : await this.findOne({ [APIField.mwlSlug]: mwlId });
-
-      if (record) return record;
-
       const mwlWaifu = await mwl.getWaifu(mwlId);
 
       if (mwlWaifu) {
@@ -136,7 +138,7 @@ export default class Waifu extends Base<number> {
           await Promise.all(
             (mwlWaifu[APIField.appearances] ?? [])
               .map((appearance) => appearance[APIField.slug])
-              .map((slug) => seriesModel.findOneOrFetchFromMwl(slug))
+              .map((slug) => seriesModel.updateFromMWL(slug))
           )
         ).map((doc) => doc?.[APIField._id] ?? 0); // if the series doc some how ends up being undefined, use a predetermined id value
 
@@ -145,7 +147,7 @@ export default class Waifu extends Base<number> {
           mwlWaifu[APIField.series] &&
           mwlWaifu[APIField.series]?.[APIField.slug]
         ) {
-          series = await seriesModel.findOneOrFetchFromMwl(
+          series = await seriesModel.updateFromMWL(
             mwlWaifu[APIField.series]?.[APIField.slug] ?? 1
           );
           if (series) {
@@ -157,7 +159,8 @@ export default class Waifu extends Base<number> {
           `Caching waifu data for ${mwlWaifu[APIField.name]}`,
           LoggingModule.DB
         );
-        const doc = this.create({
+
+        const updateOpts = {
           [APIField._id]: mwlWaifu[APIField.id],
           [APIField.mwlSlug]: mwlWaifu[APIField.slug],
           [APIField.mwlCreatorId]: mwlWaifu[APIField.creator].id,
@@ -185,15 +188,28 @@ export default class Waifu extends Base<number> {
           [APIField.birthdayYear]: mwlWaifu[APIField.birthdayYear],
           [APIField.appearances]: appearances,
           [APIField.series]: series,
-        });
+          [APIField.updated]: new Date(),
+        };
 
-        if (updateScores) {
-          doc.then(() => {
-            this.updateScoresAndTiers();
+        let record =
+          typeof mwlId === 'number'
+            ? await this.findById(mwlId)
+            : await this.findOne({ [APIField.mwlSlug]: mwlId });
+
+        if (record) {
+          await record.updateOne(updateOpts);
+        } else {
+          record = await this.create({
+            ...updateOpts,
+            [APIField.created]: new Date(),
           });
         }
 
-        return doc;
+        if (updateScores) {
+          await this.updateScoresAndTiers();
+        }
+
+        return record;
       }
       return undefined;
     } catch (e) {
@@ -205,18 +221,33 @@ export default class Waifu extends Base<number> {
     }
   }
 
-  public static async getRandom(
+  public static async random(
     this: ReturnModelType<typeof Waifu>,
     conditions: FilterQuery<DocumentType<Waifu>> = {}
   ): Promise<Waifu | undefined> {
     try {
-      const query = await this.leanWaifuQuery(conditions, {}, {}, {}, 0);
+      const query = await this.aggregate([
+        { $match: conditions },
+        {
+          $lookup: {
+            from: 'series',
+            localField: APIField.series,
+            foreignField: APIField._id,
+            as: APIField.series,
+          },
+        },
+        {
+          $lookup: {
+            from: 'series',
+            localField: APIField.appearances,
+            foreignField: APIField._id,
+            as: APIField.appearances,
+          },
+        },
+        { $sample: { size: 1 } },
+      ]);
       if (query && query.length > 0) {
-        const max = query.length;
-        const min = 0;
-        const randInt = await randomOrg.generateInteger(min, max);
-        const waifu = query[randInt];
-        if (waifu) return waifu;
+        return query[0] as Waifu;
       }
       return undefined;
     } catch (e) {
@@ -228,9 +259,9 @@ export default class Waifu extends Base<number> {
     }
   }
 
-  public static updateScoresAndTiers(
+  public static async updateScoresAndTiers(
     this: ReturnModelType<typeof Waifu>
-  ): void {
+  ): Promise<void> {
     logModuleInfo('Updating waifu scores and tiers...', LoggingModule.DB);
     const getTier = (pos: number, total: number): Tier => {
       if (pos / total <= 1 / 100) return Tier.S;
@@ -243,7 +274,7 @@ export default class Waifu extends Base<number> {
     // score = (likes + 1 / trash + 1) * (total # of votes)
     // apply score to our documents
     // sort in descending order
-    this.aggregate([
+    const scores: { _id: number; score: number }[] = await this.aggregate([
       {
         $project: {
           [APIField.likes]: 1,
@@ -270,91 +301,39 @@ export default class Waifu extends Base<number> {
         },
       },
       { $sort: { [APIField.score]: -1 } },
-    ])
-      .exec()
-      .then((scores: { _id: number; score: number }[]) => {
-        scores.forEach((score, i) => {
-          this.findByIdAndUpdate(
-            score._id,
-            {
-              $set: {
-                [APIField.rank]: i + 1,
-                [APIField.score]: score.score,
-                [APIField.tier]: getTier(i + 1, scores.length),
-              },
-            },
-            { new: true, strict: false }
-          ).exec();
-        });
-      });
+    ]).exec();
+    scores.forEach((score, i) => {
+      this.findByIdAndUpdate(
+        score._id,
+        {
+          $set: {
+            [APIField.rank]: i + 1,
+            [APIField.score]: score.score,
+            [APIField.tier]: getTier(i + 1, scores.length),
+          },
+        },
+        { new: true, strict: false }
+      ).exec();
+    });
+
     logModuleInfo('Done updating waifu scores and tiers', LoggingModule.DB);
   }
 
-  public static async leanWaifuQuery(
+  public static async leanFind(
     this: ReturnModelType<typeof Waifu>,
     conditions: FilterQuery<DocumentType<Waifu>>,
     sort: string | unknown = {},
     projection: unknown | null = {},
     options: QueryFindOptions = {},
-    limit = 100,
-    cache = true,
-    ttl = 30000
+    limit = 100
   ): Promise<Waifu[] | undefined> {
-    const hashedOptions = hash({
-      conditions,
-      sort,
-      projection,
-      options,
-      limit,
-    } as QueryOptions<Waifu>);
-
-    const timeout = (key: string) => {
-      logModuleInfo(`${key} deleted from query cache.`, LoggingModule.DB);
-      delete cachedQueries[key];
-    };
-
-    if (cachedQueries[hashedOptions] && cache) {
-      if (timeouts[hashedOptions]) {
-        // reset our timer
-        clearTimeout(timeouts[hashedOptions]);
-        logModuleInfo(
-          `Timeout reset for query ${hashedOptions}`,
-          LoggingModule.DB
-        );
-        timeouts[hashedOptions] = setTimeout(() => {
-          timeout(hashedOptions);
-        }, ttl);
-      } else {
-        logModuleInfo(
-          `Setting timeout for query ${hashedOptions}`,
-          LoggingModule.DB
-        );
-        timeouts[hashedOptions] = setTimeout(() => {
-          timeout(hashedOptions);
-        }, ttl);
-      }
-      return cachedQueries[hashedOptions];
-    }
     try {
-      const query = await this.find(conditions, projection, options)
+      return await this.find(conditions, projection, options)
         .limit(limit)
         .sort(sort)
         .lean()
         .populate(APIField.appearances)
         .populate(APIField.series);
-      if (cache) {
-        cachedQueries[hashedOptions] = query;
-        // set our ttl
-        logModuleInfo(
-          `Setting timeout for query ${hashedOptions}`,
-          LoggingModule.DB
-        );
-        timeouts[hashedOptions] = setTimeout(() => {
-          timeout(hashedOptions);
-        }, ttl);
-      }
-
-      return query;
     } catch (e) {
       logModuleError(
         `Exception caught when trying to execute a lean Waifu query: ${e}`,

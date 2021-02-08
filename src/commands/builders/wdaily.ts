@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 import {
   CommandBuilder,
   CommandCallback,
@@ -5,12 +6,13 @@ import {
   CommandMetadata,
   CommandProcessor,
   UserParams,
-} from '@commands/types';
-import { Command, ErrorMessage, StatusCode } from '@util/enums';
-import APIField from '@util/APIField';
-import config from '@config';
-import { userModel } from '@db/models/User';
-import randomOrg from '@api/random-org/randomOrg';
+} from '$commands/types';
+import { Command, ErrorMessage, StatusCode } from '$util/enums';
+import APIField from '$util/APIField';
+import config from '$config';
+import { userModel } from '$db/models/User';
+
+const fullDay = 86400; // in seconds
 
 const metadata: CommandMetadata = {
   name: Command.wdaily,
@@ -19,7 +21,7 @@ const metadata: CommandMetadata = {
   supportsDM: false,
 };
 
-interface WDailyResponse {
+export interface WDailyResponse {
   coins?: number;
   criticalRoll?: boolean;
   lastClaimed?: Date;
@@ -31,8 +33,8 @@ const command: CommandCallback<WDailyResponse, UserParams> = async (params) => {
     const user = await userModel.findOneOrCreate(sender, guild);
     if (user) {
       const { [APIField.dailyLastClaimed]: lastClaimed } = user;
-      if ((Date.now() - lastClaimed.getTime()) / 1000 > 86400) {
-        const roll = await randomOrg.generateInteger(1, 100);
+      if ((Date.now() - lastClaimed.getTime()) / 1000 > fullDay) {
+        const roll = crypto.randomInt(1, 100);
         let coins = config.daily;
         let criticalRoll = false;
         if (roll === 1) {
@@ -74,9 +76,11 @@ const formatter: CommandFormatter<WDailyResponse, never> = (result, user) => {
   if (data) {
     const { lastClaimed, coins, criticalRoll } = data;
     if (lastClaimed) {
-      const secondsRemaining = 60 - lastClaimed.getSeconds();
-      const minutesRemaining = 59 - lastClaimed.getMinutes();
-      const hoursRemaining = 23 - lastClaimed.getHours();
+      const timeSince = Math.floor((Date.now() - lastClaimed.getTime()) / 1000);
+
+      const hoursRemaining = Math.floor((fullDay - timeSince) / 60 / 60);
+      const minutesRemaining = Math.floor(((fullDay - timeSince) / 60) % 60);
+      const secondsRemaining = Math.floor((fullDay - timeSince) % 60);
 
       const seconds =
         secondsRemaining >= 10 ? `${secondsRemaining}` : `0${secondsRemaining}`;
@@ -86,7 +90,7 @@ const formatter: CommandFormatter<WDailyResponse, never> = (result, user) => {
         hoursRemaining >= 10 ? `${hoursRemaining}` : `0${hoursRemaining}`;
 
       return {
-        content: `${user} You've already claimed your daily for today. You can claim again in in ${hours}:${minutes}:${seconds}`,
+        content: `${user} You've already claimed your daily for today. You can claim again in ${hours}:${minutes}:${seconds}`,
       };
     }
     if (coins && criticalRoll) {
