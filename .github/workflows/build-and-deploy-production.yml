@@ -3,8 +3,6 @@ name: Build, test, & deploy to production
 on:
   push:
     branches: [ master ]
-  pull_request:
-    branches: [ master ]
   workflow_dispatch:
 
 jobs:
