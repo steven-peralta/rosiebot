@@ -127,7 +127,7 @@ const discordEvents = (client: Client): void => {
       LoggingModule.Discord
     );
 
-    client.user?.setActivity('Type !rhelp for available commands!');
+    client.user?.setActivity("I run on ARM processors! It's the future!");
     client
       .generateInvite({ permissions: ['SEND_MESSAGES', 'MANAGE_MESSAGES'] })
       .then((link) => {
