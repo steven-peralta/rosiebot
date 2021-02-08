@@ -3,7 +3,6 @@ name: Cache data from MWL
 on:
   schedule:
     - cron: '0 0 * * 3'
-  workflow-dispatch:
 
 jobs:
   build:
