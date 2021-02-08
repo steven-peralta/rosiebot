@@ -1,4 +1,4 @@
-enum APIField {
+const enum APIField {
   _id = '_id',
   age = 'age',
   airingEnd = 'airing_end',

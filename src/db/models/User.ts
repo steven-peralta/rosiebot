@@ -5,6 +5,7 @@ import {
   Ref,
   ReturnModelType,
   DocumentType,
+  pre,
 } from '@typegoose/typegoose';
 import { Base } from '@typegoose/typegoose/lib/defaultClasses';
 import { User as DiscordUser, Guild } from 'discord.js';
@@ -12,6 +13,14 @@ import APIField from '$util/APIField';
 import Waifu from '$db/models/Waifu';
 import { LoggingModule, logModuleError, logModuleInfo } from '$util/logger';
 
+function setLastUpdated(this: DocumentType<User>) {
+  const now = new Date();
+  if (!this[APIField.updated] || this[APIField.updated] < now) {
+    this[APIField.updated] = now;
+  }
+}
+
+@pre<User>('save', setLastUpdated)
 @index({ [APIField.userId]: 1, [APIField.serverId]: 1 }, { unique: true })
 export default class User extends Base {
   @prop()
@@ -81,13 +90,6 @@ export default class User extends Base {
     }
   }
 
-  public setLastUpdated(this: DocumentType<User>): void {
-    const now = new Date();
-    if (!this[APIField.updated] || this[APIField.updated] < now) {
-      this[APIField.updated] = now;
-    }
-  }
-
   public setDailyClaimed(this: DocumentType<User>): void {
     const now = new Date();
     if (
@@ -98,13 +100,13 @@ export default class User extends Base {
     }
   }
 
-  public addWaifu(this: DocumentType<User>, id: number): void {
+  public addWaifu(this: DocumentType<User>, ids: number | number[]): void {
     if (!this[APIField.ownedWaifus]) {
-      this[APIField.ownedWaifus] = [id];
-      this.setLastUpdated();
+      this[APIField.ownedWaifus] = Array.isArray(ids) ? ids : [ids];
+    } else if (Array.isArray(ids)) {
+      this[APIField.ownedWaifus].push(...ids);
     } else {
-      this[APIField.ownedWaifus].push(id);
-      this.setLastUpdated();
+      this[APIField.ownedWaifus].push(ids);
     }
   }
 }

@@ -1,5 +1,5 @@
-import axiosRateLimit from 'axios-rate-limit';
 import axios, { AxiosInstance } from 'axios';
+import axiosRateLimit from 'axios-rate-limit';
 import { MwlSeries, MwlWaifu } from '$api/mwl/types';
 import {
   LoggingModule,
@@ -18,7 +18,7 @@ export default class MWLAPI {
     this.axios = axiosRateLimit(
       axios.create({
         baseURL: 'https://mywaifulist.moe/api/v1/',
-        timeout: 0,
+        timeout: 30000,
         headers: { apikey },
       }),
       { maxRPS: 1 }
@@ -29,7 +29,7 @@ export default class MWLAPI {
     try {
       const start = Date.now();
       logModuleInfo(
-        `GET: ${this.axios.defaults.baseURL}/waifu/${id}`,
+        `GET: ${this.axios.defaults.baseURL}waifu/${id}`,
         LoggingModule.MWL
       );
       const { data, status } = await this.axios.get(`waifu/${id}`);
@@ -41,7 +41,7 @@ export default class MWLAPI {
         return data.data as MwlWaifu;
       }
       logModuleWarning(
-        `Received ${status} status from ${this.axios.defaults.baseURL}/waifu/${id}`,
+        `Received ${status} status from ${this.axios.defaults.baseURL}waifu/${id}`,
         LoggingModule.MWL
       );
       return undefined;
@@ -58,7 +58,7 @@ export default class MWLAPI {
     try {
       const start = Date.now();
       logModuleInfo(
-        `GET: ${this.axios.defaults.baseURL}/series/${id}`,
+        `GET: ${this.axios.defaults.baseURL}series/${id}`,
         LoggingModule.MWL
       );
       const { data, status } = await this.axios.get(`series/${id}`);
@@ -70,7 +70,7 @@ export default class MWLAPI {
         return data.data as MwlSeries;
       }
       logModuleWarning(
-        `Received ${status} status from ${this.axios.defaults.baseURL}/waifu/${id}`,
+        `Received ${status} status from ${this.axios.defaults.baseURL}waifu/${id}`,
         LoggingModule.MWL
       );
       return undefined;

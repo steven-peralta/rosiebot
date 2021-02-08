@@ -20,9 +20,10 @@
     "module-alias": "^2.2.2",
     "mongodb": "^3.6.3",
     "mongoose": "^5.9.25",
+    "tsconfig-paths": "^3.9.0",
     "winston": "^3.3.3",
     "winston-cloudwatch": "^2.5.0",
-    "tsconfig-paths": "^3.9.0"
+    "winston-transport": "^4.4.0"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^5.0.1",
@@ -50,12 +51,21 @@
   },
   "scripts": {
     "build-ts": "tsc",
-    "build": "NODE_ENV=production yarn run build-ts",
-    "start": "node -r ./scripts/prod-paths.js ./dist/bot.js",
-    "prod": "NODE_ENV=production yarn run build && yarn run start",
-    "lint": "eslint src/",
+    "build:prod": "NODE_ENV=production yarn run build-ts",
+    "build:staging": "NODE_ENV=staging yarn run build-ts",
+    "build:dev": "NODE_ENV=development yarn run build-ts",
+    "start": "node -r ./scripts/prod-paths.js ./dist/src/bot.js",
+    "start:prod": "NODE_ENV=production yarn run start",
+    "start:staging": "NODE_ENV=staging yarn run start",
+    "start:dev": "NODE_ENV=development yarn run start",
     "dev": "NODE_ENV=development ts-node-dev -r tsconfig-paths/register --respawn ./src/bot.ts",
-    "test": "echo 'no test'"
+    "dev:scrape": "NODE_ENV=development ts-node-dev -r tsconfig-paths/register --respawn ./scripts/scrape.ts",
+    "lint": "eslint src/",
+    "test": "echo 'no test'",
+    "scrape": "node -r ./scripts/prod-paths.js ./dist/scripts/scrape.js 40000",
+    "scrape:prod": "NODE_ENV=production && yarn run scrape",
+    "scrape:staging": "NODE_ENV=staging && yarn run scrape",
+    "scrape:dev": "NODE_ENV=development && yarn run scrape"
   },
   "engines": {
     "node": "<=12.x",

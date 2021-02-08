@@ -2,6 +2,7 @@ import {
   DocumentType,
   getModelForClass,
   index,
+  pre,
   prop,
   Ref,
   ReturnModelType,
@@ -14,6 +15,14 @@ import mwl from '$api/mwl/mwl';
 import { LoggingModule, logModuleError, logModuleInfo } from '$util/logger';
 import { Tier } from '$util/enums';
 
+function setLastUpdated(this: DocumentType<Waifu>) {
+  const now = new Date();
+  if (!this[APIField.updated] || this[APIField.updated] < now) {
+    this[APIField.updated] = now;
+  }
+}
+
+@pre<Waifu>('save', setLastUpdated)
 @index({
   [APIField.name]: 'text',
   [APIField.originalName]: 'text',
@@ -49,6 +58,12 @@ export default class Waifu extends Base<number> {
 
   @prop({ required: true })
   [APIField.trash]!: number;
+
+  @prop({ default: new Date() })
+  [APIField.created]!: Date;
+
+  @prop({ default: new Date() })
+  [APIField.updated]!: Date;
 
   @prop()
   [APIField.description]?: string;
@@ -110,19 +125,12 @@ export default class Waifu extends Base<number> {
   @prop({ ref: () => Series, type: Number })
   [APIField.series]?: Ref<Series, number>;
 
-  public static async findOneOrFetchFromMwl(
+  public static async updateFromMWL(
     this: ReturnModelType<typeof Waifu>,
     mwlId: number | string,
     updateScores = false
   ): Promise<Waifu | undefined> {
     try {
-      const record =
-        typeof mwlId === 'number'
-          ? await this.findById(mwlId)
-          : await this.findOne({ [APIField.mwlSlug]: mwlId });
-
-      if (record) return record;
-
       const mwlWaifu = await mwl.getWaifu(mwlId);
 
       if (mwlWaifu) {
@@ -130,7 +138,7 @@ export default class Waifu extends Base<number> {
           await Promise.all(
             (mwlWaifu[APIField.appearances] ?? [])
               .map((appearance) => appearance[APIField.slug])
-              .map((slug) => seriesModel.findOneOrFetchFromMwl(slug))
+              .map((slug) => seriesModel.updateFromMWL(slug))
           )
         ).map((doc) => doc?.[APIField._id] ?? 0); // if the series doc some how ends up being undefined, use a predetermined id value
 
@@ -139,7 +147,7 @@ export default class Waifu extends Base<number> {
           mwlWaifu[APIField.series] &&
           mwlWaifu[APIField.series]?.[APIField.slug]
         ) {
-          series = await seriesModel.findOneOrFetchFromMwl(
+          series = await seriesModel.updateFromMWL(
             mwlWaifu[APIField.series]?.[APIField.slug] ?? 1
           );
           if (series) {
@@ -151,7 +159,8 @@ export default class Waifu extends Base<number> {
           `Caching waifu data for ${mwlWaifu[APIField.name]}`,
           LoggingModule.DB
         );
-        const doc = this.create({
+
+        const updateOpts = {
           [APIField._id]: mwlWaifu[APIField.id],
           [APIField.mwlSlug]: mwlWaifu[APIField.slug],
           [APIField.mwlCreatorId]: mwlWaifu[APIField.creator].id,
@@ -179,15 +188,28 @@ export default class Waifu extends Base<number> {
           [APIField.birthdayYear]: mwlWaifu[APIField.birthdayYear],
           [APIField.appearances]: appearances,
           [APIField.series]: series,
-        });
+          [APIField.updated]: new Date(),
+        };
 
-        if (updateScores) {
-          doc.then(() => {
-            this.updateScoresAndTiers();
+        let record =
+          typeof mwlId === 'number'
+            ? await this.findById(mwlId)
+            : await this.findOne({ [APIField.mwlSlug]: mwlId });
+
+        if (record) {
+          await record.updateOne(updateOpts);
+        } else {
+          record = await this.create({
+            ...updateOpts,
+            [APIField.created]: new Date(),
           });
         }
 
-        return doc;
+        if (updateScores) {
+          await this.updateScoresAndTiers();
+        }
+
+        return record;
       }
       return undefined;
     } catch (e) {
@@ -237,9 +259,9 @@ export default class Waifu extends Base<number> {
     }
   }
 
-  public static updateScoresAndTiers(
+  public static async updateScoresAndTiers(
     this: ReturnModelType<typeof Waifu>
-  ): void {
+  ): Promise<void> {
     logModuleInfo('Updating waifu scores and tiers...', LoggingModule.DB);
     const getTier = (pos: number, total: number): Tier => {
       if (pos / total <= 1 / 100) return Tier.S;
@@ -252,7 +274,7 @@ export default class Waifu extends Base<number> {
     // score = (likes + 1 / trash + 1) * (total # of votes)
     // apply score to our documents
     // sort in descending order
-    this.aggregate([
+    const scores: { _id: number; score: number }[] = await this.aggregate([
       {
         $project: {
           [APIField.likes]: 1,
@@ -279,23 +301,21 @@ export default class Waifu extends Base<number> {
         },
       },
       { $sort: { [APIField.score]: -1 } },
-    ])
-      .exec()
-      .then((scores: { _id: number; score: number }[]) => {
-        scores.forEach((score, i) => {
-          this.findByIdAndUpdate(
-            score._id,
-            {
-              $set: {
-                [APIField.rank]: i + 1,
-                [APIField.score]: score.score,
-                [APIField.tier]: getTier(i + 1, scores.length),
-              },
-            },
-            { new: true, strict: false }
-          ).exec();
-        });
-      });
+    ]).exec();
+    scores.forEach((score, i) => {
+      this.findByIdAndUpdate(
+        score._id,
+        {
+          $set: {
+            [APIField.rank]: i + 1,
+            [APIField.score]: score.score,
+            [APIField.tier]: getTier(i + 1, scores.length),
+          },
+        },
+        { new: true, strict: false }
+      ).exec();
+    });
+
     logModuleInfo('Done updating waifu scores and tiers', LoggingModule.DB);
   }
 

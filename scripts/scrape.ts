@@ -1,55 +1,83 @@
 import Mongoose from 'mongoose';
+import WinstonCloudwatch from 'winston-cloudwatch';
 import config from '$config';
-
 import { waifuModel } from '$db/models/Waifu';
 import APIField from '$util/APIField';
+import logger, { initLogger, setLogger } from '$util/logger';
+
+const nodeEnv = process.env.NODE_ENV ?? 'development';
 
 const { mongodbUri } = config;
 const db = Mongoose.connection;
+
+const upToId: number = process.argv[2] ? parseInt(process.argv[2], 10) : 40000;
+
+setLogger(initLogger('scrape'));
+
+if (nodeEnv && nodeEnv !== 'development') {
+  logger().add(
+    new WinstonCloudwatch({
+      logGroupName: `rosiebot-${nodeEnv}-scrape`,
+      logStreamName: `rosiebot-${nodeEnv}-scrape-info`,
+      awsRegion: 'us-east-1',
+    })
+  );
+  logger().add(
+    new WinstonCloudwatch({
+      level: 'error',
+      logGroupName: `rosiebot-${nodeEnv}-scrape`,
+      logStreamName: `rosiebot-${nodeEnv}-scrape-error`,
+      awsRegion: 'us-east-1',
+    })
+  );
+}
 
 Mongoose.connect(mongodbUri, {
   useNewUrlParser: true,
   useFindAndModify: true,
   useUnifiedTopology: true,
   useCreateIndex: true,
-}).catch(console.error);
+}).catch(logger().error);
 
-const timer = (ms: number) => new Promise((res) => setTimeout(res, ms));
+const cacheWaifu = async (id: number) => {
+  const waifu = await waifuModel.updateFromMWL(id);
+  if (waifu) {
+    logger().info(
+      `${id}/${upToId} (${Math.round((id / upToId) * 100)}%): ${
+        waifu[APIField.name]
+      }`
+    );
+  }
+};
 
-async function scrape() {
-  const results = [];
-  const count = parseInt(process.argv[2], 10) ?? 1000;
-
-  for (let i = 1; i < count; i += 1) {
+const scrape = async () => {
+  for (let i = 1; i < upToId; i += 1) {
     try {
-      const result = await waifuModel.findOneOrFetchFromMwl(i);
-      if (result) {
-        console.log(
-          `${i}/${count} (${Math.round((i / count) * 100)}%): ${
-            result[APIField.name]
-          }`
-        );
-        results.push(result);
-      }
+      // eslint-disable-next-line no-await-in-loop
+      await cacheWaifu(i);
     } catch (e) {
-      console.error(
-        `${i}/${count} (${Math.round((i / count) * 100)}%): ${e.message}`
-      );
+      if (e.message) {
+        logger().error(
+          `${i}/${upToId} (${Math.round((i / upToId) * 100)}%): ${e.message}`
+        );
+      }
       if (e.response && e.response.status === 429) {
-        console.error('Rate limited, waiting 5 seconds');
-        await timer(1000 * 5);
+        logger().error('Rate limited, trying again...');
         i -= 1;
       }
     }
   }
-  console.log('finished.');
-}
+  await waifuModel.updateScoresAndTiers();
+};
 
 db.once('open', async () => {
-  console.log('Connected to database');
-  scrape();
+  logger().info('Connected to database');
+  scrape().then(() => {
+    logger().info('finished');
+    process.exit(0);
+  });
 });
 
 db.on('error', () => {
-  console.log('Error connecting to database');
+  logger().error('Error connecting to database');
 });

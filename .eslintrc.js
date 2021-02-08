@@ -5,18 +5,18 @@ module.exports = {
   },
   extends: ['airbnb-typescript-prettier'],
   parserOptions: {
-    sourceType: "module",
+    sourceType: 'module',
     tsconfigRootDir: __dirname,
-    project: './tsconfig.json',
+    project: './tsconfig.eslint.json',
     ecmaVersion: 11,
   },
   settings: {
-    "import/resolver": {
-      "node": {
-        "extensions": [".ts", ".tsx"],
-        "moduleDirectory": ["node_modules", "./src"]
+    'import/resolver': {
+      node: {
+        extensions: ['.ts', '.tsx'],
+        moduleDirectory: ['node_modules', './src'],
       },
-      "typescript": {
+      typescript: {
         project: './',
       },
     },
@@ -24,6 +24,6 @@ module.exports = {
   rules: {
     'no-use-before-define': 0,
     'no-underscore-dangle': 0,
-    '@typescript-eslint/no-unused-vars': ['error', { "argsIgnorePattern": "^_" }]
+    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
   },
 };
