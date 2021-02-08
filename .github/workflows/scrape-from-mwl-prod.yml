@@ -33,8 +33,8 @@ jobs:
     - name: Get latest Docker image
       id: get-latest-image
       run: |
-      IMAGE_TAG=$(aws ecr describe-images --output json --repository-name $ECR_REPOSITORY --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' | jq . --raw-output)
-      echo "::set-output name=IMAGE_TAG::$IMAGE_TAG"
+        IMAGE_TAG=$(aws ecr describe-images --output json --repository-name $ECR_REPOSITORY --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' | jq . --raw-output)
+        echo "::set-output name=IMAGE_TAG::$IMAGE_TAG"
 
     - name: Fill in the new image ID in the Amazon ECS task definition
       env:
