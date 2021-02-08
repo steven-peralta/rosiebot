@@ -33,12 +33,12 @@ jobs:
     - name: Get latest Docker image
       id: get-latest-image
       run: |
-        IMAGE_TAG=$(aws ecr describe-images --output json --repository-name $ECR_REPOSITORY --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' | jq . --raw-output)
-        echo "::set-output name=IMAGE_TAG::$IMAGE_TAG"
+        IMAGE_DIGEST=$(aws ecr describe-images --output json --repository-name $ECR_REPOSITORY --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageDigest' | jq . --raw-output)
+        echo "::set-output name=IMAGE_DIGEST::$IMAGE_DIGEST"
 
     - name: Fill in the new image ID in the Amazon ECS task definition
       env:
-        IMAGE_TAG: ${{ steps.get-latest-image.outputs.IMAGE_TAG }}
+        IMAGE_DIGEST: ${{ steps.get-latest-image.outputs.IMAGE_DIGEST }}
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: rosiebot-production
       id: task-def
@@ -46,7 +46,7 @@ jobs:
       with:
         task-definition: ${{ env.ECS_TASK_DEFINITION }}
         container-name: ${{ env.CONTAINER_NAME }}
-        image: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+        image: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_DIGEST }}
 
     - name: Deploy Amazon ECS task definition
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
