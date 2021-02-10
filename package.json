@@ -66,7 +66,8 @@
     "scrape:prod": "NODE_ENV=production && yarn run scrape",
     "scrape:staging": "NODE_ENV=staging && yarn run scrape",
     "scrape:dev": "NODE_ENV=development && yarn run scrape",
-    "rank": "ts-node-dev -r tsconfig-paths/register ./scripts/rank.ts"
+    "rank": "ts-node-dev -r tsconfig-paths/register ./scripts/rank.ts",
+    "convert": "ts-node-dev tsconfig-paths/register ./scripts/convert.ts"
   },
   "engines": {
     "node": "<=12.x",
