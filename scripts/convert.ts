@@ -1,4 +1,3 @@
-/* eslint-disable no-console, no-await-in-loop, no-restricted-syntax, no-continue */
 import Mongoose from 'mongoose';
 
 import { Client, Snowflake } from 'discord.js';
