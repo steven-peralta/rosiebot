@@ -51,7 +51,7 @@ const command: CommandCallback<WRollResponse, UserParams> = async (
             // wotd roll
             waifu = (await getWotd())?.waifu;
             wotdRoll = true;
-          } else if (roll >= 2 && roll <= 21) {
+          } else if (roll >= 2 && roll <= 13) {
             // ranked waifu roll
             waifu = await waifuModel.random({
               [APIField.tier]: { $ne: undefined },

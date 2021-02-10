@@ -302,20 +302,24 @@ export default class Waifu extends Base<number> {
       },
       { $sort: { [APIField.score]: -1 } },
     ]).exec();
-    scores.forEach((score, i) => {
-      this.findByIdAndUpdate(
-        score._id,
-        {
-          $set: {
-            [APIField.rank]: i + 1,
-            [APIField.score]: score.score,
-            [APIField.tier]: getTier(i + 1, scores.length),
-          },
-        },
-        { new: true, strict: false }
-      ).exec();
-    });
 
+    const promises: Promise<DocumentType<Waifu> | null>[] = [];
+    scores.forEach((score, i) => {
+      promises.push(
+        this.findByIdAndUpdate(
+          score._id,
+          {
+            $set: {
+              [APIField.rank]: i + 1,
+              [APIField.score]: score.score,
+              [APIField.tier]: getTier(i + 1, scores.length),
+            },
+          },
+          { new: true, strict: false }
+        ).exec()
+      );
+    });
+    await Promise.all(promises);
     logModuleInfo('Done updating waifu scores and tiers', LoggingModule.DB);
   }
 

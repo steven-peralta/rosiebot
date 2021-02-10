@@ -10,7 +10,7 @@ const nodeEnv = process.env.NODE_ENV ?? 'development';
 const { mongodbUri } = config;
 const db = Mongoose.connection;
 
-const upToId: number = process.argv[2] ? parseInt(process.argv[2], 10) : 40000;
+const upToId: number = process.argv[2] ? parseInt(process.argv[2], 10) : 30000;
 
 setLogger(initLogger('scrape'));
 
@@ -70,7 +70,7 @@ const scrape = async () => {
   await waifuModel.updateScoresAndTiers();
 };
 
-db.once('open', async () => {
+db.once('open', () => {
   logger().info('Connected to database');
   scrape().then(() => {
     logger().info('finished');
