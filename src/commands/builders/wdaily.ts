@@ -12,8 +12,6 @@ import APIField from '$util/APIField';
 import config from '$config';
 import { userModel } from '$db/models/User';
 
-const fullDay = 86400; // in seconds
-
 const metadata: CommandMetadata = {
   name: Command.wdaily,
   description: 'Get your daily dose of waifu coins',
@@ -33,7 +31,14 @@ const command: CommandCallback<WDailyResponse, UserParams> = async (params) => {
     const user = await userModel.findOneOrCreate(sender, guild);
     if (user) {
       const { [APIField.dailyLastClaimed]: lastClaimed } = user;
-      if ((Date.now() - lastClaimed.getTime()) / 1000 > fullDay) {
+      const reset = new Date(lastClaimed);
+      reset.setDate(lastClaimed.getDate() + 1);
+      reset.setHours(10);
+      reset.setMinutes(0);
+      reset.setSeconds(0);
+      reset.setMilliseconds(0);
+
+      if (reset <= new Date()) {
         const roll = crypto.randomInt(1, 100);
         let coins = config.daily;
         let criticalRoll = false;
@@ -76,11 +81,19 @@ const formatter: CommandFormatter<WDailyResponse, never> = (result, user) => {
   if (data) {
     const { lastClaimed, coins, criticalRoll } = data;
     if (lastClaimed) {
-      const timeSince = Math.floor((Date.now() - lastClaimed.getTime()) / 1000);
+      const reset = new Date(lastClaimed);
+      reset.setDate(lastClaimed.getDate() + 1);
+      reset.setHours(10);
+      reset.setMinutes(0);
+      reset.setSeconds(0);
+      reset.setMilliseconds(0);
+      const timeUntil = Math.floor(
+        (reset.getTime() - new Date().getTime()) / 1000
+      );
 
-      const hoursRemaining = Math.floor((fullDay - timeSince) / 60 / 60);
-      const minutesRemaining = Math.floor(((fullDay - timeSince) / 60) % 60);
-      const secondsRemaining = Math.floor((fullDay - timeSince) % 60);
+      const hoursRemaining = Math.floor(timeUntil / 60 / 60);
+      const minutesRemaining = Math.floor((timeUntil / 60) % 60);
+      const secondsRemaining = Math.floor(timeUntil % 60);
 
       const seconds =
         secondsRemaining >= 10 ? `${secondsRemaining}` : `0${secondsRemaining}`;

@@ -67,7 +67,7 @@ jobs:
     env:
       AWS_REGION: us-east-1
       ECR_REPOSITORY: rosiebot-staging
-      ECS_SERVICE: rosiebot-staging
+      ECS_SERVICE: rosiebot-staging-service
       ECS_CLUSTER: rosiebot-staging
       ECS_TASK_DEFINITION: .aws/rosiebot-staging.json
       CONTAINER_NAME: rosiebot-staging
