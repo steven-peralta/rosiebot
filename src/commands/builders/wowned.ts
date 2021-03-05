@@ -45,18 +45,11 @@ const command: CommandCallback<
       : await userModel.findOneOrCreate(sender, guild);
 
     if (user) {
-      let options = {};
-      if (args && args.length > 0) {
-        const searchArgs = parseWaifuSearchArgs(args);
-        options = {
-          conditions: searchArgs.conditions,
-          sort: searchArgs.sort,
-          projections: searchArgs.projection,
-        };
-      }
+      const options = parseWaifuSearchArgs(args);
       await user
         .populate({
           path: APIField.ownedWaifus,
+          match: options.conditions,
           populate: [{ path: APIField.appearances }, { path: APIField.series }],
           options,
         })
