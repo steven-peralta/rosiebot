@@ -18,10 +18,20 @@ import { CommandFormatter, CommandResponseType } from '$commands/types';
 import Waifu from '$db/models/Waifu';
 import { logCommandException, logCommandStatus } from '$commands/logging';
 
+const elephantReact = '828427523255828480';
+
 const parseCommand = async (msg: Message) => {
-  const { content, channel, author } = msg;
+  const { content, channel, author, guild } = msg;
   const { tag: userTag, id: userID } = author;
 
+  // lol funny meme
+  if (guild?.id === '824122797433290835') {
+    msg
+      .react(elephantReact)
+      .catch((e) =>
+        logModuleError(`Failed to do funny meme: ${e}`, LoggingModule.Discord)
+      );
+  }
   // match our first character of the message to our command prefix
   if (content[0] === config.commandPrefix) {
     const args = content.substr(1).split(' ');
