@@ -8,7 +8,7 @@
   "main": "src/bot.ts",
   "license": "MIT",
   "dependencies": {
-    "@typegoose/typegoose": "^7.4.5",
+    "@typegoose/typegoose": "<=7.4.5",
     "@types/axios": "^0.14.0",
     "@types/mongodb": "^3.6.3",
     "@types/object-hash": "^1.3.4",

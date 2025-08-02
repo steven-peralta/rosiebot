@@ -460,7 +460,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typegoose/typegoose@npm:^7.4.5":
+"@typegoose/typegoose@npm:<=7.4.5":
   version: 7.4.5
   resolution: "@typegoose/typegoose@npm:7.4.5"
   dependencies:
@@ -7616,7 +7616,7 @@ __metadata:
     "@semantic-release/npm": ^7.0.5
     "@semantic-release/release-notes-generator": ^9.0.1
     "@tsconfig/recommended": ^1.0.1
-    "@typegoose/typegoose": ^7.4.5
+    "@typegoose/typegoose": <=7.4.5
     "@types/axios": ^0.14.0
     "@types/mongodb": ^3.6.3
     "@types/mongoose": ^5.7.32
