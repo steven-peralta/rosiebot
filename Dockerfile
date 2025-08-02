@@ -1,9 +1,9 @@
-FROM node:12
+FROM node:22
 
 WORKDIR /usr/rosiebot
 
 COPY package*.json ./
 
-RUN yarn
+RUN npm install
 
 COPY . .

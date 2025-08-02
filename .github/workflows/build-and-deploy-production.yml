@@ -12,10 +12,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node v12
+      - name: Setup Node v22
         uses: actions/setup-node@v4
         with:
-          node-version: 12
+          node-version: 22
 
       - name: Install dependencies
         run: npm ci
