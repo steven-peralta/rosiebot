@@ -531,7 +531,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/mongodb@npm:*, @types/mongodb@npm:^3.5.27, @types/mongodb@npm:^3.6.3":
+"@types/mongodb@npm:*, @types/mongodb@npm:^3.6.3":
   version: 3.6.3
   resolution: "@types/mongodb@npm:3.6.3"
   dependencies:
@@ -1240,7 +1240,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"bl@npm:^2.2.1":
+"bl@npm:^2.2.0, bl@npm:^2.2.1":
   version: 2.2.1
   resolution: "bl@npm:2.2.1"
   dependencies:
@@ -4630,10 +4630,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"kareem@npm:2.3.2":
-  version: 2.3.2
-  resolution: "kareem@npm:2.3.2"
-  checksum: 61ee3adb273e3e999eae731119bd74e40fd01ffef585b4e47756ca29dfc939a03c6a1dd8a43f2a864e599c3716e00404d1812e685b32ec7f9c52d6cedf2f2fcb
+"kareem@npm:2.3.1":
+  version: 2.3.1
+  resolution: "kareem@npm:2.3.1"
+  checksum: 3a4d0649b6517f653ede8fcf046d05242b040f98b40efafb31889933b28021f5c2ae6f00f60ed4aaffc8a2e01a35429d7d99bb01320ecf4bd819a1c3e9ec1ae8
   languageName: node
   linkType: hard
 
@@ -5650,7 +5650,24 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mongodb@npm:3.6.3, mongodb@npm:^3.6.3":
+"mongodb@npm:3.5.9":
+  version: 3.5.9
+  resolution: "mongodb@npm:3.5.9"
+  dependencies:
+    bl: ^2.2.0
+    bson: ^1.1.4
+    denque: ^1.4.1
+    require_optional: ^1.0.1
+    safe-buffer: ^5.1.2
+    saslprep: ^1.0.0
+  dependenciesMeta:
+    saslprep:
+      optional: true
+  checksum: 1bd7448edc8951a3f1b45ef2bd685c8f7785efc8a4526f37dd566cab1db294c7cd5266c58f772facee350c42b4e471e3813c1083b66659d5cd816415c7446a02
+  languageName: node
+  linkType: hard
+
+"mongodb@npm:^3.6.3":
   version: 3.6.3
   resolution: "mongodb@npm:3.6.3"
   dependencies:
@@ -5689,23 +5706,22 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mongoose@npm:^5.9.25":
-  version: 5.11.8
-  resolution: "mongoose@npm:5.11.8"
+"mongoose@npm:<=5.9.25":
+  version: 5.9.25
+  resolution: "mongoose@npm:5.9.25"
   dependencies:
-    "@types/mongodb": ^3.5.27
     bson: ^1.1.4
-    kareem: 2.3.2
-    mongodb: 3.6.3
+    kareem: 2.3.1
+    mongodb: 3.5.9
     mongoose-legacy-pluralize: 1.0.2
-    mpath: 0.8.1
-    mquery: 3.2.3
+    mpath: 0.7.0
+    mquery: 3.2.2
     ms: 2.1.2
     regexp-clone: 1.0.0
     safe-buffer: 5.2.1
     sift: 7.0.1
     sliced: 1.0.1
-  checksum: 1b62fa2b0efc75b006dfd496e4b144e593f4ca7761efaa2227ca91eda8366b5aee9e6756ed8bd821987217ee4d87e62ae66e6631eecba1bb5cf3005013095a50
+  checksum: df25575e41ee5d71e224a8a40554c721da16f74dd7af9326ac2c1d4efbdf81fd468a12d809e79488e20db05abbd62931c3877ff25ea3222fcef3f16f7e17f89c
   languageName: node
   linkType: hard
 
@@ -5723,23 +5739,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mpath@npm:0.8.1":
-  version: 0.8.1
-  resolution: "mpath@npm:0.8.1"
-  checksum: a6ab22284bb60a1c50946d705a17671e2acc94abd7beb04f7f5509101a0169f1db222db09816521df1f32bec45642d7c36a3d62b705ba543721aac7632dcb180
+"mpath@npm:0.7.0":
+  version: 0.7.0
+  resolution: "mpath@npm:0.7.0"
+  checksum: 8c6d296987b720f4b0489c6669edcc3bbf22c7917ed64b5349ccd6eeb73c06601766912a95735b8922884da34b45ea95c9092dea3372f5f20ee82a353070449c
   languageName: node
   linkType: hard
 
-"mquery@npm:3.2.3":
-  version: 3.2.3
-  resolution: "mquery@npm:3.2.3"
+"mquery@npm:3.2.2":
+  version: 3.2.2
+  resolution: "mquery@npm:3.2.2"
   dependencies:
     bluebird: 3.5.1
     debug: 3.1.0
     regexp-clone: ^1.0.0
     safe-buffer: 5.1.2
     sliced: 1.0.1
-  checksum: 946cde52519e9384a8996d423e135905f3382f46fee168a70bbfc4aef7fdc6cd4085123ad675200a5e6b44d997c7ce886fea16a63c7ceedc7bb952794b8756ae
+  checksum: a08f5a7e743294a915f1ed0005602519eb89ed75bc62fced6992cd8dfb277258ae41e8f49b59a027938605986cb7fc13884e82e19f57e39665c439dea2e5238c
   languageName: node
   linkType: hard
 
@@ -7638,13 +7654,13 @@ __metadata:
     eslint-plugin-import: ^2.22.0
     module-alias: ^2.2.2
     mongodb: ^3.6.3
-    mongoose: ^5.9.25
+    mongoose: <=5.9.25
     prettier: 2.0.5
     semantic-release: ^17.1.1
     ts-node: ^8.10.2
     ts-node-dev: ^1.1.1
     tsconfig-paths: ^3.9.0
-    typescript: ^5.0.0
+    typescript: <=3.9.5
     winston: ^3.3.3
     winston-cloudwatch: ^2.5.0
     winston-transport: ^4.4.0
@@ -8927,23 +8943,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:^5.0.0":
-  version: 5.9.2
-  resolution: "typescript@npm:5.9.2"
+"typescript@npm:<=3.9.5":
+  version: 3.9.5
+  resolution: "typescript@npm:3.9.5"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: f619cf6773cfe31409279711afd68cdf0859780006c50bc2a7a0c3227f85dea89a3b97248846326f3a17dad72ea90ec27cf61a8387772c680b2252fd02d8497b
+  checksum: 6ebba8deed366a5a47602a7ab6b8489526e615e20dfb3305a49d7c9bed510757f63518225fe03afbadaf3577e08d2aea406fdda23eef3669101d6f7c39e928a1
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@^5.0.0#~builtin<compat/typescript>":
-  version: 5.9.2
-  resolution: "typescript@patch:typescript@npm%3A5.9.2#~builtin<compat/typescript>::version=5.9.2&hash=a1c5e5"
+"typescript@patch:typescript@<=3.9.5#~builtin<compat/typescript>":
+  version: 3.9.5
+  resolution: "typescript@patch:typescript@npm%3A3.9.5#~builtin<compat/typescript>::version=3.9.5&hash=a1c5e5"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: e42a701947325500008334622321a6ad073f842f5e7d5e7b588a6346b31fdf51d56082b9ce5cef24312ecd3e48d6c0d4d44da7555f65e2feec18cf62ec540385
+  checksum: bfea14f536401538736250a512d6c779026e9af89a61be59aaefc35fcef9ed926aac1f90509eaa215023b1823d383090cfcc965bb91cbef47f74e151d723fd78
   languageName: node
   linkType: hard
 
