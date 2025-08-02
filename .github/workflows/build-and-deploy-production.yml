@@ -12,19 +12,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node v22
+      - name: Setup Node v12
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 12
 
       - name: Install dependencies
-        run: yarn
+        run: npm install --frozen-lockfile
 
       - name: Build
-        run: yarn run build:prod
+        run: npm run build:prod
 
       - name: Test
-        run: yarn test
+        run: npm test
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v4
@@ -36,7 +36,7 @@ jobs:
             dist
             package.json
             tsconfig.json
-            yarn.lock
+            package-lock.json
             Dockerfile
 
   docker:

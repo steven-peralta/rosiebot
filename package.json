@@ -51,26 +51,25 @@
   },
   "scripts": {
     "build-ts": "tsc",
-    "build:prod": "NODE_ENV=production yarn run build-ts",
-    "build:staging": "NODE_ENV=staging yarn run build-ts",
-    "build:dev": "NODE_ENV=development yarn run build-ts",
+    "build:prod": "NODE_ENV=production npm run build-ts",
+    "build:staging": "NODE_ENV=staging npm run build-ts",
+    "build:dev": "NODE_ENV=development npm run build-ts",
     "start": "node -r ./scripts/prod-paths.js ./dist/src/bot.js",
-    "start:prod": "NODE_ENV=production yarn run start",
-    "start:staging": "NODE_ENV=staging yarn run start",
-    "start:dev": "NODE_ENV=development yarn run start",
+    "start:prod": "NODE_ENV=production npm run start",
+    "start:staging": "NODE_ENV=staging npm run start",
+    "start:dev": "NODE_ENV=development npm run start",
     "dev": "NODE_ENV=development ts-node-dev -r tsconfig-paths/register --respawn ./src/bot.ts",
     "dev:scrape": "NODE_ENV=development ts-node-dev -r tsconfig-paths/register --respawn ./scripts/scrape.ts",
     "lint": "eslint src/",
     "test": "echo 'no test'",
     "scrape": "node -r ./scripts/prod-paths.js ./dist/scripts/scrape.js 40000",
-    "scrape:prod": "NODE_ENV=production && yarn run scrape",
-    "scrape:staging": "NODE_ENV=staging && yarn run scrape",
-    "scrape:dev": "NODE_ENV=development && yarn run scrape",
+    "scrape:prod": "NODE_ENV=production && npm run scrape",
+    "scrape:staging": "NODE_ENV=staging && npm run scrape",
+    "scrape:dev": "NODE_ENV=development && npm run scrape",
     "rank": "ts-node-dev -r tsconfig-paths/register ./scripts/rank.ts"
   },
   "engines": {
-    "node": "<=12.x",
-    "yarn": "*"
+    "node": "<=12.x"
   },
   "release": {
     "plugins": [
