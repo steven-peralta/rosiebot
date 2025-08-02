@@ -19,6 +19,8 @@ coverage
 # API keys and secrets
 .env
 
+.yarn
+
 # Dependency directory
 node_modules
 bower_components
