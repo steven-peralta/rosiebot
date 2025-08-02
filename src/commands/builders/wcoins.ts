@@ -49,7 +49,8 @@ const command: CommandCallback<WCoinsResponse, TargetedUserParams> = async (
       }
       return { statusCode: StatusCode.Error };
     } catch (e) {
-      logCommandException(e, metadata);
+      const error = e as Error;
+      logCommandException(error, metadata);
       return {
         statusCode: StatusCode.Error,
       };
