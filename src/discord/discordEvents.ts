@@ -138,7 +138,7 @@ const discordEvents = (client: Client): void => {
       LoggingModule.Discord
     );
 
-    client.user?.setActivity("I run on ARM processors! It's the future!");
+    client.user?.setActivity('I no longer run on ARM processors. :(');
     client
       .generateInvite({ permissions: ['SEND_MESSAGES', 'MANAGE_MESSAGES'] })
       .then((link) => {
