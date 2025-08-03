@@ -94,7 +94,8 @@ const command: CommandCallback<WRollResponse, UserParams> = async (
         statusCode: StatusCode.Error,
       };
     } catch (e) {
-      logCommandException(e, metadata);
+      const error = e as Error;
+      logCommandException(error, metadata);
       return {
         statusCode: StatusCode.Error,
       };

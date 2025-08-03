@@ -50,18 +50,21 @@ const cacheWaifu = async (id: number) => {
   }
 };
 
+type ScrapeError = { message: string; response?: { status: number } };
+
 const scrape = async () => {
   for (let i = 1; i < upToId; i += 1) {
     try {
       // eslint-disable-next-line no-await-in-loop
       await cacheWaifu(i);
     } catch (e) {
-      if (e.message) {
+      const error = e as ScrapeError;
+      if (error.message) {
         logger().error(
-          `${i}/${upToId} (${Math.round((i / upToId) * 100)}%): ${e.message}`
+          `${i}/${upToId} (${Math.round((i / upToId) * 100)}%): ${error.message}`
         );
       }
-      if (e.response && e.response.status === 429) {
+      if (error.response && error.response.status === 429) {
         logger().error('Rate limited, trying again...');
         i -= 1;
       }

@@ -43,7 +43,8 @@ const command: CommandCallback<Waifu[], { args: string[] }> = async (
         statusCode: StatusCode.WaifuNotFound,
       };
     } catch (e) {
-      logCommandException(e, metadata);
+      const error = e as Error;
+      logCommandException(error, metadata);
     }
   }
 

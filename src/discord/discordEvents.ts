@@ -120,7 +120,8 @@ const parseCommand = async (msg: Message) => {
           });
         }
       } catch (e) {
-        logCommandException(e, metadata);
+        const error = e as Error;
+        logCommandException(error, metadata);
       }
     }
   }

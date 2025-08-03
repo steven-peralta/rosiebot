@@ -60,7 +60,8 @@ const command: CommandCallback<Waifu, undefined> = async (): Promise<
       statusCode: StatusCode.Error,
     };
   } catch (e) {
-    logCommandException(e, metadata);
+    const error = e as Error;
+    logCommandException(error, metadata);
     return {
       statusCode: StatusCode.Error,
     };

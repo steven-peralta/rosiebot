@@ -56,6 +56,9 @@ export default class Studio extends Base<number> {
       if (record) {
         await record.updateOne(updateOpts);
       } else {
+        // FIXME need to update the typegoose types to allow this
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         record = await this.create({
           ...updateOpts,
           [APIField.created]: new Date(),
