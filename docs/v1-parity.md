@@ -68,7 +68,9 @@ Deliberate departures from v1 are listed at the bottom with their reasons.
 | Up to 16% = 3 stars | | `domain.TestStars_PositionBoundaries` |
 | Up to 26% = 2 stars | | `domain.TestStars_PositionBoundaries` |
 | Remainder = 1 star | | `domain.TestStars_PositionBoundaries` |
-| Unranked characters show no stars | `waifuEmbed` | |
+| Unranked characters show no stars | `waifuEmbed` | (discord phase) |
+| Ranked set is refreshed in-process by walking `/ranking/popular` to the 100-vote cutoff | v1 `scripts/scrape.ts` + `updateScoresAndTiers` | `app.TestRankingWalker_StopsAtCutoff`, `TestRankingWalker_StopsAtLastPage`, `TestRankingWalker_ResumesAfterTransientError`, `TestRankingWalker_AbandonKeepsOldTable`, `TestRankingService_RunRefreshesThenSleepsUntilNext` |
+| Ranking survives a restart | (new) | `app.TestRankingService_LoadPublishesStaleSnapshot`, `postgres.TestRankingStore_SaveLoadPrune` |
 
 ## Embed
 
