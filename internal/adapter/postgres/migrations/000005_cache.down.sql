@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS page_cache;
+DROP TABLE IF EXISTS waifu_cache;

@@ -29,19 +29,19 @@ func TestLoad_Defaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Timezone.String() != DefaultTimezone || cfg.RankingRefresh != DefaultRankingRefresh || cfg.RankingMinVotes != DefaultMinVotes || !cfg.MigrateOnStart || cfg.LogLevel != slog.LevelInfo || cfg.DevGuildID != "" {
+	if cfg.Timezone.String() != DefaultTimezone || cfg.RankingRefresh != DefaultRankingRefresh || cfg.RankingMinVotes != DefaultMinVotes || !cfg.MigrateOnStart || cfg.LogLevel != slog.LevelInfo || cfg.DevGuildID != "" || cfg.WaifuCacheTTL != DefaultWaifuCacheTTL || cfg.SearchCacheTTL != DefaultSearchCacheTTL {
 		t.Errorf("defaults = %+v", cfg)
 	}
 }
 
 func TestLoad_Overrides(t *testing.T) {
 	cfg, err := Load(env(with(map[string]string{
-		"BOT_TIMEZONE": "UTC", "RANKING_REFRESH": "6h", "RANKING_MIN_VOTES": "250", "MIGRATE_ON_START": "false", "LOG_LEVEL": "debug", "DEV_GUILD_ID": " 123 ",
+		"BOT_TIMEZONE": "UTC", "RANKING_REFRESH": "6h", "RANKING_MIN_VOTES": "250", "MIGRATE_ON_START": "false", "LOG_LEVEL": "debug", "DEV_GUILD_ID": " 123 ", "WAIFU_CACHE_TTL": "12h", "SEARCH_CACHE_TTL": "30m",
 	})))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Timezone != time.UTC || cfg.RankingRefresh != 6*time.Hour || cfg.RankingMinVotes != 250 || cfg.MigrateOnStart || cfg.LogLevel != slog.LevelDebug || cfg.DevGuildID != "123" {
+	if cfg.Timezone != time.UTC || cfg.RankingRefresh != 6*time.Hour || cfg.RankingMinVotes != 250 || cfg.MigrateOnStart || cfg.LogLevel != slog.LevelDebug || cfg.DevGuildID != "123" || cfg.WaifuCacheTTL != 12*time.Hour || cfg.SearchCacheTTL != 30*time.Minute {
 		t.Errorf("overrides = %+v", cfg)
 	}
 }
@@ -73,6 +73,8 @@ func TestLoad_RequiredAndInvalid(t *testing.T) {
 		"RANKING_MIN_VOTES": "-1",
 		"MIGRATE_ON_START":  "maybe",
 		"LOG_LEVEL":         "loud",
+		"WAIFU_CACHE_TTL":   "0",
+		"SEARCH_CACHE_TTL":  "later",
 	}
 	for k, v := range bad {
 		_, err := Load(env(with(map[string]string{k: v})))

@@ -17,6 +17,8 @@ A Discord waifu gacha bot backed by [MyWaifuList](https://mywaifulist.moe). Roll
 | `/series search <query>` | Find a series and list its waifus by likes. |
 | **Sell Waifu** (message context menu) | Right-click any bot message showing a waifu you own to sell it for 100 coins. |
 
+Character details and search pages are cached in Postgres and refreshed lazily: a stale entry is served immediately while one background request refreshes it, so nothing depends on a scheduled job. Random rolls and the waifu of the day always go to the live API, so newly submitted characters appear as soon as MyWaifuList lists them.
+
 Star ratings come from the owner's formula, `((likes+1)/(trash+1)) * (likes+trash)`, computed over every character with more than 100 votes and refreshed in-process once a day.
 
 ## Configuration
@@ -30,6 +32,8 @@ Star ratings come from the owner's formula, `((likes+1)/(trash+1)) * (likes+tras
 | `DEV_GUILD_ID` | no | | Register commands to one guild (instant) instead of globally |
 | `RANKING_REFRESH` | no | `24h` | How often the ranked set is rebuilt |
 | `RANKING_MIN_VOTES` | no | `100` | Vote threshold for the ranked set |
+| `WAIFU_CACHE_TTL` | no | `24h` | How long a character's detail is served from the cache before a background refresh |
+| `SEARCH_CACHE_TTL` | no | `1h` | How long search, catalog and series pages are served from the cache |
 | `MIGRATE_ON_START` | no | `true` | Run database migrations on boot |
 | `LOG_LEVEL` | no | `info` | `debug`, `info`, `warn`, or `error` |
 

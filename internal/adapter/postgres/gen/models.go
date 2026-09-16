@@ -33,6 +33,12 @@ type Inventory struct {
 	AcquiredAt time.Time
 }
 
+type PageCache struct {
+	Key       string
+	Payload   []byte
+	FetchedAt time.Time
+}
+
 type Player struct {
 	GuildID        string
 	UserID         string
@@ -63,4 +69,11 @@ type RankingSnapshot struct {
 	CutoffPage int32
 	RowCount   int32
 	Complete   bool
+}
+
+type WaifuCache struct {
+	Slug       string
+	Payload    []byte
+	FetchedAt  time.Time
+	LastReadAt time.Time
 }

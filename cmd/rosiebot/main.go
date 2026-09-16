@@ -63,10 +63,11 @@ func run(ctx context.Context, dryRun bool) error {
 
 	clock := app.SystemClock()
 	rng := systemRandom{}
-	source, err := mwl.New(mwl.Config{APIKey: cfg.WaifuAPIKey, Logger: logger})
+	upstream, err := mwl.New(mwl.Config{APIKey: cfg.WaifuAPIKey, Logger: logger})
 	if err != nil {
 		return err
 	}
+	source := app.NewCachedSource(upstream, postgres.NewCacheStore(pool, clock), clock, app.CacheConfig{WaifuTTL: cfg.WaifuCacheTTL, SearchTTL: cfg.SearchCacheTTL}, logger)
 
 	players := postgres.NewStore(pool, clock)
 	ranking := app.NewRankingService(postgres.NewRankingStore(pool), source, clock, app.RankingConfig{RefreshInterval: cfg.RankingRefresh, MinVotes: cfg.RankingMinVotes}, logger)
@@ -121,6 +122,7 @@ func run(ctx context.Context, dryRun bool) error {
 		}
 	}()
 	go bot.RunJanitor(ctx)
+	go source.RunMaintenance(ctx)
 
 	<-ctx.Done()
 	logger.Info("shutting down")

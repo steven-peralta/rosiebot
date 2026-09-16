@@ -11,13 +11,14 @@ import (
 const (
 	DefaultRequestsPerMinute = 60
 	DefaultHeadroom          = 20
-	DefaultBurst             = 5
+	DefaultBurst             = 10
 	backgroundPollInterval   = time.Second
 	serverWindow             = time.Minute
 )
 
 type Limiter struct {
-	rl         *rate.Limiter
+	foreground *rate.Limiter
+	background *rate.Limiter
 	perMinute  int
 	headroom   int
 	sleep      func(context.Context, time.Duration) error
@@ -34,12 +35,14 @@ func NewLimiter(perMinute, headroom int) *Limiter {
 	if headroom < 0 {
 		headroom = 0
 	}
+	backgroundPerMinute := max(perMinute-headroom, 1)
 	l := &Limiter{
-		rl:        rate.NewLimiter(rate.Every(time.Minute/time.Duration(perMinute)), min(DefaultBurst, perMinute)),
-		perMinute: perMinute,
-		headroom:  headroom,
-		sleep:     sleepCtx,
-		now:       time.Now,
+		foreground: rate.NewLimiter(rate.Every(time.Minute/time.Duration(perMinute)), min(DefaultBurst, perMinute)),
+		background: rate.NewLimiter(rate.Every(time.Minute/time.Duration(backgroundPerMinute)), 1),
+		perMinute:  perMinute,
+		headroom:   headroom,
+		sleep:      sleepCtx,
+		now:        time.Now,
 	}
 	l.remaining = perMinute
 	l.observedAt = l.now()
@@ -47,13 +50,13 @@ func NewLimiter(perMinute, headroom int) *Limiter {
 }
 
 func (l *Limiter) Wait(ctx context.Context) error {
-	return l.rl.Wait(ctx)
+	return l.foreground.Wait(ctx)
 }
 
 func (l *Limiter) WaitBackground(ctx context.Context) error {
 	for {
-		if l.Remaining() > l.headroom && l.rl.Tokens() >= 1 {
-			return l.rl.Wait(ctx)
+		if l.Remaining() > l.headroom {
+			return l.background.Wait(ctx)
 		}
 		if err := l.sleep(ctx, backgroundPollInterval); err != nil {
 			return err

@@ -13,6 +13,8 @@ const (
 	DefaultTimezone       = "America/Chicago"
 	DefaultRankingRefresh = 24 * time.Hour
 	DefaultMinVotes       = 100
+	DefaultWaifuCacheTTL  = 24 * time.Hour
+	DefaultSearchCacheTTL = time.Hour
 )
 
 type Config struct {
@@ -23,6 +25,8 @@ type Config struct {
 	DevGuildID      string
 	RankingRefresh  time.Duration
 	RankingMinVotes int
+	WaifuCacheTTL   time.Duration
+	SearchCacheTTL  time.Duration
 	MigrateOnStart  bool
 	LogLevel        slog.Level
 }
@@ -38,6 +42,8 @@ func Load(getenv Getenv) (Config, error) {
 		DevGuildID:      strings.TrimSpace(getenv("DEV_GUILD_ID")),
 		RankingRefresh:  DefaultRankingRefresh,
 		RankingMinVotes: DefaultMinVotes,
+		WaifuCacheTTL:   DefaultWaifuCacheTTL,
+		SearchCacheTTL:  DefaultSearchCacheTTL,
 		MigrateOnStart:  true,
 		LogLevel:        slog.LevelInfo,
 	}
@@ -55,12 +61,16 @@ func Load(getenv Getenv) (Config, error) {
 		cfg.Timezone = loc
 	}
 
-	if v := getenv("RANKING_REFRESH"); v != "" {
+	for name, target := range map[string]*time.Duration{"RANKING_REFRESH": &cfg.RankingRefresh, "WAIFU_CACHE_TTL": &cfg.WaifuCacheTTL, "SEARCH_CACHE_TTL": &cfg.SearchCacheTTL} {
+		v := getenv(name)
+		if v == "" {
+			continue
+		}
 		d, err := time.ParseDuration(v)
 		if err != nil || d <= 0 {
-			errs = append(errs, fmt.Errorf("RANKING_REFRESH %q must be a positive duration", v))
+			errs = append(errs, fmt.Errorf("%s %q must be a positive duration", name, v))
 		} else {
-			cfg.RankingRefresh = d
+			*target = d
 		}
 	}
 	if v := getenv("RANKING_MIN_VOTES"); v != "" {
