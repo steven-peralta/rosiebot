@@ -39,6 +39,25 @@ tasks:
     cmds:
       - go test -race -cover ./...
 
+  test:db:
+    desc: Run the Postgres adapter tests against a disposable container (requires Docker)
+    env:
+      REQUIRE_DB: '1'
+    cmds:
+      - go test -race -count=1 ./internal/adapter/postgres/...
+
+  cover:
+    desc: Run all tests with coverage and enforce per-package minimums
+    cmds:
+      - go test -race -covermode=atomic -coverprofile=coverage.out ./...
+      - >-
+        go run ./scripts/covercheck -profile coverage.out -overall 85
+        -min internal/domain=95
+        -min internal/app=90
+        -min internal/adapter/mwl=85
+        -min internal/adapter/postgres=85
+        -min internal/adapter/discord=80
+
   lint:
     desc: Run golangci-lint
     cmds:
@@ -133,7 +152,7 @@ tasks:
     cmds:
       - task: gen:check
       - task: lint
-      - task: test
+      - task: cover
       - task: build
 
   clean:

@@ -41,3 +41,6 @@ Thumbs.db
 
 # Task runner cache
 /.task/
+
+# Coverage profile
+/coverage.out
