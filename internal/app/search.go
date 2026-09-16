@@ -11,6 +11,7 @@ import (
 
 const (
 	MaxSearchPages      = 3
+	MaxListPages        = 3
 	MaxSeriesCharPages  = 10
 	searchTermMaxLength = 100
 )
@@ -28,24 +29,42 @@ func NewSearchService(source WaifuSource) *SearchService {
 	return &SearchService{source: source}
 }
 
-func (s *SearchService) Waifus(ctx context.Context, term string) ([]domain.WaifuSummary, error) {
-	term = cleanTerm(term)
-	if term == "" {
+func (s *SearchService) Waifus(ctx context.Context, raw string) ([]domain.WaifuSummary, error) {
+	query, err := ParseQuery(raw)
+	if err != nil {
+		return nil, err
+	}
+	query.Term = cleanTerm(query.Term)
+	var results []domain.WaifuSummary
+	if query.Empty() {
+		results, err = s.collect(ctx, MaxListPages, func(page int) (SearchPage, error) { return s.source.ListCharacters(ctx, page) })
+		if err != nil {
+			return nil, fmt.Errorf("list characters: %w", err)
+		}
+	} else {
+		results, err = s.collect(ctx, MaxSearchPages, func(page int) (SearchPage, error) { return s.source.SearchWaifus(ctx, query.Term, page) })
+		if err != nil {
+			return nil, fmt.Errorf("search waifus %q: %w", query.Term, err)
+		}
+	}
+	results = query.Apply(results)
+	if len(results) == 0 {
 		return nil, ErrNotFound
 	}
+	return results, nil
+}
+
+func (s *SearchService) collect(_ context.Context, maxPages int, fetch func(page int) (SearchPage, error)) ([]domain.WaifuSummary, error) {
 	var results []domain.WaifuSummary
-	for page := 1; page <= MaxSearchPages; page++ {
-		res, err := s.source.SearchWaifus(ctx, term, page)
+	for page := 1; page <= maxPages; page++ {
+		res, err := fetch(page)
 		if err != nil {
-			return nil, fmt.Errorf("search waifus %q page %d: %w", term, page, err)
+			return nil, fmt.Errorf("page %d: %w", page, err)
 		}
 		results = append(results, res.Items...)
 		if page >= res.LastPage || len(res.Items) == 0 {
 			break
 		}
-	}
-	if len(results) == 0 {
-		return nil, ErrNotFound
 	}
 	return results, nil
 }

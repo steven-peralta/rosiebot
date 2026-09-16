@@ -18,19 +18,19 @@ import (
 )
 
 const (
-	DefaultBaseURL   = "https://mywaifulist.moe/api/v1"
-	handshakeHeader  = "uwu"
-	handshakeValue   = "owo"
-	apiKeyHeader     = "apikey"
-	remainingHeader  = "x-ratelimit-remaining"
-	maxRetryAfter    = 60 * time.Second
-	defaultRetryWait = 2 * time.Second
-	maxBodyBytes     = 4 << 20
+	DefaultBaseURL  = "https://mywaifulist.moe/api/v1"
+	handshakeHeader = "uwu"
+	handshakeValue  = "owo"
+	apiKeyHeader    = "apikey"
+	remainingHeader = "x-ratelimit-remaining"
+	maxRetryAfter   = 60 * time.Second
+	maxBodyBytes    = 4 << 20
 )
 
 var (
-	ErrUnauthorized = errors.New("mwl: api key rejected")
-	ErrRateLimited  = errors.New("mwl: rate limited")
+	ErrUnauthorized  = errors.New("mwl: api key rejected")
+	ErrRateLimited   = errors.New("mwl: rate limited")
+	defaultRetryWait = 5 * time.Second
 )
 
 type StatusError struct {
@@ -57,19 +57,6 @@ type Client struct {
 	gen     *gen.Client
 	limiter *Limiter
 	log     *slog.Logger
-}
-
-type ctxKey int
-
-const backgroundKey ctxKey = iota
-
-func WithBackground(ctx context.Context) context.Context {
-	return context.WithValue(ctx, backgroundKey, true)
-}
-
-func isBackground(ctx context.Context) bool {
-	v, _ := ctx.Value(backgroundKey).(bool)
-	return v
 }
 
 func New(cfg Config) (*Client, error) {
@@ -144,6 +131,7 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if resp.StatusCode != http.StatusTooManyRequests {
 		return resp, nil
 	}
+	t.limiter.Penalize()
 	wait := retryAfter(resp)
 	drain(resp)
 	t.log.Warn("mwl rate limited, retrying once", "path", req.URL.Path, "wait", wait)
@@ -157,7 +145,7 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func (t *transport) acquire(ctx context.Context) error {
-	if isBackground(ctx) {
+	if app.IsBackground(ctx) {
 		return t.limiter.WaitBackground(ctx)
 	}
 	return t.limiter.Wait(ctx)
@@ -188,10 +176,10 @@ func retryAfter(resp *http.Response) time.Duration {
 		return defaultRetryWait
 	}
 	if secs, err := strconv.Atoi(v); err == nil {
-		return min(time.Duration(secs)*time.Second, maxRetryAfter)
+		return min(max(time.Duration(secs)*time.Second, defaultRetryWait), maxRetryAfter)
 	}
 	if at, err := http.ParseTime(v); err == nil {
-		return min(max(time.Until(at), 0), maxRetryAfter)
+		return min(max(time.Until(at), defaultRetryWait), maxRetryAfter)
 	}
 	return defaultRetryWait
 }

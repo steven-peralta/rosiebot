@@ -23,6 +23,7 @@ type WaifuSource interface {
 	Random(ctx context.Context) (domain.WaifuSummary, error)
 	Daily(ctx context.Context) (domain.WaifuSummary, error)
 	Get(ctx context.Context, slug string) (domain.Waifu, error)
+	ListCharacters(ctx context.Context, page int) (SearchPage, error)
 	SearchWaifus(ctx context.Context, term string, page int) (SearchPage, error)
 	SearchWorks(ctx context.Context, term string) ([]domain.Series, error)
 	WorkCharacters(ctx context.Context, slug string, page int) (SearchPage, error)
@@ -69,6 +70,17 @@ type Clock interface {
 
 type Random interface {
 	IntN(n int) int
+}
+
+type priorityKey struct{}
+
+func WithBackground(ctx context.Context) context.Context {
+	return context.WithValue(ctx, priorityKey{}, true)
+}
+
+func IsBackground(ctx context.Context) bool {
+	v, _ := ctx.Value(priorityKey{}).(bool)
+	return v
 }
 
 type ClockFunc func() time.Time

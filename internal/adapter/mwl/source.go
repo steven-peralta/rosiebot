@@ -42,12 +42,26 @@ func (c *Client) Get(ctx context.Context, slug string) (domain.Waifu, error) {
 	return waifuFromDTO(env.Data), nil
 }
 
-func (c *Client) SearchWaifus(ctx context.Context, term string, page int) (app.SearchPage, error) {
+func (c *Client) ListCharacters(ctx context.Context, page int) (app.SearchPage, error) {
 	var env summaryListEnvelope
-	if err := c.getJSON(ctx, "search/waifus", pageQuery(page, url.Values{"term": {term}}), &env); err != nil {
+	if err := c.getJSON(ctx, "character", pageQuery(page, nil), &env); err != nil {
 		return app.SearchPage{}, err
 	}
 	return searchPage(env, page), nil
+}
+
+func (c *Client) SearchWaifus(ctx context.Context, term string, page int) (app.SearchPage, error) {
+	var env searchEnvelope
+	if err := c.getJSON(ctx, "search", pageQuery(page, url.Values{"term": {term}}), &env); err != nil {
+		return app.SearchPage{}, err
+	}
+	characters := make([]summaryDTO, 0, len(env.Data))
+	for _, item := range env.Data {
+		if item.Likes != nil {
+			characters = append(characters, item.summaryDTO)
+		}
+	}
+	return searchPage(summaryListEnvelope{Data: characters, Meta: env.Meta}, page), nil
 }
 
 func (c *Client) SearchWorks(ctx context.Context, term string) ([]domain.Series, error) {
@@ -68,7 +82,7 @@ func (c *Client) WorkCharacters(ctx context.Context, slug string, page int) (app
 
 func (c *Client) PopularPage(ctx context.Context, page int) (app.PopularPage, error) {
 	var env popularEnvelope
-	if err := c.getJSON(WithBackground(ctx), "ranking/popular", pageQuery(page, nil), &env); err != nil {
+	if err := c.getJSON(ctx, "ranking/popular", pageQuery(page, nil), &env); err != nil {
 		return app.PopularPage{}, err
 	}
 	current := env.Meta.CurrentPage

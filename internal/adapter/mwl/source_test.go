@@ -85,7 +85,12 @@ func TestSource_SearchWaifus(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(got.Items) != len(raw.Data) || got.Items[0].Slug != "trigun" || got.Items[0].Name != "Rem Saverem" {
-		t.Errorf("items = %d first=%+v", len(got.Items), got.Items[0])
+		t.Errorf("items = %d first=%+v (series rows must be dropped)", len(got.Items), got.Items[0])
+	}
+	for _, it := range got.Items {
+		if it.Slug == "trigun-series" {
+			t.Error("series entry leaked into character results")
+		}
 	}
 	if got.Page != 1 || got.LastPage != 1 {
 		t.Errorf("unpaginated search should report a single page: %+v", got)
@@ -99,6 +104,22 @@ func TestSource_SearchWaifus(t *testing.T) {
 	}
 	if q := s.last().query; !strings.Contains(q, "page=2") {
 		t.Errorf("page 2 query = %q", q)
+	}
+}
+
+func TestSource_ListCharacters(t *testing.T) {
+	s := newServer(t)
+	c := newClient(t, s)
+	p1, err := c.ListCharacters(context.Background(), 1)
+	if err != nil || p1.Page != 1 || p1.LastPage != 5113 || len(p1.Items) != 1 || p1.Items[0].Slug != "list-1" {
+		t.Fatalf("page 1 = %+v %v", p1, err)
+	}
+	p3, err := c.ListCharacters(context.Background(), 3)
+	if err != nil || p3.Page != 3 || p3.Items[0].Slug != "list-3" {
+		t.Fatalf("page 3 = %+v %v", p3, err)
+	}
+	if !strings.Contains(s.last().query, "page=3") {
+		t.Errorf("query = %q", s.last().query)
 	}
 }
 
@@ -242,8 +263,11 @@ func TestLive_Smoke(t *testing.T) {
 	if w, err := c.Get(ctx, "rem"); err != nil || w.Slug != "rem" {
 		t.Errorf("get: %+v %v", w.WaifuSummary, err)
 	}
-	if p, err := c.SearchWaifus(ctx, "rem", 1); err != nil || len(p.Items) == 0 {
-		t.Errorf("search waifus: %+v %v", p, err)
+	if p, err := c.SearchWaifus(ctx, "shinji", 1); err != nil || len(p.Items) == 0 {
+		t.Errorf("search should include husbandos: %+v %v", p, err)
+	}
+	if p, err := c.ListCharacters(ctx, 2); err != nil || len(p.Items) == 0 || p.LastPage < 2 {
+		t.Errorf("list characters: %+v %v", p, err)
 	}
 	if w, err := c.SearchWorks(ctx, "re zero"); err != nil || len(w) == 0 {
 		t.Errorf("search works: %+v %v", w, err)

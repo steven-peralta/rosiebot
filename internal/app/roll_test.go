@@ -63,7 +63,7 @@ func TestRollService_CriticalUsesRankedSet(t *testing.T) {
 func TestRollService_CriticalFallbackBeforeSnapshot(t *testing.T) {
 	f := newFixture(t)
 	f.script(d100(2), 41, 1)
-	f.source.EXPECT().PopularPage(mock.Anything, 42).Return(app.PopularPage{Page: 42, LastPage: 5113, Rows: []domain.WaifuSummary{
+	f.source.EXPECT().PopularPage(mock.MatchedBy(func(ctx context.Context) bool { return !app.IsBackground(ctx) }), 42).Return(app.PopularPage{Page: 42, LastPage: 5113, Rows: []domain.WaifuSummary{
 		summary("thin", 60, 40),
 		summary("fat-a", 900, 50),
 		summary("fat-b", 800, 10),

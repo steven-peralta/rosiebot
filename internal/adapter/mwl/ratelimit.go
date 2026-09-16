@@ -2,7 +2,7 @@ package mwl
 
 import (
 	"context"
-	"sync/atomic"
+	"sync"
 	"time"
 
 	"golang.org/x/time/rate"
@@ -10,15 +10,20 @@ import (
 
 const (
 	DefaultRequestsPerMinute = 60
-	DefaultHeadroom          = 15
+	DefaultHeadroom          = 20
+	DefaultBurst             = 5
 	backgroundPollInterval   = time.Second
 )
 
 type Limiter struct {
-	rl        *rate.Limiter
-	headroom  int
-	remaining atomic.Int64
-	sleep     func(context.Context, time.Duration) error
+	rl         *rate.Limiter
+	perMinute  int
+	headroom   int
+	sleep      func(context.Context, time.Duration) error
+	now        func() time.Time
+	mu         sync.Mutex
+	remaining  int
+	observedAt time.Time
 }
 
 func NewLimiter(perMinute, headroom int) *Limiter {
@@ -29,11 +34,14 @@ func NewLimiter(perMinute, headroom int) *Limiter {
 		headroom = 0
 	}
 	l := &Limiter{
-		rl:       rate.NewLimiter(rate.Every(time.Minute/time.Duration(perMinute)), perMinute),
-		headroom: headroom,
-		sleep:    sleepCtx,
+		rl:        rate.NewLimiter(rate.Every(time.Minute/time.Duration(perMinute)), min(DefaultBurst, perMinute)),
+		perMinute: perMinute,
+		headroom:  headroom,
+		sleep:     sleepCtx,
+		now:       time.Now,
 	}
-	l.remaining.Store(int64(perMinute))
+	l.remaining = perMinute
+	l.observedAt = l.now()
 	return l
 }
 
@@ -43,7 +51,7 @@ func (l *Limiter) Wait(ctx context.Context) error {
 
 func (l *Limiter) WaitBackground(ctx context.Context) error {
 	for {
-		if l.rl.Tokens() > float64(l.headroom) && l.remaining.Load() > int64(l.headroom) {
+		if l.rl.Tokens() > float64(l.headroom) || l.Remaining() > l.headroom && l.rl.Tokens() >= 1 {
 			return l.rl.Wait(ctx)
 		}
 		if err := l.sleep(ctx, backgroundPollInterval); err != nil {
@@ -53,11 +61,22 @@ func (l *Limiter) WaitBackground(ctx context.Context) error {
 }
 
 func (l *Limiter) Observe(remaining int) {
-	l.remaining.Store(int64(remaining))
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.remaining = max(remaining, 0)
+	l.observedAt = l.now()
+}
+
+func (l *Limiter) Penalize() {
+	l.Observe(0)
 }
 
 func (l *Limiter) Remaining() int {
-	return int(l.remaining.Load())
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	elapsed := l.now().Sub(l.observedAt)
+	refilled := int(elapsed.Seconds() * float64(l.perMinute) / 60)
+	return min(l.remaining+refilled, l.perMinute)
 }
 
 func sleepCtx(ctx context.Context, d time.Duration) error {

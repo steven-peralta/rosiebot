@@ -2,6 +2,7 @@ package app_test
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -11,10 +12,80 @@ import (
 	"github.com/steven-peralta/rosiebot/internal/domain"
 )
 
-func TestSearchService_WaifusEmptyTerm(t *testing.T) {
+func TestSearchService_EmptyTermListsCatalog(t *testing.T) {
 	f := newFixture(t)
-	if _, err := app.NewSearchService(f.source).Waifus(f.ctx, "   "); !errors.Is(err, app.ErrNotFound) {
-		t.Errorf("err = %v, want ErrNotFound", err)
+	for page := 1; page <= app.MaxListPages; page++ {
+		f.source.EXPECT().ListCharacters(mock.Anything, page).Return(app.SearchPage{Page: page, LastPage: 5113, Items: []domain.WaifuSummary{summary(fmt.Sprintf("c%d", page), page*10, 1)}}, nil).Once()
+	}
+	got, err := app.NewSearchService(f.source).Waifus(f.ctx, "   ")
+	if err != nil || len(got) != app.MaxListPages || got[0].Slug != "c1" {
+		t.Fatalf("empty query = %v, %v", got, err)
+	}
+	f.source.AssertNotCalled(t, "SearchWaifus", mock.Anything, mock.Anything, mock.Anything)
+
+	f.source.EXPECT().ListCharacters(mock.Anything, 1).Return(app.SearchPage{}, errors.New("boom")).Once()
+	if _, err := app.NewSearchService(f.source).Waifus(f.ctx, ""); err == nil {
+		t.Error("list error should propagate")
+	}
+}
+
+func TestSearchService_SortAndFilterTokens(t *testing.T) {
+	f := newFixture(t)
+	items := []domain.WaifuSummary{summary("a", 50, 5), summary("b", 500, 10), summary("c", 5, 0)}
+	f.source.EXPECT().SearchWaifus(mock.Anything, "rem", 1).Return(app.SearchPage{Page: 1, LastPage: 1, Items: items}, nil).Times(3)
+	svc := app.NewSearchService(f.source)
+
+	got, err := svc.Waifus(f.ctx, "rem sortby:-likes")
+	if err != nil || got[0].Slug != "b" || got[2].Slug != "c" {
+		t.Errorf("sortby:-likes = %v %v", got, err)
+	}
+	got, err = svc.Waifus(f.ctx, "sortby:+trash rem")
+	if err != nil || got[0].Slug != "c" || got[2].Slug != "b" {
+		t.Errorf("sortby:+trash = %v %v", got, err)
+	}
+	got, err = svc.Waifus(f.ctx, "rem likes:>=50 trash:<10")
+	if err != nil || len(got) != 1 || got[0].Slug != "a" {
+		t.Errorf("filters = %v %v", got, err)
+	}
+
+	f.source.EXPECT().SearchWaifus(mock.Anything, "rem", 1).Return(app.SearchPage{Page: 1, LastPage: 1, Items: items}, nil).Once()
+	if _, err := svc.Waifus(f.ctx, "rem likes:>1000"); !errors.Is(err, app.ErrNotFound) {
+		t.Errorf("filter matching nothing = %v", err)
+	}
+	if _, err := svc.Waifus(f.ctx, "rem sortby:height"); !errors.Is(err, app.ErrBadQuery) {
+		t.Errorf("bad sort field = %v", err)
+	}
+	if _, err := svc.Waifus(f.ctx, "rem likes:many"); !errors.Is(err, app.ErrBadQuery) {
+		t.Errorf("bad filter value = %v", err)
+	}
+	if _, err := svc.Waifus(f.ctx, "rem name:rem"); !errors.Is(err, app.ErrBadQuery) {
+		t.Errorf("name filter = %v", err)
+	}
+}
+
+func TestParseQuery(t *testing.T) {
+	q, err := app.ParseQuery("  shinji  ikari sortby:-total likes:>=100 trash:<5 total:=200 votes:>1 ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if q.Term != "shinji ikari" || q.SortBy != app.SortTotal || !q.Descending || len(q.Filters) != 4 || q.Filters[2].Op != "=" || q.Filters[2].Value != 200 {
+		t.Errorf("parsed = %+v", q)
+	}
+	q, err = app.ParseQuery("sortby:name")
+	if err != nil || q.SortBy != app.SortName || q.Descending || !q.Empty() {
+		t.Errorf("name sort = %+v %v", q, err)
+	}
+	sorted := q.Apply([]domain.WaifuSummary{{Name: "b"}, {Name: "A"}, {Name: "c"}})
+	if sorted[0].Name != "A" || sorted[2].Name != "c" {
+		t.Errorf("name sort order = %v", sorted)
+	}
+	q, _ = app.ParseQuery("sortby:-name")
+	sorted = q.Apply([]domain.WaifuSummary{{Name: "b"}, {Name: "A"}, {Name: "c"}})
+	if sorted[0].Name != "c" || sorted[2].Name != "A" {
+		t.Errorf("desc name sort order = %v", sorted)
+	}
+	if _, err := app.ParseQuery("SORTBY:LIKE"); err != nil {
+		t.Errorf("case-insensitive sort: %v", err)
 	}
 }
 

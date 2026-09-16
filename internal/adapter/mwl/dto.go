@@ -65,6 +65,16 @@ type summaryDTO struct {
 	Rank           *int    `json:"rank"`
 }
 
+type searchItemDTO struct {
+	summaryDTO
+	Likes *int `json:"likes"`
+}
+
+type searchEnvelope struct {
+	Data []searchItemDTO `json:"data"`
+	Meta *pageMeta       `json:"meta"`
+}
+
 type summaryListEnvelope struct {
 	Data []summaryDTO `json:"data"`
 	Meta *pageMeta    `json:"meta"`

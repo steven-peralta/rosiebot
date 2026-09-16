@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -85,7 +86,22 @@ func newServer(t *testing.T) *server {
 	mux.HandleFunc("/api/v1/character/rem", serveFile(t, "character_rem.json"))
 	mux.HandleFunc("/api/v1/meta/random", serveFile(t, "meta_random.json"))
 	mux.HandleFunc("/api/v1/meta/daily", serveFile(t, "meta_daily.json"))
-	mux.HandleFunc("/api/v1/search/waifus", serveFile(t, "search_waifus.json"))
+	mux.HandleFunc("/api/v1/search", func(w http.ResponseWriter, r *http.Request) {
+		var env struct {
+			Data []json.RawMessage `json:"data"`
+		}
+		if err := json.Unmarshal(fixture(t, "search_waifus.json"), &env); err != nil {
+			t.Fatal(err)
+		}
+		series, _ := json.Marshal(map[string]any{"id": 9, "uuid": "s", "slug": "trigun-series", "name": "Trigun", "url": "https://www.mywaifulist.moe/series/trigun", "studio": nil})
+		env.Data = append(env.Data, series)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(env)
+	})
+	mux.HandleFunc("/api/v1/character", func(w http.ResponseWriter, r *http.Request) {
+		page := pageNum(r.URL.Query().Get("page"))
+		serveJSON(map[string]any{"data": []map[string]any{{"id": page, "slug": fmt.Sprintf("list-%d", page), "name": "L", "likes": 1, "trash": 0}}, "meta": map[string]any{"current_page": page, "last_page": 5113, "per_page": 10, "total": 51128}})(w, r)
+	})
 	mux.HandleFunc("/api/v1/search/works", serveJSON(map[string]any{"data": []map[string]any{
 		{"uuid": "w-1", "slug": "re-zero", "name": "Re:Zero", "url": "https://www.mywaifulist.moe/series/re-zero", "display_picture": nil, "description": "Subaru suffers"},
 		{"uuid": nil, "slug": "other", "name": "Other", "url": "https://www.mywaifulist.moe/series/other"},
@@ -154,6 +170,9 @@ func pageNum(s string) int {
 
 func newClient(t *testing.T, s *server) *Client {
 	t.Helper()
+	previous := defaultRetryWait
+	defaultRetryWait = 10 * time.Millisecond
+	t.Cleanup(func() { defaultRetryWait = previous })
 	c, err := New(Config{BaseURL: s.URL + "/api/v1/", APIKey: "test-key", RequestsPerMinute: 6000, Headroom: 0})
 	if err != nil {
 		t.Fatal(err)
@@ -256,7 +275,10 @@ func TestRetryAfter(t *testing.T) {
 	if got := retryAfter(resp("")); got != defaultRetryWait {
 		t.Errorf("missing = %v", got)
 	}
-	if got := retryAfter(resp("3")); got != 3*time.Second {
+	if got := retryAfter(resp("3")); got != defaultRetryWait {
+		t.Errorf("seconds below the floor = %v", got)
+	}
+	if got := retryAfter(resp("10")); got != 10*time.Second {
 		t.Errorf("seconds = %v", got)
 	}
 	if got := retryAfter(resp("3600")); got != maxRetryAfter {
@@ -270,19 +292,27 @@ func TestRetryAfter(t *testing.T) {
 		t.Errorf("http date = %v", got)
 	}
 	past := time.Now().Add(-time.Hour).UTC().Format(http.TimeFormat)
-	if got := retryAfter(resp(past)); got != 0 {
+	if got := retryAfter(resp(past)); got != defaultRetryWait {
 		t.Errorf("past date = %v", got)
 	}
 }
 
 func TestLimiter_BackgroundYieldsToForeground(t *testing.T) {
-	l := NewLimiter(20, 15)
+	now := time.Date(2026, 9, 16, 12, 0, 0, 0, time.UTC)
+	l := NewLimiter(60, 20)
+	l.now = func() time.Time { return now }
+	l.Observe(60)
 	ctx := context.Background()
-	for range 6 {
+
+	if l.Remaining() != 60 {
+		t.Fatalf("fresh remaining = %d", l.Remaining())
+	}
+	for range DefaultBurst {
 		if err := l.Wait(ctx); err != nil {
 			t.Fatal(err)
 		}
 	}
+	l.Observe(10)
 	polls := 0
 	l.sleep = func(context.Context, time.Duration) error {
 		polls++
@@ -291,24 +321,27 @@ func TestLimiter_BackgroundYieldsToForeground(t *testing.T) {
 		}
 		return nil
 	}
-	if err := l.WaitBackground(ctx); !errors.Is(err, context.Canceled) {
-		t.Fatalf("background should poll while tokens are at the headroom, err=%v", err)
-	}
-	if polls != 3 {
-		t.Errorf("polls = %d", polls)
+	if err := l.WaitBackground(ctx); !errors.Is(err, context.Canceled) || polls != 3 {
+		t.Fatalf("background should poll while the server window is nearly spent: err=%v polls=%d", err, polls)
 	}
 
-	fresh := NewLimiter(60, 15)
+	now = now.Add(30 * time.Second)
+	if got := l.Remaining(); got != 40 {
+		t.Errorf("remaining should refill with time: %d", got)
+	}
+	l.Penalize()
+	if got := l.Remaining(); got != 0 {
+		t.Errorf("penalized remaining = %d", got)
+	}
+	now = now.Add(2 * time.Minute)
+	if got := l.Remaining(); got != 60 {
+		t.Errorf("remaining should cap at the per-minute budget: %d", got)
+	}
+
+	fresh := NewLimiter(60, 20)
 	fresh.sleep = func(context.Context, time.Duration) error { t.Fatal("should not sleep"); return nil }
 	if err := fresh.WaitBackground(ctx); err != nil {
 		t.Fatal(err)
-	}
-
-	fresh.Observe(10)
-	polls = 0
-	fresh.sleep = func(context.Context, time.Duration) error { polls++; return context.DeadlineExceeded }
-	if err := fresh.WaitBackground(ctx); !errors.Is(err, context.DeadlineExceeded) || polls != 1 {
-		t.Errorf("low server-reported remaining should block background: err=%v polls=%d", err, polls)
 	}
 
 	if NewLimiter(0, -1).headroom != 0 || NewLimiter(0, -1).Remaining() != DefaultRequestsPerMinute {

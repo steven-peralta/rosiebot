@@ -174,6 +174,72 @@ func (_c *WaifuSource_Get_Call) RunAndReturn(run func(ctx context.Context, slug 
 	return _c
 }
 
+// ListCharacters provides a mock function for the type WaifuSource
+func (_mock *WaifuSource) ListCharacters(ctx context.Context, page int) (app.SearchPage, error) {
+	ret := _mock.Called(ctx, page)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListCharacters")
+	}
+
+	var r0 app.SearchPage
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int) (app.SearchPage, error)); ok {
+		return returnFunc(ctx, page)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int) app.SearchPage); ok {
+		r0 = returnFunc(ctx, page)
+	} else {
+		r0 = ret.Get(0).(app.SearchPage)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, int) error); ok {
+		r1 = returnFunc(ctx, page)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// WaifuSource_ListCharacters_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListCharacters'
+type WaifuSource_ListCharacters_Call struct {
+	*mock.Call
+}
+
+// ListCharacters is a helper method to define mock.On call
+//   - ctx context.Context
+//   - page int
+func (_e *WaifuSource_Expecter) ListCharacters(ctx any, page any) *WaifuSource_ListCharacters_Call {
+	return &WaifuSource_ListCharacters_Call{Call: _e.mock.On("ListCharacters", ctx, page)}
+}
+
+func (_c *WaifuSource_ListCharacters_Call) Run(run func(ctx context.Context, page int)) *WaifuSource_ListCharacters_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 int
+		if args[1] != nil {
+			arg1 = args[1].(int)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *WaifuSource_ListCharacters_Call) Return(searchPage app.SearchPage, err error) *WaifuSource_ListCharacters_Call {
+	_c.Call.Return(searchPage, err)
+	return _c
+}
+
+func (_c *WaifuSource_ListCharacters_Call) RunAndReturn(run func(ctx context.Context, page int) (app.SearchPage, error)) *WaifuSource_ListCharacters_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // PopularPage provides a mock function for the type WaifuSource
 func (_mock *WaifuSource) PopularPage(ctx context.Context, page int) (app.PopularPage, error) {
 	ret := _mock.Called(ctx, page)

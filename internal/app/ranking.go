@@ -151,7 +151,7 @@ func (s *RankingService) walk(ctx context.Context) ([]domain.WaifuSummary, int, 
 func (s *RankingService) fetchPage(ctx context.Context, page int) (PopularPage, error) {
 	var lastErr error
 	for attempt := 1; attempt <= s.cfg.PageRetries; attempt++ {
-		pp, err := s.source.PopularPage(ctx, page)
+		pp, err := s.source.PopularPage(WithBackground(ctx), page)
 		if err == nil {
 			return pp, nil
 		}

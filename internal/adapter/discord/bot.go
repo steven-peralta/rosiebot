@@ -47,7 +47,7 @@ type Config struct {
 const (
 	defaultPagerTTL       = 15 * time.Minute
 	defaultTradeTTL       = 10 * time.Minute
-	defaultCommandTimeout = 20 * time.Second
+	defaultCommandTimeout = 60 * time.Second
 
 	commandWaifu  = "waifu"
 	commandSeries = "series"
@@ -104,8 +104,8 @@ func (b *Bot) Commands() []*discordgo.ApplicationCommand {
 	userOpt := func(desc string) *discordgo.ApplicationCommandOption {
 		return &discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionUser, Name: optUser, Description: desc}
 	}
-	queryOpt := func(desc string) *discordgo.ApplicationCommandOption {
-		return &discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optQuery, Description: desc, Required: true}
+	queryOpt := func(desc string, required bool) *discordgo.ApplicationCommandOption {
+		return &discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optQuery, Description: desc, Required: required}
 	}
 	allContexts := []discordgo.InteractionContextType{discordgo.InteractionContextGuild, discordgo.InteractionContextBotDM, discordgo.InteractionContextPrivateChannel}
 	guildOnly := []discordgo.InteractionContextType{discordgo.InteractionContextGuild}
@@ -124,7 +124,7 @@ func (b *Bot) Commands() []*discordgo.ApplicationCommand {
 				sub(subDaily, "Get your daily dose of waifu coins"),
 				sub(subCoins, "See how many coins you or another user has", userOpt("Whose balance to show")),
 				sub(subOwned, "See the waifus that you or another user owns", userOpt("Whose collection to show")),
-				sub(subSearch, "Search for a waifu", queryOpt("Name to search for")),
+				sub(subSearch, "Search for a waifu", queryOpt("Name, plus optional sortby:-likes or likes:>100 tokens; empty lists the catalog", false)),
 				sub(subRandom, "Pull a random waifu"),
 				sub(subToday, "Show the waifu of the day"),
 				sub(subTrade, "Trade waifus with another user",
@@ -140,7 +140,7 @@ func (b *Bot) Commands() []*discordgo.ApplicationCommand {
 			Contexts:         &allContexts,
 			IntegrationTypes: &integrations,
 			Options: []*discordgo.ApplicationCommandOption{
-				sub(subSearch, "Search for a series and list its waifus", queryOpt("Series name to search for")),
+				sub(subSearch, "Search for a series and list its waifus", queryOpt("Series name to search for", true)),
 			},
 		},
 		{

@@ -110,6 +110,10 @@ func (b *Bot) search(ctx context.Context, ic *interaction, opts []*discordgo.App
 		b.editText(ic, mention(ic.userID())+" "+msgWaifuNotFound)
 		return
 	}
+	if errors.Is(err, app.ErrBadQuery) {
+		b.editText(ic, mention(ic.userID())+" "+err.Error())
+		return
+	}
 	if err != nil {
 		b.failed(ic, "search", err)
 		return

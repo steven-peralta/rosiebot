@@ -42,7 +42,7 @@ func page(n, lastPage int, totals ...int) app.PopularPage {
 
 func TestRankingWalker_StopsAtCutoff(t *testing.T) {
 	f := newRankingFixture(t, app.RankingConfig{})
-	f.source.EXPECT().PopularPage(mock.Anything, 1).Return(page(1, 5000, 900, 800), nil).Once()
+	f.source.EXPECT().PopularPage(mock.MatchedBy(app.IsBackground), 1).Return(page(1, 5000, 900, 800), nil).Once()
 	f.source.EXPECT().PopularPage(mock.Anything, 2).Return(page(2, 5000, 300, 200), nil).Once()
 	f.source.EXPECT().PopularPage(mock.Anything, 3).Return(page(3, 5000, 101, 100), nil).Once()
 

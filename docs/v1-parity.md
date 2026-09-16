@@ -35,7 +35,8 @@ Deliberate departures from v1 are listed at the bottom with their reasons.
 | | | Target form `<target> has :coin: N coins` | `discord.TestCoins_SingularPlural` |
 | `!wowned [@user]` | `/waifu owned [user]` | Paginated, one waifu per page | `app.TestInventoryService_ListOrderAndEmpty`, `discord.TestOwned_EmptyAndPager`, `discord.TestOwned_TargetUser` |
 | | | Empty inventory text `Specified user doesn't own any waifus.` | `discord.TestOwned_EmptyAndPager` |
-| `!wsearch <q>` | `/waifu search <query>` | Paginated results, one per page | `discord.TestSearch_Texts` |
+| `!wsearch <q>` | `/waifu search [query]` | Paginated results, one per page; empty query lists the first 30 catalog entries (v1 listed the first 100 from its database) | `discord.TestSearch_Texts`, `app.TestSearchService_EmptyTermListsCatalog` |
+| | | Search covers husbandos as well as waifus (combined `/search` endpoint) | `mwl.TestSource_SearchWaifus`, live smoke `shinji` |
 | | | No match text `Waifu was not found.` | `discord.TestSearch_Texts` |
 | `!ssearch <q>` | `/series search <query>` | Best series match, then its characters by likes descending | `app.TestSearchService_SeriesSortsCharactersByLikesAcrossPages` |
 | | | Header `Showing results for series <name>` | `discord.TestSeriesSearch_Texts` |
@@ -105,7 +106,7 @@ Deliberate departures from v1 are listed at the bottom with their reasons.
 | Trades may be one-sided gifts | Owner decision |
 | Sell is a message context menu command instead of a reaction button | Owner decision; works on any bot message showing a waifu and survives restarts |
 | Reroll on already-owned capped at 5 attempts, uncharged on exhaustion | v1 recursed without bound |
-| `field:value` and `sortby:` search filters dropped | They were MongoDB queries over a scraped catalog; the MWL search endpoint is term only |
+| `sortby:[+-]field` and `field:<op>value` search tokens apply to the fetched result set (up to 30 results), fields limited to likes, trash, total, name | The MWL search endpoint is term only, so sorting and filtering happen client-side over what it returns (`app.TestSearchService_SortAndFilterTokens`, `TestParseQuery`) |
 | `studio:` branch of series search dropped | Broken in v1 (crashed on no match) |
 | Numeric MWL id no longer shown in the embed title | The current MWL API does not expose it on character detail |
 | Embed padding fills inline fields to a multiple of three | v1 pushed `len % 3` blanks, which mis-padded; the intent was full rows |
