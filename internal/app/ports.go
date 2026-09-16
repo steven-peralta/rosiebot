@@ -26,6 +26,7 @@ type WaifuSource interface {
 	ListCharacters(ctx context.Context, page int) (SearchPage, error)
 	SearchWaifus(ctx context.Context, term string, page int) (SearchPage, error)
 	SearchWorks(ctx context.Context, term string) ([]domain.Series, error)
+	Work(ctx context.Context, slug string) (domain.Series, error)
 	WorkCharacters(ctx context.Context, slug string, page int) (SearchPage, error)
 	PopularPage(ctx context.Context, page int) (PopularPage, error)
 }

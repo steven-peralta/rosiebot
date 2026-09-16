@@ -137,6 +137,17 @@ func TestSource_SearchWorks(t *testing.T) {
 	}
 }
 
+func TestSource_Work(t *testing.T) {
+	s := newServer(t)
+	got, err := newClient(t, s).Work(context.Background(), "re-zero")
+	if err != nil || got.Slug != "re-zero" || got.Name != "Re:Zero" || got.UUID != "w-1" || got.PictureURL != "pic" || got.Description != "" {
+		t.Errorf("work = %+v %v", got, err)
+	}
+	if _, err := newClient(t, s).Work(context.Background(), "missing"); !errors.Is(err, app.ErrNotFound) {
+		t.Errorf("missing work = %v", err)
+	}
+}
+
 func TestSource_WorkCharactersPaginates(t *testing.T) {
 	s := newServer(t)
 	c := newClient(t, s)
@@ -271,6 +282,8 @@ func TestLive_Smoke(t *testing.T) {
 	}
 	if w, err := c.SearchWorks(ctx, "re zero"); err != nil || len(w) == 0 {
 		t.Errorf("search works: %+v %v", w, err)
+	} else if detail, err := c.Work(ctx, w[0].Slug); err != nil || detail.Slug != w[0].Slug {
+		t.Errorf("work detail: %+v %v", detail, err)
 	}
 	if p, err := c.PopularPage(ctx, 1000); err != nil || len(p.Rows) == 0 || p.LastPage == 0 {
 		t.Errorf("popular: %+v %v", p, err)

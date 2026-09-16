@@ -85,6 +85,25 @@ func searchOptions() []*discordgo.ApplicationCommandOption {
 	}
 }
 
+func seriesOptions() []*discordgo.ApplicationCommandOption {
+	opts := searchOptions()
+	opts[0] = &discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optQuery, Description: "Series name to search for", Required: true, Autocomplete: true, MaxLength: 100}
+	opts[1].Description = "Order of the series' characters (default: most liked first)"
+	return opts
+}
+
+func seriesChoices(series []domain.Series) []*discordgo.ApplicationCommandOptionChoice {
+	out := make([]*discordgo.ApplicationCommandOptionChoice, 0, len(series))
+	for _, s := range series {
+		value := slugChoicePrefix + s.Slug
+		if len(value) > maxChoiceLength || s.Name == "" {
+			continue
+		}
+		out = append(out, &discordgo.ApplicationCommandOptionChoice{Name: truncate(s.Name, maxChoiceLength), Value: value})
+	}
+	return out
+}
+
 func intOption(opts []*discordgo.ApplicationCommandInteractionDataOption, name string) (int, bool) {
 	o := option(opts, name)
 	if o == nil {

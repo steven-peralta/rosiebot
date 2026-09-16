@@ -39,7 +39,16 @@ func TestWaifuCache(t *testing.T) {
 	if page, err := c.GetPage(ctx, "k"); err != nil || page.Page.LastPage != 2 {
 		t.Errorf("page hit = %+v %v", page, err)
 	}
-	if c.Len() != 2 {
+	if _, err := c.GetSeries(ctx, "s"); !errors.Is(err, app.ErrNotFound) {
+		t.Fatalf("series miss = %v", err)
+	}
+	if err := c.PutSeries(ctx, "s", []domain.Series{{Slug: "re-zero"}}, clock.now); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := c.GetSeries(ctx, "s"); err != nil || len(got.Series) != 1 {
+		t.Errorf("series hit = %+v %v", got, err)
+	}
+	if c.Len() != 3 {
 		t.Errorf("len = %d", c.Len())
 	}
 
@@ -48,8 +57,8 @@ func TestWaifuCache(t *testing.T) {
 		t.Fatal(err)
 	}
 	n, err := c.Prune(ctx, clock.now.Add(-time.Hour))
-	if err != nil || n != 1 || c.Len() != 1 {
-		t.Errorf("prune should drop the unread page and keep the recently read waifu: n=%d len=%d err=%v", n, c.Len(), err)
+	if err != nil || n != 2 || c.Len() != 1 {
+		t.Errorf("prune should drop the unread page and series and keep the recently read waifu: n=%d len=%d err=%v", n, c.Len(), err)
 	}
 	if NewWaifuCache(nil).clock == nil {
 		t.Error("nil clock should default")

@@ -107,6 +107,38 @@ func TestCacheStore_PageRoundTrip(t *testing.T) {
 	}
 }
 
+func TestCacheStore_SeriesRoundTrip(t *testing.T) {
+	requireDB(t)
+	ctx := context.Background()
+	now := time.Date(2026, 9, 16, 12, 0, 0, 0, time.UTC)
+	s := NewCacheStore(testPool, &fixedClock{now})
+	if _, err := s.GetSeries(ctx, "works|nothing|1"); !errors.Is(err, app.ErrNotFound) {
+		t.Fatalf("miss = %v", err)
+	}
+	series := []domain.Series{{Slug: "re-zero", Name: "Re:Zero", URL: "u"}, {Slug: "other", Name: "Other"}}
+	if err := s.PutSeries(ctx, "works|re zero|1", series, now); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.GetSeries(ctx, "works|re zero|1")
+	if err != nil || len(got.Series) != 2 || got.Series[0].URL != "u" || !got.FetchedAt.Equal(now) {
+		t.Errorf("round trip = %+v %v", got, err)
+	}
+	if _, err := testPool.Exec(ctx, "INSERT INTO page_cache (key, payload, fetched_at) VALUES ('works|corrupt|1', '\"nope\"'::jsonb, now()) ON CONFLICT (key) DO NOTHING"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.GetSeries(ctx, "works|corrupt|1"); err == nil {
+		t.Error("corrupt series payload should fail to decode")
+	}
+	cancelled, cancel := context.WithCancel(ctx)
+	cancel()
+	if _, err := s.GetSeries(cancelled, "x"); err == nil {
+		t.Error("GetSeries on cancelled context")
+	}
+	if err := s.PutSeries(cancelled, "x", series, now); err == nil {
+		t.Error("PutSeries on cancelled context")
+	}
+}
+
 func TestCacheStore_ErrorsOnCancelledContext(t *testing.T) {
 	requireDB(t)
 	ctx, cancel := context.WithCancel(context.Background())

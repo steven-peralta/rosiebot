@@ -105,9 +105,6 @@ func (b *Bot) Commands() []*discordgo.ApplicationCommand {
 	userOpt := func(desc string) *discordgo.ApplicationCommandOption {
 		return &discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionUser, Name: optUser, Description: desc}
 	}
-	queryOpt := func(desc string, required bool) *discordgo.ApplicationCommandOption {
-		return &discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optQuery, Description: desc, Required: required}
-	}
 	allContexts := []discordgo.InteractionContextType{discordgo.InteractionContextGuild, discordgo.InteractionContextBotDM, discordgo.InteractionContextPrivateChannel}
 	guildOnly := []discordgo.InteractionContextType{discordgo.InteractionContextGuild}
 	integrations := []discordgo.ApplicationIntegrationType{discordgo.ApplicationIntegrationGuildInstall}
@@ -152,7 +149,7 @@ func (b *Bot) Commands() []*discordgo.ApplicationCommand {
 			Contexts:         &allContexts,
 			IntegrationTypes: &integrations,
 			Options: []*discordgo.ApplicationCommandOption{
-				sub(subSearch, "Search for a series and list its waifus", queryOpt("Series name to search for", true)),
+				sub(subSearch, "Search for a series and list its waifus", seriesOptions()...),
 			},
 		},
 		{
@@ -247,6 +244,8 @@ func (b *Bot) handleComponent(ctx context.Context, ic *interaction) {
 		b.sellButton(ctx, ic, strings.TrimPrefix(id, sellPrefix))
 	case strings.HasPrefix(id, tradePrefix):
 		b.tradeButton(ctx, ic, strings.TrimPrefix(id, tradePrefix))
+	case strings.HasPrefix(id, rollPrefix):
+		b.rollAgain(ctx, ic, strings.TrimPrefix(id, rollPrefix))
 	default:
 		b.log.Warn("unknown component", "custom_id", id)
 	}
@@ -262,13 +261,14 @@ func (b *Bot) handleModal(ctx context.Context, ic *interaction) {
 func (b *Bot) handleAutocomplete(ctx context.Context, ic *interaction) {
 	data := ic.ApplicationCommandData()
 	sub, opts := subcommand(data)
-	if data.Name != commandWaifu && data.Name != commandWAlias {
+	switch {
+	case data.Name == commandSeries && sub == subSearch:
+		b.seriesAutocomplete(ctx, ic, opts)
+	case data.Name != commandWaifu && data.Name != commandWAlias:
 		return
-	}
-	switch sub {
-	case subTrade:
+	case sub == subTrade:
 		b.tradeAutocomplete(ctx, ic, opts, data.Resolved)
-	case subSearch:
+	case sub == subSearch:
 		b.searchAutocomplete(ic, opts)
 	}
 }

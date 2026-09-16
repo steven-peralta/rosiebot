@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/steven-peralta/rosiebot/internal/domain"
@@ -112,7 +111,9 @@ func matchesName(w domain.WaifuSummary, prefix string) bool {
 	return false
 }
 
-func (s *SearchService) Series(ctx context.Context, term string) (SeriesResult, error) {
+const minSeriesSuggestLength = 2
+
+func (s *SearchService) Series(ctx context.Context, term string, q Query) (SeriesResult, error) {
 	term = cleanTerm(term)
 	if term == "" {
 		return SeriesResult{}, ErrNotFound
@@ -124,21 +125,43 @@ func (s *SearchService) Series(ctx context.Context, term string) (SeriesResult, 
 	if len(works) == 0 {
 		return SeriesResult{}, ErrNotFound
 	}
-	series := works[0]
+	return s.charactersOf(ctx, works[0], q)
+}
 
-	var waifus []domain.WaifuSummary
-	for page := 1; page <= MaxSeriesCharPages; page++ {
-		res, err := s.source.WorkCharacters(ctx, series.Slug, page)
-		if err != nil {
-			return SeriesResult{}, fmt.Errorf("characters of %q page %d: %w", series.Slug, page, err)
-		}
-		waifus = append(waifus, res.Items...)
-		if page >= res.LastPage || len(res.Items) == 0 {
-			break
-		}
+func (s *SearchService) SeriesBySlug(ctx context.Context, slug string, q Query) (SeriesResult, error) {
+	series, err := s.source.Work(ctx, slug)
+	if err != nil {
+		return SeriesResult{}, err
 	}
-	sort.SliceStable(waifus, func(i, j int) bool { return waifus[i].Likes > waifus[j].Likes })
-	return SeriesResult{Series: series, Waifus: waifus}, nil
+	return s.charactersOf(ctx, series, q)
+}
+
+func (s *SearchService) SuggestSeries(ctx context.Context, term string, limit int) ([]domain.Series, error) {
+	term = cleanTerm(term)
+	if len([]rune(term)) < minSeriesSuggestLength || limit <= 0 {
+		return nil, nil
+	}
+	works, err := s.source.SearchWorks(ctx, term)
+	if err != nil {
+		return nil, fmt.Errorf("suggest series %q: %w", term, err)
+	}
+	if len(works) > limit {
+		works = works[:limit]
+	}
+	return works, nil
+}
+
+func (s *SearchService) charactersOf(ctx context.Context, series domain.Series, q Query) (SeriesResult, error) {
+	waifus, err := s.collect(ctx, MaxSeriesCharPages, func(page int) (SearchPage, error) {
+		return s.source.WorkCharacters(ctx, series.Slug, page)
+	})
+	if err != nil {
+		return SeriesResult{}, fmt.Errorf("characters of %q: %w", series.Slug, err)
+	}
+	if q.SortBy == SortNone {
+		q.SortBy, q.Descending = SortLikes, true
+	}
+	return SeriesResult{Series: series, Waifus: q.Apply(waifus, LookupFrom(s.ranking))}, nil
 }
 
 func cleanTerm(term string) string {

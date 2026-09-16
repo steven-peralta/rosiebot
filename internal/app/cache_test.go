@@ -125,6 +125,14 @@ func (brokenCache) PutPage(context.Context, string, app.SearchPage, time.Time) e
 	return errors.New("disk on fire")
 }
 
+func (brokenCache) GetSeries(context.Context, string) (app.CachedSeries, error) {
+	return app.CachedSeries{}, errors.New("disk on fire")
+}
+
+func (brokenCache) PutSeries(context.Context, string, []domain.Series, time.Time) error {
+	return errors.New("disk on fire")
+}
+
 func (brokenCache) Prune(context.Context, time.Time) (int64, error) {
 	return 0, errors.New("disk on fire")
 }
@@ -197,7 +205,7 @@ func TestCachedSource_PassThroughs(t *testing.T) {
 	f.source.EXPECT().Random(mock.Anything).Return(summary("r", 1, 0), nil).Twice()
 	f.source.EXPECT().Daily(mock.Anything).Return(summary("d", 1, 0), nil).Twice()
 	f.source.EXPECT().PopularPage(mock.Anything, 1).Return(app.PopularPage{Page: 1}, nil).Twice()
-	f.source.EXPECT().SearchWorks(mock.Anything, "x").Return([]domain.Series{{Slug: "x"}}, nil).Twice()
+	f.source.EXPECT().Work(mock.Anything, "x").Return(domain.Series{Slug: "x"}, nil).Twice()
 	for range 2 {
 		if _, err := f.cached.Random(f.ctx); err != nil {
 			t.Fatal(err)
@@ -208,9 +216,44 @@ func TestCachedSource_PassThroughs(t *testing.T) {
 		if _, err := f.cached.PopularPage(f.ctx, 1); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := f.cached.SearchWorks(f.ctx, "x"); err != nil {
+		if _, err := f.cached.Work(f.ctx, "x"); err != nil {
 			t.Fatal(err)
 		}
+	}
+}
+
+func TestCachedSource_SeriesSearchCached(t *testing.T) {
+	f := newCacheFixture(t)
+	f.source.EXPECT().SearchWorks(mock.Anything, "Re Zero").Return([]domain.Series{{Slug: "re-zero", Name: "Re:Zero"}}, nil).Once()
+	for _, term := range []string{"Re Zero", "re  zero", "RE ZERO"} {
+		got, err := f.cached.SearchWorks(f.ctx, term)
+		if err != nil || len(got) != 1 || got[0].Slug != "re-zero" {
+			t.Fatalf("%q = %v %v", term, got, err)
+		}
+	}
+	f.source.AssertNumberOfCalls(t, "SearchWorks", 1)
+
+	f.clock.Advance(app.DefaultSearchTTL + time.Second)
+	f.source.EXPECT().SearchWorks(mock.MatchedBy(app.IsBackground), "re zero").Return([]domain.Series{{Slug: "re-zero"}, {Slug: "re-zero-2"}}, nil).Once()
+	stale, err := f.cached.SearchWorks(f.ctx, "re zero")
+	if err != nil || len(stale) != 1 {
+		t.Fatalf("stale = %v %v", stale, err)
+	}
+	f.cached.Flush()
+	fresh, err := f.cached.SearchWorks(f.ctx, "re zero")
+	if err != nil || len(fresh) != 2 {
+		t.Fatalf("refreshed = %v %v", fresh, err)
+	}
+
+	f.source.EXPECT().SearchWorks(mock.Anything, "boom").Return(nil, errors.New("boom")).Once()
+	if _, err := f.cached.SearchWorks(f.ctx, "boom"); err == nil {
+		t.Error("miss errors should propagate")
+	}
+
+	broken := app.NewCachedSource(f.source, brokenCache{}, f.clock, app.CacheConfig{}, nil)
+	f.source.EXPECT().SearchWorks(mock.Anything, "x").Return([]domain.Series{{Slug: "x"}}, nil).Once()
+	if got, err := broken.SearchWorks(f.ctx, "x"); err != nil || len(got) != 1 {
+		t.Errorf("broken cache should fall through: %v %v", got, err)
 	}
 }
 

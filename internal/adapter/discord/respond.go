@@ -41,6 +41,7 @@ const (
 	msgNotAWaifu         = "That message doesn't show a waifu."
 	msgSellCancelled     = "Sale cancelled."
 	msgRateLimited       = "MyWaifuList is rate limiting me right now. Try again in a minute."
+	msgNotYourRoll       = "That button belongs to someone else's roll. Use /waifu roll to roll for yourself."
 )
 
 func mention(id string) string {

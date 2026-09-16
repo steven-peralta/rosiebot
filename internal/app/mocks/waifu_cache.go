@@ -115,6 +115,72 @@ func (_c *WaifuCache_GetPage_Call) RunAndReturn(run func(ctx context.Context, ke
 	return _c
 }
 
+// GetSeries provides a mock function for the type WaifuCache
+func (_mock *WaifuCache) GetSeries(ctx context.Context, key string) (app.CachedSeries, error) {
+	ret := _mock.Called(ctx, key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetSeries")
+	}
+
+	var r0 app.CachedSeries
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (app.CachedSeries, error)); ok {
+		return returnFunc(ctx, key)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) app.CachedSeries); ok {
+		r0 = returnFunc(ctx, key)
+	} else {
+		r0 = ret.Get(0).(app.CachedSeries)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, key)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// WaifuCache_GetSeries_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetSeries'
+type WaifuCache_GetSeries_Call struct {
+	*mock.Call
+}
+
+// GetSeries is a helper method to define mock.On call
+//   - ctx context.Context
+//   - key string
+func (_e *WaifuCache_Expecter) GetSeries(ctx any, key any) *WaifuCache_GetSeries_Call {
+	return &WaifuCache_GetSeries_Call{Call: _e.mock.On("GetSeries", ctx, key)}
+}
+
+func (_c *WaifuCache_GetSeries_Call) Run(run func(ctx context.Context, key string)) *WaifuCache_GetSeries_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *WaifuCache_GetSeries_Call) Return(cachedSeries app.CachedSeries, err error) *WaifuCache_GetSeries_Call {
+	_c.Call.Return(cachedSeries, err)
+	return _c
+}
+
+func (_c *WaifuCache_GetSeries_Call) RunAndReturn(run func(ctx context.Context, key string) (app.CachedSeries, error)) *WaifuCache_GetSeries_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetWaifu provides a mock function for the type WaifuCache
 func (_mock *WaifuCache) GetWaifu(ctx context.Context, slug string) (app.CachedWaifu, error) {
 	ret := _mock.Called(ctx, slug)
@@ -312,6 +378,75 @@ func (_c *WaifuCache_PutPage_Call) Return(err error) *WaifuCache_PutPage_Call {
 }
 
 func (_c *WaifuCache_PutPage_Call) RunAndReturn(run func(ctx context.Context, key string, page app.SearchPage, fetchedAt time.Time) error) *WaifuCache_PutPage_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// PutSeries provides a mock function for the type WaifuCache
+func (_mock *WaifuCache) PutSeries(ctx context.Context, key string, series []domain.Series, fetchedAt time.Time) error {
+	ret := _mock.Called(ctx, key, series, fetchedAt)
+
+	if len(ret) == 0 {
+		panic("no return value specified for PutSeries")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, []domain.Series, time.Time) error); ok {
+		r0 = returnFunc(ctx, key, series, fetchedAt)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// WaifuCache_PutSeries_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PutSeries'
+type WaifuCache_PutSeries_Call struct {
+	*mock.Call
+}
+
+// PutSeries is a helper method to define mock.On call
+//   - ctx context.Context
+//   - key string
+//   - series []domain.Series
+//   - fetchedAt time.Time
+func (_e *WaifuCache_Expecter) PutSeries(ctx any, key any, series any, fetchedAt any) *WaifuCache_PutSeries_Call {
+	return &WaifuCache_PutSeries_Call{Call: _e.mock.On("PutSeries", ctx, key, series, fetchedAt)}
+}
+
+func (_c *WaifuCache_PutSeries_Call) Run(run func(ctx context.Context, key string, series []domain.Series, fetchedAt time.Time)) *WaifuCache_PutSeries_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 []domain.Series
+		if args[2] != nil {
+			arg2 = args[2].([]domain.Series)
+		}
+		var arg3 time.Time
+		if args[3] != nil {
+			arg3 = args[3].(time.Time)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *WaifuCache_PutSeries_Call) Return(err error) *WaifuCache_PutSeries_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *WaifuCache_PutSeries_Call) RunAndReturn(run func(ctx context.Context, key string, series []domain.Series, fetchedAt time.Time) error) *WaifuCache_PutSeries_Call {
 	_c.Call.Return(run)
 	return _c
 }

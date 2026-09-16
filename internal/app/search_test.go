@@ -208,15 +208,15 @@ func TestSearchService_RandomFetchesDetail(t *testing.T) {
 func TestSearchService_SeriesNotFound(t *testing.T) {
 	f := newFixture(t)
 	svc := app.NewSearchService(f.source, f.ranking)
-	if _, err := svc.Series(f.ctx, ""); !errors.Is(err, app.ErrNotFound) {
+	if _, err := svc.Series(f.ctx, "", app.Query{}); !errors.Is(err, app.ErrNotFound) {
 		t.Errorf("empty term err = %v", err)
 	}
 	f.source.EXPECT().SearchWorks(mock.Anything, "nothing").Return(nil, nil).Once()
-	if _, err := svc.Series(f.ctx, "nothing"); !errors.Is(err, app.ErrNotFound) {
+	if _, err := svc.Series(f.ctx, "nothing", app.Query{}); !errors.Is(err, app.ErrNotFound) {
 		t.Errorf("no works err = %v", err)
 	}
 	f.source.EXPECT().SearchWorks(mock.Anything, "boom").Return(nil, errors.New("boom")).Once()
-	if _, err := svc.Series(f.ctx, "boom"); err == nil {
+	if _, err := svc.Series(f.ctx, "boom", app.Query{}); err == nil {
 		t.Error("expected error")
 	}
 }
@@ -228,7 +228,7 @@ func TestSearchService_SeriesSortsCharactersByLikesAcrossPages(t *testing.T) {
 	f.source.EXPECT().WorkCharacters(mock.Anything, "re-zero", 1).Return(app.SearchPage{Page: 1, LastPage: 2, Items: []domain.WaifuSummary{summary("ram", 100, 0), summary("emilia", 300, 0)}}, nil).Once()
 	f.source.EXPECT().WorkCharacters(mock.Anything, "re-zero", 2).Return(app.SearchPage{Page: 2, LastPage: 2, Items: []domain.WaifuSummary{summary("rem", 900, 0)}}, nil).Once()
 
-	res, err := app.NewSearchService(f.source, f.ranking).Series(f.ctx, "re zero")
+	res, err := app.NewSearchService(f.source, f.ranking).Series(f.ctx, "re zero", app.Query{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -247,7 +247,50 @@ func TestSearchService_SeriesCharacterErrorPropagates(t *testing.T) {
 	f := newFixture(t)
 	f.source.EXPECT().SearchWorks(mock.Anything, "x").Return([]domain.Series{{Slug: "x"}}, nil).Once()
 	f.source.EXPECT().WorkCharacters(mock.Anything, "x", 1).Return(app.SearchPage{}, errors.New("boom")).Once()
-	if _, err := app.NewSearchService(f.source, f.ranking).Series(f.ctx, "x"); err == nil {
+	if _, err := app.NewSearchService(f.source, f.ranking).Series(f.ctx, "x", app.Query{}); err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+func TestSearchService_SeriesBySlugAndOptions(t *testing.T) {
+	f := newFixture(t)
+	svc := app.NewSearchService(f.source, f.ranking)
+	series := domain.Series{Slug: "re-zero", Name: "Re:Zero"}
+	f.source.EXPECT().Work(mock.Anything, "re-zero").Return(series, nil).Twice()
+	f.source.EXPECT().WorkCharacters(mock.Anything, "re-zero", 1).Return(app.SearchPage{Page: 1, LastPage: 1, Items: []domain.WaifuSummary{summary("ram", 100, 0), summary("rem", 900, 50), summary("emilia", 300, 0)}}, nil).Twice()
+
+	res, err := svc.SeriesBySlug(f.ctx, "re-zero", app.Query{})
+	if err != nil || res.Series.Slug != "re-zero" || res.Waifus[0].Slug != "rem" || res.Waifus[2].Slug != "ram" {
+		t.Fatalf("by slug default order = %+v %v", res, err)
+	}
+	res, err = svc.SeriesBySlug(f.ctx, "re-zero", app.Query{SortBy: app.SortName}.WithFilter(app.SortTrash, "=", 0))
+	if err != nil || len(res.Waifus) != 2 || res.Waifus[0].Slug != "emilia" {
+		t.Errorf("by slug with options = %+v %v", res, err)
+	}
+
+	f.source.EXPECT().Work(mock.Anything, "ghost").Return(domain.Series{}, app.ErrNotFound).Once()
+	if _, err := svc.SeriesBySlug(f.ctx, "ghost", app.Query{}); !errors.Is(err, app.ErrNotFound) {
+		t.Errorf("missing slug = %v", err)
+	}
+}
+
+func TestSearchService_SuggestSeries(t *testing.T) {
+	f := newFixture(t)
+	svc := app.NewSearchService(f.source, f.ranking)
+	if got, err := svc.SuggestSeries(f.ctx, "r", 5); err != nil || got != nil {
+		t.Errorf("short term = %v %v", got, err)
+	}
+	if got, err := svc.SuggestSeries(f.ctx, "re zero", 0); err != nil || got != nil {
+		t.Errorf("zero limit = %v %v", got, err)
+	}
+	many := []domain.Series{{Slug: "a"}, {Slug: "b"}, {Slug: "c"}}
+	f.source.EXPECT().SearchWorks(mock.Anything, "re").Return(many, nil).Once()
+	got, err := svc.SuggestSeries(f.ctx, " re ", 2)
+	if err != nil || len(got) != 2 || got[1].Slug != "b" {
+		t.Errorf("capped = %v %v", got, err)
+	}
+	f.source.EXPECT().SearchWorks(mock.Anything, "boom").Return(nil, errors.New("boom")).Once()
+	if _, err := svc.SuggestSeries(f.ctx, "boom", 5); err == nil {
+		t.Error("expected error")
 	}
 }

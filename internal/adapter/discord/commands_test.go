@@ -124,6 +124,60 @@ func TestAlias_WRoutesLikeWaifu(t *testing.T) {
 	}
 }
 
+func TestRoll_AgainButton(t *testing.T) {
+	f := newFixture(t)
+	f.give(aliceID)
+	if _, ok, err := f.players.ClaimDaily(t.Context(), domain.PlayerKey{GuildID: guildID, UserID: aliceID}, 200, f.clock.now.Add(-time.Hour), f.clock.now); err != nil || !ok {
+		t.Fatal("setup coins")
+	}
+	f.script(d100(50), d100(60))
+	f.source.EXPECT().Random(mock.Anything).Return(summary("first"), nil).Once()
+	f.source.EXPECT().Random(mock.Anything).Return(summary("second"), nil).Once()
+
+	ic := f.slash(aliceID, commandWaifu, subRoll, nil)
+	f.run(ic)
+	e := f.api.lastEdit()
+	button := (*e.Components)[0].(discordgo.ActionsRow).Components[0].(discordgo.Button)
+	if button.CustomID != rollPrefix+rollAgain+":"+aliceID || button.Label != "Roll again · 200 coins" {
+		t.Fatalf("roll again button = %+v", button)
+	}
+	msg := f.message("msg-" + ic.ID)
+
+	f.run(f.click(bobID, msg, button.CustomID))
+	if got := f.respondContent(); got != msgNotYourRoll {
+		t.Errorf("other user = %q", got)
+	}
+
+	f.run(f.click(aliceID, msg, button.CustomID))
+	if r := f.api.lastRespond(); r.Type != discordgo.InteractionResponseDeferredMessageUpdate {
+		t.Errorf("roll again should defer the message update: %+v", r)
+	}
+	e = f.api.lastEdit()
+	if (*e.Embeds)[0].Title != "Name second" || !hasComponents(*e.Components) {
+		t.Errorf("second roll = %+v", (*e.Embeds)[0])
+	}
+	if f.coins(aliceID) != 0 || !f.owns(aliceID, "first") || !f.owns(aliceID, "second") {
+		t.Error("both rolls should have been charged and granted")
+	}
+
+	f.api.reset()
+	f.run(f.click(aliceID, msg, button.CustomID))
+	if f.api.last().kind != "followup" {
+		t.Errorf("insufficient coins should be an ephemeral follow-up, got %s", f.api.last().kind)
+	}
+	if f.api.lastEdit() != nil {
+		t.Error("failed roll again must not edit the card")
+	}
+
+	dm := f.click(aliceID, msg, button.CustomID)
+	dm.GuildID = ""
+	f.run(dm)
+	if got := f.respondContent(); got != "The roll command cannot be invoked from the direct messages of the bot." {
+		t.Errorf("dm = %q", got)
+	}
+	f.run(f.click(aliceID, msg, rollPrefix+"bogus:"+aliceID))
+}
+
 func TestRoll_ExhaustedText(t *testing.T) {
 	f := newFixture(t)
 	f.give(aliceID, "rem")
@@ -472,6 +526,51 @@ func TestSeriesSearch_Texts(t *testing.T) {
 	f.run(f.slash(aliceID, commandSeries, subSearch, nil, strOpt(optQuery, "boom")))
 	if got := editContent(f.api.lastEdit()); got != "<@alice> "+msgUnexpected {
 		t.Errorf("error = %q", got)
+	}
+
+	f.source.EXPECT().Work(mock.Anything, "re-zero").Return(series, nil).Once()
+	f.source.EXPECT().WorkCharacters(mock.Anything, "re-zero", 1).Return(app.SearchPage{Page: 1, LastPage: 1, Items: []domain.WaifuSummary{summary("ram"), summary("rem")}}, nil).Once()
+	f.run(f.slash(aliceID, commandSeries, subSearch, nil, strOpt(optQuery, slugChoicePrefix+"re-zero"), strOpt(optSort, "name_desc")))
+	e = f.api.lastEdit()
+	if editContent(e) != "<@alice> Showing results for series Re:Zero\nPage 1 out of 2" || (*e.Embeds)[0].Title != "Name rem" {
+		t.Errorf("direct series with sort = %q %q", editContent(e), (*e.Embeds)[0].Title)
+	}
+}
+
+func TestSeriesSearch_Autocomplete(t *testing.T) {
+	f := newFixture(t)
+	focused := strOpt(optQuery, "re ze")
+	focused.Focused = true
+	f.source.EXPECT().SearchWorks(mock.Anything, "re ze").Return([]domain.Series{{Slug: "re-zero", Name: "Re:Zero"}, {Slug: "", Name: ""}}, nil).Once()
+	ic := f.slash(aliceID, commandSeries, subSearch, nil, focused)
+	ic.Type = discordgo.InteractionApplicationCommandAutocomplete
+	f.run(ic)
+	r := f.api.lastRespond()
+	if r.Type != discordgo.InteractionApplicationCommandAutocompleteResult || len(r.Data.Choices) != 1 || r.Data.Choices[0].Value != slugChoicePrefix+"re-zero" || r.Data.Choices[0].Name != "Re:Zero" {
+		t.Errorf("choices = %+v", r.Data)
+	}
+
+	short := strOpt(optQuery, "r")
+	short.Focused = true
+	ic = f.slash(aliceID, commandSeries, subSearch, nil, short)
+	ic.Type = discordgo.InteractionApplicationCommandAutocomplete
+	f.run(ic)
+	if len(f.api.lastRespond().Data.Choices) != 0 {
+		t.Error("one character should not query the API")
+	}
+
+	f.source.EXPECT().SearchWorks(mock.Anything, "boom").Return(nil, errors.New("boom")).Once()
+	failing := strOpt(optQuery, "boom")
+	failing.Focused = true
+	ic = f.slash(aliceID, commandSeries, subSearch, nil, failing)
+	ic.Type = discordgo.InteractionApplicationCommandAutocomplete
+	f.run(ic)
+	if len(f.api.lastRespond().Data.Choices) != 0 {
+		t.Error("lookup failure should yield no choices")
+	}
+	seriesOpts := f.bot.Commands()[2].Options[0].Options
+	if len(seriesOpts) != 6 || !seriesOpts[0].Required || !seriesOpts[0].Autocomplete {
+		t.Errorf("series options = %+v", seriesOpts)
 	}
 }
 

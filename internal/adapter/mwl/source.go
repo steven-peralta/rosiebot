@@ -72,6 +72,16 @@ func (c *Client) SearchWorks(ctx context.Context, term string) ([]domain.Series,
 	return seriesListFromDTO(env.Data), nil
 }
 
+func (c *Client) Work(ctx context.Context, slug string) (domain.Series, error) {
+	var env struct {
+		Data seriesDTO `json:"data"`
+	}
+	if err := c.getJSON(ctx, "work/"+url.PathEscape(slug), nil, &env); err != nil {
+		return domain.Series{}, err
+	}
+	return seriesFromDTO(env.Data), nil
+}
+
 func (c *Client) WorkCharacters(ctx context.Context, slug string, page int) (app.SearchPage, error) {
 	var env summaryListEnvelope
 	if err := c.getJSON(ctx, "work/"+url.PathEscape(slug)+"/characters", pageQuery(page, nil), &env); err != nil {

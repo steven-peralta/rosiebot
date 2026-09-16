@@ -26,6 +26,7 @@ Deliberate departures from v1 are listed at the bottom with their reasons.
 | | | Critical prefix `:sparkles: **CRITICAL ROLL!!** :sparkles:` | `discord.TestRoll_Texts` |
 | | | WOTD prefix `:star2: **You rolled the Waifu of the Day. Congrats!**` | `discord.TestRoll_Texts` |
 | | | Trailer `Here's who you rolled:` | `discord.TestRoll_Texts` |
+| | | Roll results carry a Roll again button restricted to the roller; failures (no coins) arrive as an ephemeral follow-up without touching the card | `discord.TestRoll_AgainButton` (new in v2) |
 | `!wdaily` | `/waifu daily` | d100 = 1 multiplies by 5 and shows `:sparkles: **CRITICAL ROLL!!** :sparkles:` | `domain.TestDailyMultiplier_D100Table` |
 | | | d100 in 2..21 multiplies by 2 with the same banner | `domain.TestDailyMultiplier_D100Table`, `app.TestDailyService_Multipliers` |
 | | | Success text `You claimed :coin: N coins` | `discord.TestDaily_Texts` |
@@ -38,7 +39,7 @@ Deliberate departures from v1 are listed at the bottom with their reasons.
 | `!wsearch <q>` | `/waifu search [query]` | Paginated results, one per page; empty query lists the first 30 catalog entries (v1 listed the first 100 from its database) | `discord.TestSearch_Texts`, `app.TestSearchService_EmptyTermListsCatalog` |
 | | | Search covers husbandos as well as waifus (combined `/search` endpoint) | `mwl.TestSource_SearchWaifus`, live smoke `shinji` |
 | | | No match text `Waifu was not found.` | `discord.TestSearch_Texts` |
-| `!ssearch <q>` | `/series search <query>` | Best series match, then its characters by likes descending | `app.TestSearchService_SeriesSortsCharactersByLikesAcrossPages` |
+| `!ssearch <q>` | `/series search <query> [sort] [filters]` | Best series match, then its characters by likes descending; query autocompletes series names via the cached works search and a picked suggestion opens the series directly; the same sort and filter options as waifu search apply to its characters | `app.TestSearchService_SeriesSortsCharactersByLikesAcrossPages`, `TestSearchService_SeriesBySlugAndOptions`, `TestSearchService_SuggestSeries`, `discord.TestSeriesSearch_Texts`, `TestSeriesSearch_Autocomplete` |
 | | | Header `Showing results for series <name>` | `discord.TestSeriesSearch_Texts` |
 | | | No match text `Series was not found.` | `discord.TestSeriesSearch_Texts` |
 | `!wrandom` | `/waifu random` | One random waifu | `app.TestSearchService_RandomFetchesDetail` |

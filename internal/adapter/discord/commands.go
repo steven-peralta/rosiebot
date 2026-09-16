@@ -4,12 +4,25 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 
 	"github.com/steven-peralta/rosiebot/internal/app"
 	"github.com/steven-peralta/rosiebot/internal/domain"
 )
+
+const (
+	rollPrefix = "roll:"
+	rollAgain  = "again"
+)
+
+func rollAgainComponents(userID string) []discordgo.MessageComponent {
+	return []discordgo.MessageComponent{discordgo.ActionsRow{Components: []discordgo.MessageComponent{
+		discordgo.Button{Style: discordgo.PrimaryButton, CustomID: rollPrefix + rollAgain + ":" + userID, Emoji: &discordgo.ComponentEmoji{Name: "🎲"}, Label: fmt.Sprintf("Roll again · %d coins", domain.RollCost)},
+	}}}
+}
 
 func (b *Bot) roll(ctx context.Context, ic *interaction) {
 	if !b.deferReply(ic, false) {
@@ -21,7 +34,12 @@ func (b *Bot) roll(ctx context.Context, ic *interaction) {
 		b.failed(ic, "roll", err)
 		return
 	}
-	content := mention(ic.userID())
+	content, embed := b.rollResult(ic.userID(), res, b.cfg.Clock.Now().Sub(start))
+	b.edit(ic, content, []*discordgo.MessageEmbed{embed}, rollAgainComponents(ic.userID()))
+}
+
+func (b *Bot) rollResult(userID string, res app.RollResult, elapsed time.Duration) (string, *discordgo.MessageEmbed) {
+	content := mention(userID)
 	switch res.Kind {
 	case domain.RollCritical:
 		content += " " + msgCritical
@@ -30,7 +48,38 @@ func (b *Bot) roll(ctx context.Context, ic *interaction) {
 	default:
 	}
 	content += " " + msgRolled + "\n"
-	b.edit(ic, content, []*discordgo.MessageEmbed{b.waifuEmbed(res.Waifu, b.cfg.Clock.Now().Sub(start))}, nil)
+	return content, b.waifuEmbed(res.Waifu, elapsed)
+}
+
+func (b *Bot) rollAgain(ctx context.Context, ic *interaction, action string) {
+	kind, owner, _ := strings.Cut(action, ":")
+	if kind != rollAgain {
+		b.log.Warn("unknown roll action", "action", action)
+		return
+	}
+	if ic.GuildID == "" {
+		b.replyEphemeral(ic, fmt.Sprintf(msgDMFmt, subRoll))
+		return
+	}
+	if owner != ic.userID() {
+		b.replyEphemeral(ic, msgNotYourRoll)
+		return
+	}
+	if err := b.s.InteractionRespond(ic.Interaction, &discordgo.InteractionResponse{Type: discordgo.InteractionResponseDeferredMessageUpdate}); err != nil {
+		b.log.Error("defer roll again failed", "err", err)
+		return
+	}
+	start := b.cfg.Clock.Now()
+	res, err := b.svc.Roll.Roll(ctx, ic.key())
+	if err != nil {
+		b.log.Warn("roll again failed", "user", ic.userID(), "err", err)
+		if _, ferr := b.s.FollowupMessageCreate(ic.Interaction, true, &discordgo.WebhookParams{Content: mention(ic.userID()) + " " + errorText(err), Flags: discordgo.MessageFlagsEphemeral}); ferr != nil {
+			b.log.Error("roll again followup failed", "err", ferr)
+		}
+		return
+	}
+	content, embed := b.rollResult(ic.userID(), res, b.cfg.Clock.Now().Sub(start))
+	b.edit(ic, content, []*discordgo.MessageEmbed{embed}, rollAgainComponents(ic.userID()))
 }
 
 func (b *Bot) daily(ctx context.Context, ic *interaction) {
@@ -218,7 +267,16 @@ func (b *Bot) seriesSearch(ctx context.Context, ic *interaction, opts []*discord
 		return
 	}
 	start := b.cfg.Clock.Now()
-	res, err := b.svc.Search.Series(ctx, stringOption(opts, optQuery))
+	query := queryFromOptions(opts)
+	var (
+		res app.SeriesResult
+		err error
+	)
+	if slug, ok := directSlug(query.Term); ok {
+		res, err = b.svc.Search.SeriesBySlug(ctx, slug, query)
+	} else {
+		res, err = b.svc.Search.Series(ctx, query.Term, query)
+	}
 	if errors.Is(err, app.ErrNotFound) {
 		b.editText(ic, mention(ic.userID())+" "+msgSeriesNotFound)
 		return
@@ -233,4 +291,23 @@ func (b *Bot) seriesSearch(ctx context.Context, ic *interaction, opts []*discord
 	}
 	content := fmt.Sprintf("%s %s", mention(ic.userID()), fmt.Sprintf(msgSeriesHeaderFmt, res.Series.Name))
 	b.openPager(ctx, ic, content, pagesFromSummaries(res.Waifus), false, b.cfg.Clock.Now().Sub(start))
+}
+
+func (b *Bot) seriesAutocomplete(ctx context.Context, ic *interaction, opts []*discordgo.ApplicationCommandInteractionDataOption) {
+	typed := ""
+	for _, o := range opts {
+		if o.Focused && o.Name == optQuery {
+			typed, _ = o.Value.(string)
+		}
+	}
+	series, err := b.svc.Search.SuggestSeries(ctx, typed, maxSuggestions)
+	if err != nil {
+		b.log.Warn("series autocomplete lookup failed", "err", err)
+	}
+	if err := b.s.InteractionRespond(ic.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionApplicationCommandAutocompleteResult,
+		Data: &discordgo.InteractionResponseData{Choices: seriesChoices(series)},
+	}); err != nil {
+		b.log.Warn("series autocomplete respond failed", "err", err)
+	}
 }

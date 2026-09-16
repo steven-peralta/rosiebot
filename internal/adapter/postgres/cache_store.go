@@ -87,6 +87,32 @@ func (s *CacheStore) PutPage(ctx context.Context, key string, page app.SearchPag
 	return nil
 }
 
+func (s *CacheStore) GetSeries(ctx context.Context, key string) (app.CachedSeries, error) {
+	row, err := s.q.GetCachedPage(ctx, key)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return app.CachedSeries{}, app.ErrNotFound
+	}
+	if err != nil {
+		return app.CachedSeries{}, fmt.Errorf("postgres: get cached series: %w", err)
+	}
+	var series []domain.Series
+	if err := json.Unmarshal(row.Payload, &series); err != nil {
+		return app.CachedSeries{}, fmt.Errorf("postgres: decode cached series %s: %w", key, err)
+	}
+	return app.CachedSeries{Series: series, FetchedAt: row.FetchedAt}, nil
+}
+
+func (s *CacheStore) PutSeries(ctx context.Context, key string, series []domain.Series, fetchedAt time.Time) error {
+	payload, err := json.Marshal(series)
+	if err != nil {
+		return fmt.Errorf("postgres: encode cached series: %w", err)
+	}
+	if err := s.q.PutCachedPage(ctx, gen.PutCachedPageParams{Key: key, Payload: payload, FetchedAt: fetchedAt}); err != nil {
+		return fmt.Errorf("postgres: put cached series: %w", err)
+	}
+	return nil
+}
+
 func (s *CacheStore) Prune(ctx context.Context, unreadSince time.Time) (int64, error) {
 	waifus, err := s.q.PruneCachedWaifus(ctx, unreadSince)
 	if err != nil {

@@ -106,6 +106,7 @@ func newServer(t *testing.T) *server {
 		{"uuid": "w-1", "slug": "re-zero", "name": "Re:Zero", "url": "https://www.mywaifulist.moe/series/re-zero", "display_picture": nil, "description": "Subaru suffers"},
 		{"uuid": nil, "slug": "other", "name": "Other", "url": "https://www.mywaifulist.moe/series/other"},
 	}}))
+	mux.HandleFunc("/api/v1/work/re-zero", serveJSON(map[string]any{"data": map[string]any{"uuid": "w-1", "slug": "re-zero", "name": "Re:Zero", "url": "https://www.mywaifulist.moe/series/re-zero", "release_date": nil, "description": nil, "display_picture": "pic"}}))
 	mux.HandleFunc("/api/v1/work/re-zero/characters", func(w http.ResponseWriter, r *http.Request) {
 		page := r.URL.Query().Get("page")
 		rows := []map[string]any{{"uuid": "c1", "slug": "emilia", "name": "Emilia", "likes": 300, "trash": 10}}

@@ -14,6 +14,7 @@ type WaifuCache struct {
 	clock  app.Clock
 	waifus map[string]cachedWaifu
 	pages  map[string]app.CachedPage
+	series map[string]app.CachedSeries
 }
 
 type cachedWaifu struct {
@@ -27,7 +28,7 @@ func NewWaifuCache(clock app.Clock) *WaifuCache {
 	if clock == nil {
 		clock = app.SystemClock()
 	}
-	return &WaifuCache{clock: clock, waifus: map[string]cachedWaifu{}, pages: map[string]app.CachedPage{}}
+	return &WaifuCache{clock: clock, waifus: map[string]cachedWaifu{}, pages: map[string]app.CachedPage{}, series: map[string]app.CachedSeries{}}
 }
 
 func (c *WaifuCache) GetWaifu(ctx context.Context, slug string) (app.CachedWaifu, error) {
@@ -66,6 +67,23 @@ func (c *WaifuCache) PutPage(ctx context.Context, key string, page app.SearchPag
 	return nil
 }
 
+func (c *WaifuCache) GetSeries(ctx context.Context, key string) (app.CachedSeries, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	entry, ok := c.series[key]
+	if !ok {
+		return app.CachedSeries{}, app.ErrNotFound
+	}
+	return entry, nil
+}
+
+func (c *WaifuCache) PutSeries(ctx context.Context, key string, series []domain.Series, fetchedAt time.Time) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.series[key] = app.CachedSeries{Series: series, FetchedAt: fetchedAt}
+	return nil
+}
+
 func (c *WaifuCache) Prune(ctx context.Context, unreadSince time.Time) (int64, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -82,11 +100,17 @@ func (c *WaifuCache) Prune(ctx context.Context, unreadSince time.Time) (int64, e
 			n++
 		}
 	}
+	for key, entry := range c.series {
+		if entry.FetchedAt.Before(unreadSince) {
+			delete(c.series, key)
+			n++
+		}
+	}
 	return n, nil
 }
 
 func (c *WaifuCache) Len() int {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return len(c.waifus) + len(c.pages)
+	return len(c.waifus) + len(c.pages) + len(c.series)
 }

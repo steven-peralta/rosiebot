@@ -31,11 +31,18 @@ type CachedPage struct {
 	FetchedAt time.Time
 }
 
+type CachedSeries struct {
+	Series    []domain.Series
+	FetchedAt time.Time
+}
+
 type WaifuCache interface {
 	GetWaifu(ctx context.Context, slug string) (CachedWaifu, error)
 	PutWaifu(ctx context.Context, w domain.Waifu, fetchedAt time.Time) error
 	GetPage(ctx context.Context, key string) (CachedPage, error)
 	PutPage(ctx context.Context, key string, page SearchPage, fetchedAt time.Time) error
+	GetSeries(ctx context.Context, key string) (CachedSeries, error)
+	PutSeries(ctx context.Context, key string, series []domain.Series, fetchedAt time.Time) error
 	Prune(ctx context.Context, unreadSince time.Time) (int64, error)
 }
 
@@ -137,7 +144,36 @@ func (s *CachedSource) WorkCharacters(ctx context.Context, slug string, page int
 }
 
 func (s *CachedSource) SearchWorks(ctx context.Context, term string) ([]domain.Series, error) {
-	return s.next.SearchWorks(ctx, term)
+	key := pageKey("works", term, 1)
+	now := s.clock.Now()
+	cached, err := s.cache.GetSeries(ctx, key)
+	switch {
+	case err == nil && now.Sub(cached.FetchedAt) < s.cfg.SearchTTL:
+		return cached.Series, nil
+	case err == nil:
+		s.refresh("series:"+key, func(ctx context.Context) error {
+			series, err := s.next.SearchWorks(ctx, term)
+			if err != nil {
+				return err
+			}
+			return s.cache.PutSeries(ctx, key, series, s.clock.Now())
+		})
+		return cached.Series, nil
+	case !errors.Is(err, ErrNotFound):
+		s.log.Warn("series cache read failed", "key", key, "err", err)
+	}
+	series, err := s.next.SearchWorks(ctx, term)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.cache.PutSeries(ctx, key, series, now); err != nil {
+		s.log.Warn("series cache write failed", "key", key, "err", err)
+	}
+	return series, nil
+}
+
+func (s *CachedSource) Work(ctx context.Context, slug string) (domain.Series, error) {
+	return s.next.Work(ctx, slug)
 }
 
 func (s *CachedSource) cachedPage(ctx context.Context, key string, fetch func(context.Context) (SearchPage, error)) (SearchPage, error) {
