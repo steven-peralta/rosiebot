@@ -50,6 +50,7 @@ const (
 	defaultCommandTimeout = 60 * time.Second
 
 	commandWaifu  = "waifu"
+	commandWAlias = "w"
 	commandSeries = "series"
 	commandSell   = "Sell Waifu"
 
@@ -113,26 +114,36 @@ func (b *Bot) Commands() []*discordgo.ApplicationCommand {
 	sub := func(name, desc string, opts ...*discordgo.ApplicationCommandOption) *discordgo.ApplicationCommandOption {
 		return &discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionSubCommand, Name: name, Description: desc, Options: opts}
 	}
+	waifuOptions := func() []*discordgo.ApplicationCommandOption {
+		return []*discordgo.ApplicationCommandOption{
+			sub(subRoll, "Roll for a waifu"),
+			sub(subDaily, "Get your daily dose of waifu coins"),
+			sub(subCoins, "See how many coins you or another user has", userOpt("Whose balance to show")),
+			sub(subOwned, "See the waifus that you or another user owns", userOpt("Whose collection to show")),
+			sub(subSearch, "Search for a waifu", queryOpt("Name, plus optional sortby:-rank or likes:>100 tokens; empty lists the catalog", false)),
+			sub(subRandom, "Pull a random waifu"),
+			sub(subToday, "Show the waifu of the day"),
+			sub(subTrade, "Trade waifus with another user",
+				&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionUser, Name: optUser, Description: "Who to trade with", Required: true},
+				&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optGive, Description: "Waifus you give, comma separated", Autocomplete: true},
+				&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optReceive, Description: "Waifus you receive, comma separated", Autocomplete: true},
+			),
+		}
+	}
 	return []*discordgo.ApplicationCommand{
 		{
 			Name:             commandWaifu,
 			Description:      "Roll, collect, and trade waifus",
 			Contexts:         &allContexts,
 			IntegrationTypes: &integrations,
-			Options: []*discordgo.ApplicationCommandOption{
-				sub(subRoll, "Roll for a waifu"),
-				sub(subDaily, "Get your daily dose of waifu coins"),
-				sub(subCoins, "See how many coins you or another user has", userOpt("Whose balance to show")),
-				sub(subOwned, "See the waifus that you or another user owns", userOpt("Whose collection to show")),
-				sub(subSearch, "Search for a waifu", queryOpt("Name, plus optional sortby:-rank or likes:>100 tokens; empty lists the catalog", false)),
-				sub(subRandom, "Pull a random waifu"),
-				sub(subToday, "Show the waifu of the day"),
-				sub(subTrade, "Trade waifus with another user",
-					&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionUser, Name: optUser, Description: "Who to trade with", Required: true},
-					&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optGive, Description: "Waifus you give, comma separated", Autocomplete: true},
-					&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optReceive, Description: "Waifus you receive, comma separated", Autocomplete: true},
-				),
-			},
+			Options:          waifuOptions(),
+		},
+		{
+			Name:             commandWAlias,
+			Description:      "Shorthand for /waifu",
+			Contexts:         &allContexts,
+			IntegrationTypes: &integrations,
+			Options:          waifuOptions(),
 		},
 		{
 			Name:             commandSeries,
@@ -188,7 +199,7 @@ func (b *Bot) handleCommand(ctx context.Context, ic *interaction) {
 	}
 	sub, opts := subcommand(data)
 	switch data.Name {
-	case commandWaifu:
+	case commandWaifu, commandWAlias:
 		switch sub {
 		case subRoll:
 			b.guildOnly(ctx, ic, subRoll, b.roll)
@@ -250,7 +261,7 @@ func (b *Bot) handleModal(ctx context.Context, ic *interaction) {
 func (b *Bot) handleAutocomplete(ctx context.Context, ic *interaction) {
 	data := ic.ApplicationCommandData()
 	sub, opts := subcommand(data)
-	if data.Name == commandWaifu && sub == subTrade {
+	if (data.Name == commandWaifu || data.Name == commandWAlias) && sub == subTrade {
 		b.tradeAutocomplete(ctx, ic, opts, data.Resolved)
 	}
 }

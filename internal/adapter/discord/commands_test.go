@@ -16,7 +16,7 @@ import (
 func TestCommands_Registration(t *testing.T) {
 	f := newFixture(t)
 	cmds := f.bot.Commands()
-	if len(cmds) != 3 {
+	if len(cmds) != 4 {
 		t.Fatalf("commands = %d", len(cmds))
 	}
 	names := map[string][]string{}
@@ -29,11 +29,14 @@ func TestCommands_Registration(t *testing.T) {
 	if strings.Join(names[commandWaifu], ",") != strings.Join(want, ",") {
 		t.Errorf("waifu subcommands = %v", names[commandWaifu])
 	}
+	if strings.Join(names[commandWAlias], ",") != strings.Join(want, ",") {
+		t.Errorf("/w alias subcommands = %v", names[commandWAlias])
+	}
 	if strings.Join(names[commandSeries], ",") != subSearch {
 		t.Errorf("series subcommands = %v", names[commandSeries])
 	}
-	if cmds[2].Type != discordgo.MessageApplicationCommand || cmds[2].Name != commandSell {
-		t.Errorf("context command = %+v", cmds[2])
+	if cmds[3].Type != discordgo.MessageApplicationCommand || cmds[3].Name != commandSell {
+		t.Errorf("context command = %+v", cmds[3])
 	}
 	if err := f.bot.Register(guildID); err != nil {
 		t.Fatal(err)
@@ -95,6 +98,29 @@ func TestRoll_Texts(t *testing.T) {
 	f.run(f.slash("carol", commandWaifu, subRoll, nil))
 	if got := editContent(f.api.lastEdit()); got != "<@carol> :star2: **You rolled the Waifu of the Day. Congrats!** Here's who you rolled:\n" {
 		t.Errorf("wotd roll = %q", got)
+	}
+}
+
+func TestAlias_WRoutesLikeWaifu(t *testing.T) {
+	f := newFixture(t)
+	f.script(d100(50))
+	f.source.EXPECT().Random(mock.Anything).Return(summary("rem"), nil).Once()
+	f.run(f.slash(aliceID, commandWAlias, subRoll, nil))
+	if got := editContent(f.api.lastEdit()); got != "<@alice> Here's who you rolled:\n" {
+		t.Errorf("/w roll = %q", got)
+	}
+	f.give(bobID, "ram")
+	focused := strOpt(optGive, "")
+	focused.Focused = true
+	ic := f.slash(bobID, commandWAlias, subTrade, resolvedUsers(aliceID), userOption(aliceID), focused)
+	ic.Type = discordgo.InteractionApplicationCommandAutocomplete
+	f.run(ic)
+	if r := f.api.lastRespond(); r.Type != discordgo.InteractionApplicationCommandAutocompleteResult || len(r.Data.Choices) != 1 {
+		t.Errorf("/w trade autocomplete = %+v", r)
+	}
+	f.run(f.dm(aliceID, commandWAlias, subDaily))
+	if got := f.respondContent(); got != "The daily command cannot be invoked from the direct messages of the bot." {
+		t.Errorf("/w in DM = %q", got)
 	}
 }
 
