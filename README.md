@@ -10,7 +10,7 @@ A Discord waifu gacha bot backed by [MyWaifuList](https://mywaifulist.moe). Roll
 | `/waifu daily` | Claim 400 coins once per day (window resets at 10:00 bot time), with a chance to double or quintuple. |
 | `/waifu coins [user]` | Show a balance. |
 | `/waifu owned [user] [sort]` | Browse a collection, one waifu per page, with a Sell button on your own. |
-| `/waifu search [query] [sort] [min_stars] [min_likes] [max_trash] [ranked]` | Search waifus with name autocomplete. The query is optional as long as at least one other option is set, which browses the catalog. |
+| `/waifu search [query] [sort] [min_stars] [min_likes] [max_trash] [ranked]` | Search waifus with name autocomplete. The query is optional as long as at least one other option is set, which browses the ranked set (every character with more than 100 votes) sorted by rank, or the catalog before the first ranking snapshot exists. |
 | `/waifu random` | Show a random waifu. |
 | `/waifu today` | Show the waifu of the day. |
 | `/waifu trade <user> [give] [receive]` | Offer a trade or a gift; the other side confirms with a button. |

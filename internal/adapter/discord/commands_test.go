@@ -460,12 +460,29 @@ func TestSearch_SoftOptionalQuery(t *testing.T) {
 	if got := editContent(f.api.lastEdit()); got != "<@alice> "+msgSearchNeedsInput {
 		t.Errorf("blank query = %q", got)
 	}
-	f.source.EXPECT().ListCharacters(mock.Anything, 1).Return(app.SearchPage{Page: 1, LastPage: 1, Items: []domain.WaifuSummary{summary("zeta"), summary("alpha")}}, nil).Once()
 	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optSort, "name_asc")))
 	e := f.api.lastEdit()
-	if editContent(e) != "<@alice>\nPage 1 out of 2" || (*e.Embeds)[0].Title != "Name alpha" {
-		t.Errorf("browse with option = %q %q", editContent(e), (*e.Embeds)[0].Title)
+	if editContent(e) != "<@alice>\nPage 1 out of 200" || (*e.Embeds)[0].Title != "Name ranked-000" {
+		t.Errorf("browse ranked set with option = %q %q", editContent(e), (*e.Embeds)[0].Title)
 	}
+	f.ranking.Set(nil)
+	f.source.EXPECT().ListCharacters(mock.Anything, 1).Return(app.SearchPage{Page: 1, LastPage: 1, Items: []domain.WaifuSummary{summary("zeta"), summary("alpha")}}, nil).Once()
+	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optSort, "name_asc")))
+	e = f.api.lastEdit()
+	if editContent(e) != "<@alice>\nPage 1 out of 2" || (*e.Embeds)[0].Title != "Name alpha" {
+		t.Errorf("browse catalog without ranking = %q %q", editContent(e), (*e.Embeds)[0].Title)
+	}
+}
+
+func TestSearch_MinStarsAloneBrowsesRankedSet(t *testing.T) {
+	f := newFixture(t)
+	minStars := &discordgo.ApplicationCommandInteractionDataOption{Name: optMinStars, Type: discordgo.ApplicationCommandOptionInteger, Value: float64(4)}
+	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, minStars))
+	e := f.api.lastEdit()
+	if editContent(e) != "<@alice>\nPage 1 out of 12" || (*e.Embeds)[0].Title != "Name ranked-000" {
+		t.Errorf("min_stars alone = %q %q", editContent(e), (*e.Embeds)[0].Title)
+	}
+	f.source.AssertNotCalled(t, "ListCharacters", mock.Anything, mock.Anything)
 }
 
 func TestSearch_Autocomplete(t *testing.T) {

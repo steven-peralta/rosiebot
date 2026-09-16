@@ -13,6 +13,27 @@ import (
 	"github.com/steven-peralta/rosiebot/internal/domain"
 )
 
+func TestSearchService_EmptyTermBrowsesRankedSet(t *testing.T) {
+	f := newFixture(t)
+	f.ranking.Set(rankingOf(600))
+	svc := app.NewSearchService(f.source, f.ranking)
+
+	got, err := svc.Waifus(f.ctx, app.Query{})
+	if err != nil || len(got) != app.MaxBrowseResults || got[0].Slug != "ranked-000" || got[1].Slug != "ranked-001" {
+		t.Fatalf("browse ranked = %d %v first=%v", len(got), err, got[:2])
+	}
+	got, err = svc.Waifus(f.ctx, app.Query{}.WithFilter(app.SortStars, ">=", 4))
+	if err != nil || len(got) != 36 || got[0].Slug != "ranked-000" {
+		t.Errorf("min stars 4 over 600 ranked = %d %v", len(got), err)
+	}
+	got, err = svc.Waifus(f.ctx, app.Query{SortBy: app.SortName, Descending: true}.WithFilter(app.SortStars, ">=", 5))
+	if err != nil || len(got) != 6 || got[0].Slug != "ranked-005" {
+		t.Errorf("five stars by name desc = %v %v", got, err)
+	}
+	f.source.AssertNotCalled(t, "ListCharacters", mock.Anything, mock.Anything)
+	f.source.AssertNotCalled(t, "SearchWaifus", mock.Anything, mock.Anything, mock.Anything)
+}
+
 func TestSearchService_EmptyTermListsCatalog(t *testing.T) {
 	f := newFixture(t)
 	for page := 1; page <= app.MaxListPages; page++ {

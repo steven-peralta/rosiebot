@@ -13,6 +13,7 @@ const (
 	MaxSearchPages      = 3
 	MaxListPages        = 3
 	MaxSeriesCharPages  = 10
+	MaxBrowseResults    = 500
 	searchTermMaxLength = 100
 )
 
@@ -37,9 +38,16 @@ func (s *SearchService) Waifus(ctx context.Context, query Query) ([]domain.Waifu
 		err     error
 	)
 	if query.Empty() {
-		results, err = s.collect(ctx, MaxListPages, func(page int) (SearchPage, error) { return s.source.ListCharacters(ctx, page) })
-		if err != nil {
-			return nil, fmt.Errorf("list characters: %w", err)
+		if ranked := s.rankedSummaries(); len(ranked) > 0 {
+			results = ranked
+			if query.SortBy == SortNone {
+				query.SortBy = SortRank
+			}
+		} else {
+			results, err = s.collect(ctx, MaxListPages, func(page int) (SearchPage, error) { return s.source.ListCharacters(ctx, page) })
+			if err != nil {
+				return nil, fmt.Errorf("list characters: %w", err)
+			}
 		}
 	} else {
 		results, err = s.collect(ctx, MaxSearchPages, func(page int) (SearchPage, error) { return s.source.SearchWaifus(ctx, query.Term, page) })
@@ -55,7 +63,26 @@ func (s *SearchService) Waifus(ctx context.Context, query Query) ([]domain.Waifu
 		}
 		return nil, ErrNotFound
 	}
+	if len(results) > MaxBrowseResults {
+		results = results[:MaxBrowseResults]
+	}
 	return results, nil
+}
+
+func (s *SearchService) rankedSummaries() []domain.WaifuSummary {
+	if s.ranking == nil {
+		return nil
+	}
+	current := s.ranking.Current()
+	if current.Len() == 0 {
+		return nil
+	}
+	rows := current.Rows()
+	out := make([]domain.WaifuSummary, len(rows))
+	for i, r := range rows {
+		out[i] = r.WaifuSummary
+	}
+	return out
 }
 
 func (s *SearchService) Matches(w domain.WaifuSummary, query Query) bool {
