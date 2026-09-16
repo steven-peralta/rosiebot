@@ -69,7 +69,7 @@ func findSort(sorts []sortChoice, value string) (sortChoice, bool) {
 func starChoices() []*discordgo.ApplicationCommandOptionChoice {
 	out := make([]*discordgo.ApplicationCommandOptionChoice, 0, domain.MaxStars)
 	for n := domain.MaxStars; n >= 1; n-- {
-		out = append(out, &discordgo.ApplicationCommandOptionChoice{Name: strings.Repeat("★", n) + strings.Repeat("☆", domain.MaxStars-n), Value: n})
+		out = append(out, &discordgo.ApplicationCommandOptionChoice{Name: strings.Repeat("⭐", n), Value: n})
 	}
 	return out
 }
@@ -171,7 +171,7 @@ func suggestionChoices(rows []domain.RankedWaifu) []*discordgo.ApplicationComman
 		}
 		label := r.Name
 		if r.Stars > 0 {
-			label += " · " + strings.Repeat("★", r.Stars)
+			label += " · " + strings.Repeat("⭐", r.Stars)
 		}
 		out = append(out, &discordgo.ApplicationCommandOptionChoice{Name: truncate(label, maxChoiceLength), Value: value})
 	}

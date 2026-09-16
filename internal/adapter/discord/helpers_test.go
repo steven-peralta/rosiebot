@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -391,6 +392,11 @@ func (f *fixture) respondContent() string {
 		return ""
 	}
 	return r.Data.Content
+}
+
+func cardName(e *discordgo.MessageEmbed) string {
+	parts := strings.Split(e.Title, "\n")
+	return parts[len(parts)-1]
 }
 
 func hasComponents(cs []discordgo.MessageComponent) bool {

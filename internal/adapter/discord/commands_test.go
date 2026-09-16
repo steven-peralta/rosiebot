@@ -93,8 +93,8 @@ func TestRoll_Texts(t *testing.T) {
 	if editContent(e) != "<@bob> :sparkles: **CRITICAL ROLL!!** :sparkles: Here's who you rolled:\n" {
 		t.Errorf("critical roll = %q", editContent(e))
 	}
-	if desc := (*e.Embeds)[0].Description; !strings.Contains(desc, "★") {
-		t.Errorf("critical roll embed should show stars: %q", desc)
+	if title := (*e.Embeds)[0].Title; !strings.HasPrefix(title, ":star:") {
+		t.Errorf("critical roll embed should show stars: %q", title)
 	}
 
 	f.give("carol")
@@ -350,7 +350,7 @@ func TestOwned_SortAndSelectMenu(t *testing.T) {
 	}
 	f.give(aliceID, "ranked-001")
 	f.run(f.slash(aliceID, commandWaifu, subOwned, nil, strOpt(optSort, "rank_asc")))
-	if (*f.api.lastEdit().Embeds)[0].Title != "Name ranked-001" {
+	if cardName((*f.api.lastEdit().Embeds)[0]) != "Name ranked-001" {
 		t.Error("rank sort should put the ranked waifu first")
 	}
 }
@@ -403,7 +403,7 @@ func TestSearch_TypedOptions(t *testing.T) {
 	f.source.EXPECT().SearchWaifus(mock.Anything, "r", 1).Return(app.SearchPage{Page: 1, LastPage: 1, Items: items}, nil).Times(3)
 
 	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optQuery, "r"), strOpt(optSort, "rank_asc")))
-	if (*f.api.lastEdit().Embeds)[0].Title != "Name ranked-001" {
+	if cardName((*f.api.lastEdit().Embeds)[0]) != "Name ranked-001" {
 		t.Errorf("rank sort first page = %q", (*f.api.lastEdit().Embeds)[0].Title)
 	}
 	minStars := &discordgo.ApplicationCommandInteractionDataOption{Name: optMinStars, Type: discordgo.ApplicationCommandOptionInteger, Value: float64(5)}
@@ -417,7 +417,7 @@ func TestSearch_TypedOptions(t *testing.T) {
 		t.Errorf("filtered out = %q", got)
 	}
 	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optQuery, slugChoicePrefix+"ranked-004"), minStars))
-	if got := editContent(f.api.lastEdit()); got != "<@alice> Name ranked-004 doesn't pass your filters (★★★★☆, rank #5, 10 likes, 1 trash)." {
+	if got := editContent(f.api.lastEdit()); got != "<@alice> Name ranked-004 doesn't pass your filters (⭐⭐⭐⭐, rank #5, 10 likes, 1 trash)." {
 		t.Errorf("picked suggestion below filter = %q", got)
 	}
 	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optQuery, slugChoicePrefix+"low"), minStars))
@@ -425,7 +425,7 @@ func TestSearch_TypedOptions(t *testing.T) {
 		t.Errorf("picked unranked below filter = %q", got)
 	}
 	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optQuery, slugChoicePrefix+"ranked-001"), minStars))
-	if (*f.api.lastEdit().Embeds)[0].Title != "Name ranked-001" {
+	if cardName((*f.api.lastEdit().Embeds)[0]) != "Name ranked-001" {
 		t.Error("picked suggestion that passes the filter should open the card")
 	}
 	ranked := &discordgo.ApplicationCommandInteractionDataOption{Name: optRanked, Type: discordgo.ApplicationCommandOptionBoolean, Value: true}
@@ -495,7 +495,7 @@ func TestSearch_Autocomplete(t *testing.T) {
 	if r.Type != discordgo.InteractionApplicationCommandAutocompleteResult || len(r.Data.Choices) != 10 {
 		t.Fatalf("choices = %+v", r)
 	}
-	if r.Data.Choices[0].Value != slugChoicePrefix+"ranked-000" || !strings.HasPrefix(r.Data.Choices[0].Name, "Ranked 000 · ★") {
+	if r.Data.Choices[0].Value != slugChoicePrefix+"ranked-000" || !strings.HasPrefix(r.Data.Choices[0].Name, "Ranked 000 · ⭐") {
 		t.Errorf("first choice = %+v", r.Data.Choices[0])
 	}
 	f.ranking.Set(nil)

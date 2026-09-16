@@ -121,7 +121,7 @@ func (b *Bot) selectOptions(s *Session) []discordgo.SelectMenuOption {
 		summary := s.Pages[i].summary
 		desc := fmt.Sprintf("❤️ %s · 🗑️ %s", thousands(summary.Likes), thousands(summary.Trash))
 		if r, ok := ranking.Lookup(summary.Slug); ok && r.Stars > 0 {
-			desc = strings.Repeat("★", r.Stars) + " #" + thousands(r.Position) + " · " + desc
+			desc = strings.Repeat("⭐", r.Stars) + " #" + thousands(r.Position) + " · " + desc
 		}
 		options = append(options, discordgo.SelectMenuOption{
 			Label:       truncate(fmt.Sprintf("%d. %s", i+1, summary.Name), maxChoiceLength),

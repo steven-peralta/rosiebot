@@ -274,7 +274,7 @@ func (b *Bot) searchWithinSeries(ctx context.Context, ic *interaction, seriesInp
 func (b *Bot) ratingSummary(w domain.Waifu) string {
 	parts := []string{}
 	if r, ok := b.svc.Search.Rank(w.Slug); ok && r.Stars > 0 {
-		parts = append(parts, strings.Repeat("★", r.Stars)+strings.Repeat("☆", domain.MaxStars-r.Stars), "rank #"+thousands(r.Position))
+		parts = append(parts, strings.Repeat("⭐", r.Stars), "rank #"+thousands(r.Position))
 	} else {
 		parts = append(parts, "unranked")
 	}

@@ -83,7 +83,7 @@ The v2 card is a deliberate redesign (owner request during live testing on 2026-
 | Title is the name, prefixed with 🔞 when NSFW, linked to the MWL page | `discord.TestWaifuEmbed_FullCard` |
 | First appearance shown as the author line, linked to the series | `discord.TestWaifuEmbed_FullCard` |
 | Original and romaji names on an italic line under the title (deduplicated) | `discord.TestWaifuEmbed_FullCard`, `TestWaifuEmbed_SparseAndUnranked` |
-| Stars rendered as ★/☆ out of five with the rank position; unranked characters read `Unranked` | `discord.TestWaifuEmbed_FullCard`, `TestWaifuEmbed_SparseAndUnranked` |
+| One `:star:` emoji per star on its own line above the name (as in v1); rank position on the stats line; unranked characters read `Unranked` | `discord.TestWaifuEmbed_FullCard`, `TestWaifuEmbed_SparseAndUnranked` |
 | Likes, trash and liked percentage on one line with thousands separators | `discord.TestWaifuEmbed_FullCard`, `TestThousands` |
 | Description spoilered and truncated to 256 characters with `...` | `discord.TestWaifuEmbed_FullCard` |
 | Vitals field: height (cm and ft/in), weight (kg and rounded lb), B·W·H | `discord.TestWaifuEmbed_FullCard`, `TestHeightAndWeightConversions` |

@@ -45,7 +45,7 @@ func fullWaifu() domain.Waifu {
 func TestWaifuEmbed_FullCard(t *testing.T) {
 	e := waifuEmbed(fullWaifu(), &domain.RankedWaifu{Position: 3, Stars: 5})
 
-	if e.Title != "🔞 Rem" || e.URL != "https://www.mywaifulist.moe/waifu/rem" {
+	if e.Title != ":star::star::star::star::star:\n🔞 Rem" || e.URL != "https://www.mywaifulist.moe/waifu/rem" {
 		t.Errorf("title/url = %q %q", e.Title, e.URL)
 	}
 	if e.Author == nil || e.Author.Name != "Re:Zero" || e.Author.URL != "https://www.mywaifulist.moe/series/re-zero" {
@@ -58,7 +58,7 @@ func TestWaifuEmbed_FullCard(t *testing.T) {
 	if lines[0] != "*レム · Remu*" {
 		t.Errorf("alt names line = %q", lines[0])
 	}
-	if lines[1] != "★★★★★ · #3" {
+	if lines[1] != "Rank #3" {
 		t.Errorf("rating line = %q", lines[1])
 	}
 	if lines[2] != "❤️ 16,199 · 🗑️ 3,203 · 83% liked" {
@@ -102,8 +102,11 @@ func TestWaifuEmbed_SparseAndUnranked(t *testing.T) {
 		t.Errorf("zero votes = %q", zero.Description)
 	}
 	partial := waifuEmbed(domain.Waifu{WaifuSummary: domain.WaifuSummary{Name: "P", OriginalName: "P", RomajiName: "Pee"}, Bust: ptrF(80)}, &domain.RankedWaifu{Position: 1200, Stars: 2})
-	if !strings.HasPrefix(partial.Description, "*Pee*\n★★☆☆☆ · #1,200") {
-		t.Errorf("partial description = %q", partial.Description)
+	if !strings.HasPrefix(partial.Description, "*Pee*\nRank #1,200") || !strings.HasPrefix(partial.Title, ":star::star:\nP") {
+		t.Errorf("partial card = %q / %q", partial.Title, partial.Description)
+	}
+	if zero.Title != "Z" {
+		t.Errorf("zero stars should not add a star line: %q", zero.Title)
 	}
 	if v := field(partial, "Vitals"); v == nil || v.Value != "B·W·H 80/?/?" {
 		t.Errorf("partial vitals = %+v", v)
@@ -167,7 +170,7 @@ func TestSeriesEmbedAndFooter(t *testing.T) {
 		t.Errorf("footer with time = %q", got)
 	}
 	withRank := f.bot.waifuEmbed(detail("ranked-000"), 0)
-	if !strings.Contains(withRank.Description, "★★★★★ · #1") || withRank.Color != starColors[5] {
+	if !strings.HasPrefix(withRank.Title, ":star::star::star::star::star:\n") || !strings.Contains(withRank.Description, "Rank #1") || withRank.Color != starColors[5] {
 		t.Errorf("ranking lookup not applied: %+v", withRank)
 	}
 }

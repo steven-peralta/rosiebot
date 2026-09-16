@@ -59,6 +59,9 @@ func waifuEmbed(w domain.Waifu, ranked *domain.RankedWaifu) *discordgo.MessageEm
 	if w.NSFW {
 		title = "🔞 " + title
 	}
+	if ranked != nil && ranked.Stars > 0 {
+		title = strings.Repeat(":star:", ranked.Stars) + "\n" + title
+	}
 	e := &discordgo.MessageEmbed{Title: title, URL: w.URL, Color: cardColor(ranked)}
 
 	if series, ok := w.FirstSeries(); ok && series.Name != "" {
@@ -121,11 +124,8 @@ func altNames(w domain.Waifu) string {
 
 func statsLine(w domain.Waifu, ranked *domain.RankedWaifu) string {
 	rating := "Unranked"
-	if ranked != nil && ranked.Stars > 0 {
-		rating = strings.Repeat("★", ranked.Stars) + strings.Repeat("☆", domain.MaxStars-ranked.Stars)
-		if ranked.Position > 0 {
-			rating += fmt.Sprintf(" · #%s", thousands(ranked.Position))
-		}
+	if ranked != nil && ranked.Position > 0 {
+		rating = "Rank #" + thousands(ranked.Position)
 	}
 	votes := fmt.Sprintf("❤️ %s · 🗑️ %s", thousands(w.Likes), thousands(w.Trash))
 	if total := w.Likes + w.Trash; total > 0 {
