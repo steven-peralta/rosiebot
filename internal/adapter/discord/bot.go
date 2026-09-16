@@ -58,6 +58,7 @@ const (
 	subCoins  = "coins"
 	subOwned  = "owned"
 	subSearch = "search"
+	subList   = "list"
 	subRandom = "random"
 	subToday  = "today"
 	subTrade  = "trade"
@@ -117,7 +118,8 @@ func (b *Bot) Commands() []*discordgo.ApplicationCommand {
 			sub(subCoins, "See how many coins you or another user has", userOpt("Whose balance to show")),
 			sub(subOwned, "See the waifus that you or another user owns", userOpt("Whose collection to show"),
 				&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optSort, Description: "Order of the collection", Choices: choicesFor(ownedSorts)}),
-			sub(subSearch, "Search for a waifu", searchOptions()...),
+			sub(subSearch, "Search for a waifu by name", searchOptions()...),
+			sub(subList, "Browse waifus by rank, series, or filters", listOptions()...),
 			sub(subRandom, "Pull a random waifu"),
 			sub(subToday, "Show the waifu of the day"),
 			sub(subTrade, "Trade waifus with another user",
@@ -200,6 +202,8 @@ func (b *Bot) handleCommand(ctx context.Context, ic *interaction) {
 			b.guildOnly(ctx, ic, subOwned, func(ctx context.Context, ic *interaction) { b.owned(ctx, ic, opts, data.Resolved) })
 		case subSearch:
 			b.search(ctx, ic, opts)
+		case subList:
+			b.list(ctx, ic, opts)
 		case subRandom:
 			b.random(ctx, ic)
 		case subToday:
@@ -254,7 +258,7 @@ func (b *Bot) handleAutocomplete(ctx context.Context, ic *interaction) {
 	switch sub {
 	case subTrade:
 		b.tradeAutocomplete(ctx, ic, opts, data.Resolved)
-	case subSearch:
+	case subSearch, subList:
 		if o := focusedOption(opts); o != nil && o.Name == optSeries {
 			b.seriesAutocomplete(ctx, ic, opts)
 		} else {

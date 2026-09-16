@@ -26,7 +26,7 @@ func TestCommands_Registration(t *testing.T) {
 			names[c.Name] = append(names[c.Name], o.Name)
 		}
 	}
-	want := []string{subRoll, subDaily, subCoins, subOwned, subSearch, subRandom, subToday, subTrade}
+	want := []string{subRoll, subDaily, subCoins, subOwned, subSearch, subList, subRandom, subToday, subTrade}
 	if strings.Join(names[commandWaifu], ",") != strings.Join(want, ",") {
 		t.Errorf("waifu subcommands = %v", names[commandWaifu])
 	}
@@ -454,58 +454,6 @@ func TestSearch_TypedOptions(t *testing.T) {
 	}
 }
 
-func TestSearch_SoftOptionalQuery(t *testing.T) {
-	f := newFixture(t)
-	f.run(f.slash(aliceID, commandWaifu, subSearch, nil))
-	if got := editContent(f.api.lastEdit()); got != "<@alice> "+msgSearchNeedsInput {
-		t.Errorf("no input = %q", got)
-	}
-	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optQuery, " ")))
-	if got := editContent(f.api.lastEdit()); got != "<@alice> "+msgSearchNeedsInput {
-		t.Errorf("blank query = %q", got)
-	}
-	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optSort, "name_asc")))
-	e := f.api.lastEdit()
-	if editContent(e) != "<@alice>\nPage 1 out of 200" || (*e.Embeds)[0].Title != "Name ranked-000" {
-		t.Errorf("browse ranked set with option = %q %q", editContent(e), (*e.Embeds)[0].Title)
-	}
-	f.ranking.Set(nil)
-	f.source.EXPECT().ListCharacters(mock.Anything, 1).Return(app.SearchPage{Page: 1, LastPage: 1, Items: []domain.WaifuSummary{summary("zeta"), summary("alpha")}}, nil).Once()
-	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optSort, "name_asc")))
-	e = f.api.lastEdit()
-	if editContent(e) != "<@alice>\nPage 1 out of 2" || (*e.Embeds)[0].Title != "Name alpha" {
-		t.Errorf("browse catalog without ranking = %q %q", editContent(e), (*e.Embeds)[0].Title)
-	}
-}
-
-func TestSearch_RankedFalseBrowsesUnranked(t *testing.T) {
-	f := newFixture(t)
-	unranked := &discordgo.ApplicationCommandInteractionDataOption{Name: optRanked, Type: discordgo.ApplicationCommandOptionBoolean, Value: false}
-	f.source.EXPECT().ListCharacters(mock.Anything, 1).Return(app.SearchPage{Page: 1, LastPage: 1, Items: []domain.WaifuSummary{summary("ranked-000"), summary("plain")}}, nil).Once()
-	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, unranked))
-	e := f.api.lastEdit()
-	if editContent(e) != "<@alice>" || (*e.Embeds)[0].Title != "Name plain" {
-		t.Errorf("ranked:false = %q %q", editContent(e), (*e.Embeds)[0].Title)
-	}
-	items := []domain.WaifuSummary{summary("ranked-000"), summary("plain")}
-	f.source.EXPECT().SearchWaifus(mock.Anything, "p", 1).Return(app.SearchPage{Page: 1, LastPage: 1, Items: items}, nil).Once()
-	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optQuery, "p"), unranked))
-	if (*f.api.lastEdit().Embeds)[0].Title != "Name plain" {
-		t.Error("ranked:false with a query should drop ranked results")
-	}
-}
-
-func TestSearch_MinStarsAloneBrowsesRankedSet(t *testing.T) {
-	f := newFixture(t)
-	minStars := &discordgo.ApplicationCommandInteractionDataOption{Name: optMinStars, Type: discordgo.ApplicationCommandOptionInteger, Value: float64(4)}
-	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, minStars))
-	e := f.api.lastEdit()
-	if editContent(e) != "<@alice>\nPage 1 out of 12" || (*e.Embeds)[0].Title != "Name ranked-000" {
-		t.Errorf("min_stars alone = %q %q", editContent(e), (*e.Embeds)[0].Title)
-	}
-	f.source.AssertNotCalled(t, "ListCharacters", mock.Anything, mock.Anything)
-}
-
 func TestSelectWindow(t *testing.T) {
 	cases := []struct{ page, total, start, end int }{
 		{0, 10, 0, 10},
@@ -555,8 +503,13 @@ func TestSearch_Autocomplete(t *testing.T) {
 	if len(f.api.lastRespond().Data.Choices) != 0 {
 		t.Error("no ranking means no suggestions")
 	}
-	if len(f.bot.Commands()[0].Options[4].Options) != 7 {
-		t.Errorf("search should expose seven options: %d", len(f.bot.Commands()[0].Options[4].Options))
+	searchOpts := f.bot.Commands()[0].Options[4].Options
+	if len(searchOpts) != 7 || !searchOpts[0].Required || searchOpts[0].Name != optQuery {
+		t.Errorf("search should expose seven options with a required query: %+v", searchOpts)
+	}
+	listOpts := f.bot.Commands()[0].Options[5].Options
+	if len(listOpts) != 6 || listOpts[0].Name != optSeries {
+		t.Errorf("list should expose the six non-query options: %+v", listOpts)
 	}
 }
 

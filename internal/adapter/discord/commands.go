@@ -203,10 +203,24 @@ func (b *Bot) search(ctx context.Context, ic *interaction, opts []*discordgo.App
 		b.edit(ic, mention(ic.userID()), []*discordgo.MessageEmbed{b.waifuEmbed(w, b.cfg.Clock.Now().Sub(start))}, nil)
 		return
 	}
-	if strings.TrimSpace(query.Term) == "" && !hasSearchOptions(opts) {
-		b.editText(ic, mention(ic.userID())+" "+msgSearchNeedsInput)
+	b.runSearch(ctx, ic, query, start)
+}
+
+func (b *Bot) list(ctx context.Context, ic *interaction, opts []*discordgo.ApplicationCommandInteractionDataOption) {
+	if !b.deferReply(ic, false) {
 		return
 	}
+	start := b.cfg.Clock.Now()
+	query := queryFromOptions(opts)
+	query.Term = ""
+	if seriesInput := strings.TrimSpace(stringOption(opts, optSeries)); seriesInput != "" {
+		b.searchWithinSeries(ctx, ic, seriesInput, query, start)
+		return
+	}
+	b.runSearch(ctx, ic, query, start)
+}
+
+func (b *Bot) runSearch(ctx context.Context, ic *interaction, query app.Query, start time.Time) {
 	results, err := b.svc.Search.Waifus(ctx, query)
 	var filtered *app.FilteredOutError
 	if errors.As(err, &filtered) {

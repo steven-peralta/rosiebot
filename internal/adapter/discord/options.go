@@ -77,7 +77,7 @@ func starChoices() []*discordgo.ApplicationCommandOptionChoice {
 func searchOptions() []*discordgo.ApplicationCommandOption {
 	minZero := float64(0)
 	return []*discordgo.ApplicationCommandOption{
-		{Type: discordgo.ApplicationCommandOptionString, Name: optQuery, Description: "Name to search for; leave empty with another option to browse", Autocomplete: true, MaxLength: 100},
+		{Type: discordgo.ApplicationCommandOptionString, Name: optQuery, Description: "Name to search for", Required: true, Autocomplete: true, MaxLength: 100},
 		{Type: discordgo.ApplicationCommandOptionString, Name: optSeries, Description: "Limit results to one series", Autocomplete: true, MaxLength: 100},
 		{Type: discordgo.ApplicationCommandOptionString, Name: optSort, Description: "Order of the results (default: best rank first, then name)", Choices: choicesFor(searchSorts)},
 		{Type: discordgo.ApplicationCommandOptionInteger, Name: optMinStars, Description: "Only characters rated at least this many stars", Choices: starChoices()},
@@ -85,6 +85,10 @@ func searchOptions() []*discordgo.ApplicationCommandOption {
 		{Type: discordgo.ApplicationCommandOptionInteger, Name: optMaxTrash, Description: "Only characters with at most this many trash votes", MinValue: &minZero},
 		{Type: discordgo.ApplicationCommandOptionBoolean, Name: optRanked, Description: "True: only ranked characters. False: only unranked ones"},
 	}
+}
+
+func listOptions() []*discordgo.ApplicationCommandOption {
+	return searchOptions()[1:]
 }
 
 func seriesChoices(series []domain.Series) []*discordgo.ApplicationCommandOptionChoice {
