@@ -39,9 +39,9 @@ Deliberate departures from v1 are listed at the bottom with their reasons.
 | `!wsearch <q>` | `/waifu search [query]` | Paginated results, one per page; a query-less call with at least one other option browses the in-memory ranked set (up to 500 results, rank order by default) or, before a snapshot exists, the first 30 catalog entries (v1 listed the first 100 from its database); with no input at all the bot asks for a name or an option | `discord.TestSearch_Texts`, `discord.TestSearch_SoftOptionalQuery`, `discord.TestSearch_MinStarsAloneBrowsesRankedSet`, `app.TestSearchService_EmptyTermBrowsesRankedSet`, `app.TestSearchService_EmptyTermListsCatalog` |
 | | | Search covers husbandos as well as waifus (combined `/search` endpoint) | `mwl.TestSource_SearchWaifus`, live smoke `shinji` |
 | | | No match text `Waifu was not found.` | `discord.TestSearch_Texts` |
-| `!ssearch <q>` | `/series search [query] [sort] [filters]` | Best series match, then its characters by likes descending; query autocompletes series names via the cached works search and a picked suggestion opens the series directly; the same sort and filter options as waifu search apply to its characters; query-less calls with an option browse the series catalog (`discord.TestSeriesSearch_SoftOptionalQuery`, `app.TestSearchService_BrowseSeries`) | `app.TestSearchService_SeriesSortsCharactersByLikesAcrossPages`, `TestSearchService_SeriesBySlugAndOptions`, `TestSearchService_SuggestSeries`, `discord.TestSeriesSearch_Texts`, `TestSeriesSearch_Autocomplete` |
-| | | Header `Showing results for series <name>` | `discord.TestSeriesSearch_Texts` |
-| | | No match text `Series was not found.` | `discord.TestSeriesSearch_Texts` |
+| `!ssearch <q>` | `/waifu search series:<name>` | Series search is an option of waifu search: `series` autocompletes series names via the cached works search, a picked suggestion opens that series, `query` narrows its characters by name, and the sort and filter options apply; characters list most liked first by default | `app.TestSearchService_SeriesSortsCharactersByLikesAcrossPages`, `TestSearchService_SeriesBySlugAndOptions`, `TestSearchService_SeriesQueryNarrowsByName`, `TestSearchService_SuggestSeries`, `discord.TestSearch_SeriesOption`, `TestSearch_SeriesAutocomplete` |
+| | | Header `Showing results for series <name>` | `discord.TestSearch_SeriesOption` |
+| | | No match text `Series was not found.` | `discord.TestSearch_SeriesOption` |
 | `!wrandom` | `/waifu random` | One random waifu | `app.TestSearchService_RandomFetchesDetail` |
 | `!wotd` | `/waifu today` | Same waifu for the whole day across all guilds | `app.TestWotd_SameForWholeDayAndPersisted` |
 | | | Picked from ranked waifus with 1..4 stars | `domain.TestWotdEligible_StarsBetween1And4`, `app.TestWotd_PickHasBetween1And4Stars` |
@@ -99,11 +99,12 @@ The v2 card is a deliberate redesign (owner request during live testing on 2026-
 | Text | Proved by |
 |---|---|
 | `An unexpected error occurred.` | `discord.TestErrorText_V1Strings`, `discord.TestSearch_Texts` |
-| `No data was found.` | `discord.TestErrorText_V1Strings`, `discord.TestSeriesSearch_Texts` |
+| `No data was found.` | `discord.TestErrorText_V1Strings`, `discord.TestSearch_SeriesOption` |
 | `Waifu was not found.` | `discord.TestSearch_Texts` |
-| `Series was not found.` | `discord.TestSeriesSearch_Texts` |
+| `Series was not found.` | `discord.TestSearch_SeriesOption` |
 | `User was not found. (Are you sure you @'d them correctly?)` | `discord.TestTrade_ViolationTexts` |
 | `The <name> command cannot be invoked from the direct messages of the bot.` | `discord.TestDMGating_PerSubcommand` |
+| `/series search` folded into `/waifu search` as the `series` option | Owner decision: one search surface with a consistent UX |
 
 ## Deliberate departures from v1
 

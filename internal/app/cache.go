@@ -173,35 +173,6 @@ func (s *CachedSource) SearchWorks(ctx context.Context, term string) ([]domain.S
 	return series, nil
 }
 
-func (s *CachedSource) ListWorks(ctx context.Context, page int) (SeriesPage, error) {
-	key := pageKey("worklist", "", page)
-	now := s.clock.Now()
-	cached, err := s.cache.GetSeries(ctx, key)
-	switch {
-	case err == nil && now.Sub(cached.FetchedAt) < s.cfg.SearchTTL:
-		return SeriesPage{Items: cached.Series, Page: page, LastPage: cached.LastPage}, nil
-	case err == nil:
-		s.refresh("series:"+key, func(ctx context.Context) error {
-			sp, err := s.next.ListWorks(ctx, page)
-			if err != nil {
-				return err
-			}
-			return s.cache.PutSeries(ctx, key, sp.Items, sp.LastPage, s.clock.Now())
-		})
-		return SeriesPage{Items: cached.Series, Page: page, LastPage: cached.LastPage}, nil
-	case !errors.Is(err, ErrNotFound):
-		s.log.Warn("series cache read failed", "key", key, "err", err)
-	}
-	sp, err := s.next.ListWorks(ctx, page)
-	if err != nil {
-		return SeriesPage{}, err
-	}
-	if err := s.cache.PutSeries(ctx, key, sp.Items, sp.LastPage, now); err != nil {
-		s.log.Warn("series cache write failed", "key", key, "err", err)
-	}
-	return sp, nil
-}
-
 func (s *CachedSource) Work(ctx context.Context, slug string) (domain.Series, error) {
 	return s.next.Work(ctx, slug)
 }

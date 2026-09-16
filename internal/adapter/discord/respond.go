@@ -42,8 +42,7 @@ const (
 	msgSellCancelled     = "Sale cancelled."
 	msgRateLimited       = "MyWaifuList is rate limiting me right now. Try again in a minute."
 	msgNotYourRoll       = "That button belongs to someone else's roll. Use /waifu roll to roll for yourself."
-	msgSeriesNeedsInput  = "Give me a series name, or pick at least one option to browse the catalog."
-	msgSearchNeedsInput  = "Give me a name, or pick at least one option to browse the catalog."
+	msgSearchNeedsInput  = "Give me a name, a series, or pick at least one option to browse."
 	msgFilteredOutFmt    = "%d results matched, but none passed your filters."
 	msgPickFilteredFmt   = "%s doesn't pass your filters (%s)."
 )

@@ -10,11 +10,10 @@ A Discord waifu gacha bot backed by [MyWaifuList](https://mywaifulist.moe). Roll
 | `/waifu daily` | Claim 400 coins once per day (window resets at 10:00 bot time), with a chance to double or quintuple. |
 | `/waifu coins [user]` | Show a balance. |
 | `/waifu owned [user] [sort]` | Browse a collection, one waifu per page, with a Sell button on your own. |
-| `/waifu search [query] [sort] [min_stars] [min_likes] [max_trash] [ranked]` | Search waifus with name autocomplete. The query is optional as long as at least one other option is set, which browses the ranked set (every character with more than 100 votes) sorted by rank, or the catalog before the first ranking snapshot exists. |
+| `/waifu search [query] [series] [sort] [min_stars] [min_likes] [max_trash] [ranked]` | Search waifus with name autocomplete, or set `series` (also autocompleted) to browse one series, with `query` narrowing by name. With no query, any other option browses the ranked set (every character with more than 100 votes) sorted by rank. |
 | `/waifu random` | Show a random waifu. |
 | `/waifu today` | Show the waifu of the day. |
 | `/waifu trade <user> [give] [receive]` | Offer a trade or a gift; the other side confirms with a button. |
-| `/series search [query] [sort] [min_stars] [min_likes] [max_trash] [ranked]` | Find a series with name autocomplete and browse its characters, most liked first by default. Same rule: an option without a query browses the series catalog. |
 | `/w …` | Shorthand for every `/waifu` subcommand. |
 | **Sell Waifu** (message context menu) | Right-click any bot message showing a waifu you own to sell it for 100 coins. |
 

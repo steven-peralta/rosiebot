@@ -27,7 +27,6 @@ const (
 type pageRef struct {
 	summary domain.WaifuSummary
 	detail  *domain.Waifu
-	series  *domain.Series
 }
 
 type Session struct {

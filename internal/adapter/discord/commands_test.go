@@ -16,7 +16,7 @@ import (
 func TestCommands_Registration(t *testing.T) {
 	f := newFixture(t)
 	cmds := f.bot.Commands()
-	if len(cmds) != 4 {
+	if len(cmds) != 3 {
 		t.Fatalf("commands = %d", len(cmds))
 	}
 	names := map[string][]string{}
@@ -32,11 +32,8 @@ func TestCommands_Registration(t *testing.T) {
 	if strings.Join(names[commandWAlias], ",") != strings.Join(want, ",") {
 		t.Errorf("/w alias subcommands = %v", names[commandWAlias])
 	}
-	if strings.Join(names[commandSeries], ",") != subSearch {
-		t.Errorf("series subcommands = %v", names[commandSeries])
-	}
-	if cmds[3].Type != discordgo.MessageApplicationCommand || cmds[3].Name != commandSell {
-		t.Errorf("context command = %+v", cmds[3])
+	if cmds[2].Type != discordgo.MessageApplicationCommand || cmds[2].Name != commandSell {
+		t.Errorf("context command = %+v", cmds[2])
 	}
 	if err := f.bot.Register(guildID); err != nil {
 		t.Fatal(err)
@@ -61,6 +58,12 @@ func TestDMGating_PerSubcommand(t *testing.T) {
 	f.run(f.dm(aliceID, commandWaifu, subRandom))
 	if f.api.lastEdit() == nil || len(*f.api.lastEdit().Embeds) != 1 {
 		t.Error("random should work in DMs")
+	}
+	f.source.EXPECT().SearchWorks(mock.Anything, "re zero").Return([]domain.Series{{Slug: "re-zero", Name: "Re:Zero"}}, nil).Once()
+	f.source.EXPECT().WorkCharacters(mock.Anything, "re-zero", 1).Return(app.SearchPage{Page: 1, LastPage: 1, Items: []domain.WaifuSummary{summary("rem")}}, nil).Once()
+	f.run(f.dm(aliceID, commandWaifu, subSearch, strOpt(optSeries, "re zero")))
+	if got := editContent(f.api.lastEdit()); got != "<@alice> Showing results for series Re:Zero" {
+		t.Errorf("series search should work in DMs: %q", got)
 	}
 }
 
@@ -504,8 +507,8 @@ func TestSearch_Autocomplete(t *testing.T) {
 	if len(f.api.lastRespond().Data.Choices) != 0 {
 		t.Error("no ranking means no suggestions")
 	}
-	if len(f.bot.Commands()[0].Options[4].Options) != 6 {
-		t.Errorf("search should expose six options: %d", len(f.bot.Commands()[0].Options[4].Options))
+	if len(f.bot.Commands()[0].Options[4].Options) != 7 {
+		t.Errorf("search should expose seven options: %d", len(f.bot.Commands()[0].Options[4].Options))
 	}
 }
 
@@ -549,10 +552,10 @@ func TestToday_FallsBackToSummaryWhenDetailFails(t *testing.T) {
 	}
 }
 
-func TestSeriesSearch_Texts(t *testing.T) {
+func TestSearch_SeriesOption(t *testing.T) {
 	f := newFixture(t)
 	f.source.EXPECT().SearchWorks(mock.Anything, "nothing").Return(nil, nil).Once()
-	f.run(f.slash(aliceID, commandSeries, subSearch, nil, strOpt(optQuery, "nothing")))
+	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optSeries, "nothing")))
 	if got := editContent(f.api.lastEdit()); got != "<@alice> "+msgSeriesNotFound {
 		t.Errorf("not found = %q", got)
 	}
@@ -560,7 +563,7 @@ func TestSeriesSearch_Texts(t *testing.T) {
 	series := domain.Series{Slug: "re-zero", Name: "Re:Zero", URL: "https://www.mywaifulist.moe/series/re-zero", Description: "d"}
 	f.source.EXPECT().SearchWorks(mock.Anything, "re zero").Return([]domain.Series{series}, nil).Once()
 	f.source.EXPECT().WorkCharacters(mock.Anything, "re-zero", 1).Return(app.SearchPage{Page: 1, LastPage: 1, Items: []domain.WaifuSummary{summary("ram"), summary("rem")}}, nil).Once()
-	f.run(f.slash(aliceID, commandSeries, subSearch, nil, strOpt(optQuery, "re zero")))
+	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optSeries, "re zero")))
 	e := f.api.lastEdit()
 	if editContent(e) != "<@alice> Showing results for series Re:Zero\nPage 1 out of 2" {
 		t.Errorf("results = %q", editContent(e))
@@ -568,33 +571,43 @@ func TestSeriesSearch_Texts(t *testing.T) {
 
 	f.source.EXPECT().SearchWorks(mock.Anything, "empty").Return([]domain.Series{series}, nil).Once()
 	f.source.EXPECT().WorkCharacters(mock.Anything, "re-zero", 1).Return(app.SearchPage{Page: 1, LastPage: 1}, nil).Once()
-	f.run(f.slash(aliceID, commandSeries, subSearch, nil, strOpt(optQuery, "empty")))
+	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optSeries, "empty")))
 	e = f.api.lastEdit()
 	if editContent(e) != "<@alice> "+msgNoData || (*e.Embeds)[0].Title != "Re:Zero" {
 		t.Errorf("no characters = %q", editContent(e))
 	}
 
 	f.source.EXPECT().SearchWorks(mock.Anything, "boom").Return(nil, errors.New("boom")).Once()
-	f.run(f.slash(aliceID, commandSeries, subSearch, nil, strOpt(optQuery, "boom")))
+	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optSeries, "boom")))
 	if got := editContent(f.api.lastEdit()); got != "<@alice> "+msgUnexpected {
 		t.Errorf("error = %q", got)
 	}
 
-	f.source.EXPECT().Work(mock.Anything, "re-zero").Return(series, nil).Once()
-	f.source.EXPECT().WorkCharacters(mock.Anything, "re-zero", 1).Return(app.SearchPage{Page: 1, LastPage: 1, Items: []domain.WaifuSummary{summary("ram"), summary("rem")}}, nil).Once()
-	f.run(f.slash(aliceID, commandSeries, subSearch, nil, strOpt(optQuery, slugChoicePrefix+"re-zero"), strOpt(optSort, "name_desc")))
+	f.source.EXPECT().Work(mock.Anything, "re-zero").Return(series, nil).Times(3)
+	f.source.EXPECT().WorkCharacters(mock.Anything, "re-zero", 1).Return(app.SearchPage{Page: 1, LastPage: 1, Items: []domain.WaifuSummary{summary("ram"), summary("rem")}}, nil).Times(3)
+	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optSeries, slugChoicePrefix+"re-zero"), strOpt(optSort, "name_desc")))
 	e = f.api.lastEdit()
 	if editContent(e) != "<@alice> Showing results for series Re:Zero\nPage 1 out of 2" || (*e.Embeds)[0].Title != "Name rem" {
 		t.Errorf("direct series with sort = %q %q", editContent(e), (*e.Embeds)[0].Title)
 	}
+	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optSeries, slugChoicePrefix+"re-zero"), strOpt(optQuery, "RAM")))
+	e = f.api.lastEdit()
+	if editContent(e) != "<@alice> Showing results for series Re:Zero" || (*e.Embeds)[0].Title != "Name ram" {
+		t.Errorf("series plus query narrows by name = %q %q", editContent(e), (*e.Embeds)[0].Title)
+	}
+	minLikes := &discordgo.ApplicationCommandInteractionDataOption{Name: optMinLikes, Type: discordgo.ApplicationCommandOptionInteger, Value: float64(999)}
+	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optSeries, slugChoicePrefix+"re-zero"), minLikes))
+	if got := editContent(f.api.lastEdit()); got != "<@alice> Showing results for series Re:Zero: 2 results matched, but none passed your filters." {
+		t.Errorf("series filtered out = %q", got)
+	}
 }
 
-func TestSeriesSearch_Autocomplete(t *testing.T) {
+func TestSearch_SeriesAutocomplete(t *testing.T) {
 	f := newFixture(t)
-	focused := strOpt(optQuery, "re ze")
+	focused := strOpt(optSeries, "re ze")
 	focused.Focused = true
 	f.source.EXPECT().SearchWorks(mock.Anything, "re ze").Return([]domain.Series{{Slug: "re-zero", Name: "Re:Zero"}, {Slug: "", Name: ""}}, nil).Once()
-	ic := f.slash(aliceID, commandSeries, subSearch, nil, focused)
+	ic := f.slash(aliceID, commandWaifu, subSearch, nil, focused)
 	ic.Type = discordgo.InteractionApplicationCommandAutocomplete
 	f.run(ic)
 	r := f.api.lastRespond()
@@ -602,9 +615,9 @@ func TestSeriesSearch_Autocomplete(t *testing.T) {
 		t.Errorf("choices = %+v", r.Data)
 	}
 
-	short := strOpt(optQuery, "r")
+	short := strOpt(optSeries, "r")
 	short.Focused = true
-	ic = f.slash(aliceID, commandSeries, subSearch, nil, short)
+	ic = f.slash(aliceID, commandWaifu, subSearch, nil, short)
 	ic.Type = discordgo.InteractionApplicationCommandAutocomplete
 	f.run(ic)
 	if len(f.api.lastRespond().Data.Choices) != 0 {
@@ -612,63 +625,13 @@ func TestSeriesSearch_Autocomplete(t *testing.T) {
 	}
 
 	f.source.EXPECT().SearchWorks(mock.Anything, "boom").Return(nil, errors.New("boom")).Once()
-	failing := strOpt(optQuery, "boom")
+	failing := strOpt(optSeries, "boom")
 	failing.Focused = true
-	ic = f.slash(aliceID, commandSeries, subSearch, nil, failing)
+	ic = f.slash(aliceID, commandWaifu, subSearch, nil, failing)
 	ic.Type = discordgo.InteractionApplicationCommandAutocomplete
 	f.run(ic)
 	if len(f.api.lastRespond().Data.Choices) != 0 {
 		t.Error("lookup failure should yield no choices")
-	}
-	seriesOpts := f.bot.Commands()[2].Options[0].Options
-	if len(seriesOpts) != 6 || seriesOpts[0].Required || !seriesOpts[0].Autocomplete {
-		t.Errorf("series options = %+v", seriesOpts)
-	}
-}
-
-func TestSeriesSearch_SoftOptionalQuery(t *testing.T) {
-	f := newFixture(t)
-	f.run(f.slash(aliceID, commandSeries, subSearch, nil))
-	if got := editContent(f.api.lastEdit()); got != "<@alice> "+msgSeriesNeedsInput {
-		t.Errorf("no input = %q", got)
-	}
-	f.run(f.slash(aliceID, commandSeries, subSearch, nil, strOpt(optQuery, "   ")))
-	if got := editContent(f.api.lastEdit()); got != "<@alice> "+msgSeriesNeedsInput {
-		t.Errorf("blank query = %q", got)
-	}
-
-	catalog := []domain.Series{{Slug: "bleach", Name: "Bleach", URL: "https://www.mywaifulist.moe/series/bleach", Description: "soul reapers"}, {Slug: "akira", Name: "Akira"}}
-	f.source.EXPECT().ListWorks(mock.Anything, 1).Return(app.SeriesPage{Items: catalog, Page: 1, LastPage: 1}, nil).Times(2)
-	ic := f.slash(aliceID, commandSeries, subSearch, nil, strOpt(optSort, "name_asc"))
-	f.run(ic)
-	e := f.api.lastEdit()
-	if editContent(e) != "<@alice> Browsing series\nPage 1 out of 2" || (*e.Embeds)[0].Title != "Akira" || len(*e.Components) != 2 {
-		t.Fatalf("browse = %q title=%q rows=%d", editContent(e), (*e.Embeds)[0].Title, len(*e.Components))
-	}
-	menu := (*e.Components)[1].(discordgo.ActionsRow).Components[0].(discordgo.SelectMenu)
-	if menu.Options[1].Label != "2. Bleach" || menu.Options[1].Description != "" {
-		t.Errorf("series select = %+v", menu.Options)
-	}
-	msg := f.message("msg-" + ic.ID)
-	f.run(f.click(aliceID, msg, pagerPrefix+pagerNext))
-	if r := f.api.lastRespond(); r.Data.Embeds[0].Title != "Bleach" || r.Data.Embeds[0].URL != "https://www.mywaifulist.moe/series/bleach" {
-		t.Errorf("series page 2 = %+v", r.Data.Embeds[0])
-	}
-	ranked := &discordgo.ApplicationCommandInteractionDataOption{Name: optRanked, Type: discordgo.ApplicationCommandOptionBoolean, Value: true}
-	f.run(f.slash(aliceID, commandSeries, subSearch, nil, ranked))
-	if !strings.HasPrefix(editContent(f.api.lastEdit()), "<@alice> Browsing series") {
-		t.Error("any option should allow browsing")
-	}
-
-	f.source.EXPECT().ListWorks(mock.Anything, 1).Return(app.SeriesPage{Page: 1, LastPage: 1}, nil).Once()
-	f.run(f.slash(aliceID, commandSeries, subSearch, nil, ranked))
-	if got := editContent(f.api.lastEdit()); got != "<@alice> "+msgSeriesNotFound {
-		t.Errorf("empty catalog = %q", got)
-	}
-	f.source.EXPECT().ListWorks(mock.Anything, 1).Return(app.SeriesPage{}, errors.New("boom")).Once()
-	f.run(f.slash(aliceID, commandSeries, subSearch, nil, ranked))
-	if got := editContent(f.api.lastEdit()); got != "<@alice> "+msgUnexpected {
-		t.Errorf("browse error = %q", got)
 	}
 }
 
@@ -676,7 +639,6 @@ func TestRouter_IgnoresUnknown(t *testing.T) {
 	f := newFixture(t)
 	f.run(f.slash(aliceID, "nope", "", nil))
 	f.run(f.slash(aliceID, commandWaifu, "nope", nil))
-	f.run(f.slash(aliceID, commandSeries, "nope", nil))
 	f.run(&discordgo.InteractionCreate{Interaction: &discordgo.Interaction{Type: discordgo.InteractionPing}})
 	f.run(f.click(aliceID, &discordgo.Message{ID: "x"}, "zz:unknown"))
 	f.run(f.modal(aliceID, &discordgo.Message{ID: "x"}, "other-modal", "a", "b"))

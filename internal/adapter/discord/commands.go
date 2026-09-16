@@ -182,6 +182,10 @@ func (b *Bot) search(ctx context.Context, ic *interaction, opts []*discordgo.App
 	}
 	start := b.cfg.Clock.Now()
 	query := queryFromOptions(opts)
+	if seriesInput := strings.TrimSpace(stringOption(opts, optSeries)); seriesInput != "" {
+		b.searchWithinSeries(ctx, ic, seriesInput, query, start)
+		return
+	}
 	if slug, ok := directSlug(query.Term); ok {
 		w, err := b.svc.Search.Detail(ctx, slug)
 		if errors.Is(err, app.ErrNotFound) {
@@ -218,6 +222,39 @@ func (b *Bot) search(ctx context.Context, ic *interaction, opts []*discordgo.App
 		return
 	}
 	b.openPager(ctx, ic, mention(ic.userID()), pagesFromSummaries(results), false, b.cfg.Clock.Now().Sub(start))
+}
+
+func (b *Bot) searchWithinSeries(ctx context.Context, ic *interaction, seriesInput string, query app.Query, start time.Time) {
+	if slug, ok := directSlug(query.Term); ok {
+		query.Term = slug
+	}
+	var (
+		res app.SeriesResult
+		err error
+	)
+	if slug, ok := directSlug(seriesInput); ok {
+		res, err = b.svc.Search.SeriesBySlug(ctx, slug, query)
+	} else {
+		res, err = b.svc.Search.Series(ctx, seriesInput, query)
+	}
+	var filtered *app.FilteredOutError
+	switch {
+	case errors.As(err, &filtered):
+		b.editText(ic, fmt.Sprintf("%s %s %s", mention(ic.userID()), fmt.Sprintf(msgSeriesHeaderFmt, res.Series.Name)+":", fmt.Sprintf(msgFilteredOutFmt, filtered.Found)))
+		return
+	case errors.Is(err, app.ErrNotFound):
+		b.editText(ic, mention(ic.userID())+" "+msgSeriesNotFound)
+		return
+	case err != nil:
+		b.failed(ic, "series search", err)
+		return
+	}
+	if len(res.Waifus) == 0 {
+		b.edit(ic, mention(ic.userID())+" "+msgNoData, []*discordgo.MessageEmbed{seriesEmbed(res.Series)}, nil)
+		return
+	}
+	content := fmt.Sprintf("%s %s", mention(ic.userID()), fmt.Sprintf(msgSeriesHeaderFmt, res.Series.Name))
+	b.openPager(ctx, ic, content, pagesFromSummaries(res.Waifus), false, b.cfg.Clock.Now().Sub(start))
 }
 
 func (b *Bot) ratingSummary(w domain.Waifu) string {
@@ -287,58 +324,10 @@ func (b *Bot) today(ctx context.Context, ic *interaction) {
 	b.edit(ic, content, []*discordgo.MessageEmbed{b.waifuEmbed(detail, b.cfg.Clock.Now().Sub(start))}, nil)
 }
 
-func (b *Bot) seriesSearch(ctx context.Context, ic *interaction, opts []*discordgo.ApplicationCommandInteractionDataOption) {
-	if !b.deferReply(ic, false) {
-		return
-	}
-	start := b.cfg.Clock.Now()
-	query := queryFromOptions(opts)
-	if strings.TrimSpace(query.Term) == "" {
-		if !hasSearchOptions(opts) {
-			b.editText(ic, mention(ic.userID())+" "+msgSeriesNeedsInput)
-			return
-		}
-		series, err := b.svc.Search.BrowseSeries(ctx, query)
-		if errors.Is(err, app.ErrNotFound) {
-			b.editText(ic, mention(ic.userID())+" "+msgSeriesNotFound)
-			return
-		}
-		if err != nil {
-			b.failed(ic, "series browse", err)
-			return
-		}
-		b.openPager(ctx, ic, mention(ic.userID())+" Browsing series", pagesFromSeries(series), false, b.cfg.Clock.Now().Sub(start))
-		return
-	}
-	var (
-		res app.SeriesResult
-		err error
-	)
-	if slug, ok := directSlug(query.Term); ok {
-		res, err = b.svc.Search.SeriesBySlug(ctx, slug, query)
-	} else {
-		res, err = b.svc.Search.Series(ctx, query.Term, query)
-	}
-	if errors.Is(err, app.ErrNotFound) {
-		b.editText(ic, mention(ic.userID())+" "+msgSeriesNotFound)
-		return
-	}
-	if err != nil {
-		b.failed(ic, "series search", err)
-		return
-	}
-	if len(res.Waifus) == 0 {
-		b.edit(ic, mention(ic.userID())+" "+msgNoData, []*discordgo.MessageEmbed{seriesEmbed(res.Series)}, nil)
-		return
-	}
-	content := fmt.Sprintf("%s %s", mention(ic.userID()), fmt.Sprintf(msgSeriesHeaderFmt, res.Series.Name))
-	b.openPager(ctx, ic, content, pagesFromSummaries(res.Waifus), false, b.cfg.Clock.Now().Sub(start))
-}
-
 func (b *Bot) seriesAutocomplete(ctx context.Context, ic *interaction, opts []*discordgo.ApplicationCommandInteractionDataOption) {
 	typed := ""
 	for _, o := range opts {
-		if o.Focused && o.Name == optQuery {
+		if o.Focused && o.Name == optSeries {
 			typed, _ = o.Value.(string)
 		}
 	}

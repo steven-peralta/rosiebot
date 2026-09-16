@@ -323,26 +323,24 @@ func TestSearchService_SuggestSeries(t *testing.T) {
 	}
 }
 
-func TestSearchService_BrowseSeries(t *testing.T) {
+func TestSearchService_SeriesQueryNarrowsByName(t *testing.T) {
 	f := newFixture(t)
 	svc := app.NewSearchService(f.source, f.ranking)
-	f.source.EXPECT().ListWorks(mock.Anything, 1).Return(app.SeriesPage{Items: []domain.Series{{Slug: "b", Name: "Bleach"}}, Page: 1, LastPage: 2}, nil).Once()
-	f.source.EXPECT().ListWorks(mock.Anything, 2).Return(app.SeriesPage{Items: []domain.Series{{Slug: "a", Name: "Akira"}}, Page: 2, LastPage: 2}, nil).Once()
-	got, err := svc.BrowseSeries(f.ctx, app.Query{SortBy: app.SortName, Descending: true})
-	if err != nil || len(got) != 2 || got[0].Slug != "b" {
-		t.Errorf("browse desc = %v %v", got, err)
+	series := domain.Series{Slug: "re-zero", Name: "Re:Zero"}
+	f.source.EXPECT().Work(mock.Anything, "re-zero").Return(series, nil).Times(3)
+	f.source.EXPECT().WorkCharacters(mock.Anything, "re-zero", 1).Return(app.SearchPage{Page: 1, LastPage: 1, Items: []domain.WaifuSummary{summary("ram", 100, 0), summary("rem", 900, 50), summary("emilia", 300, 0)}}, nil).Times(3)
+
+	res, err := svc.SeriesBySlug(f.ctx, "re-zero", app.Query{Term: "  REM "})
+	if err != nil || len(res.Waifus) != 1 || res.Waifus[0].Slug != "rem" {
+		t.Errorf("name narrowing = %+v %v", res.Waifus, err)
 	}
-	f.source.EXPECT().ListWorks(mock.Anything, 1).Return(app.SeriesPage{Items: []domain.Series{{Slug: "b", Name: "Bleach"}, {Slug: "a", Name: "Akira"}}, Page: 1, LastPage: 1}, nil).Once()
-	got, err = svc.BrowseSeries(f.ctx, app.Query{SortBy: app.SortName})
-	if err != nil || got[0].Slug != "a" {
-		t.Errorf("browse asc = %v %v", got, err)
+	var filtered *app.FilteredOutError
+	res, err = svc.SeriesBySlug(f.ctx, "re-zero", app.Query{Term: "rem"}.WithFilter(app.SortLikes, ">", 5000))
+	if !errors.As(err, &filtered) || filtered.Found != 1 || res.Series.Slug != "re-zero" {
+		t.Errorf("filtered out inside series = %+v %v", res, err)
 	}
-	f.source.EXPECT().ListWorks(mock.Anything, 1).Return(app.SeriesPage{Page: 1, LastPage: 1}, nil).Once()
-	if _, err := svc.BrowseSeries(f.ctx, app.Query{}); !errors.Is(err, app.ErrNotFound) {
-		t.Errorf("empty catalog = %v", err)
-	}
-	f.source.EXPECT().ListWorks(mock.Anything, 1).Return(app.SeriesPage{}, errors.New("boom")).Once()
-	if _, err := svc.BrowseSeries(f.ctx, app.Query{}); err == nil {
-		t.Error("expected error")
+	res, err = svc.SeriesBySlug(f.ctx, "re-zero", app.Query{Term: "nobody"})
+	if err != nil || len(res.Waifus) != 0 {
+		t.Errorf("no name match = %+v %v", res, err)
 	}
 }

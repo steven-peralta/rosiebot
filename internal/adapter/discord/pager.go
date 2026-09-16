@@ -65,14 +65,6 @@ func pagesFromSummaries(items []domain.WaifuSummary) []pageRef {
 	return pages
 }
 
-func pagesFromSeries(items []domain.Series) []pageRef {
-	pages := make([]pageRef, len(items))
-	for i := range items {
-		pages[i] = pageRef{series: &items[i], summary: domain.WaifuSummary{Slug: items[i].Slug, Name: items[i].Name}}
-	}
-	return pages
-}
-
 func pagesFromOwned(items []domain.OwnedWaifu) []pageRef {
 	pages := make([]pageRef, len(items))
 	for i, o := range items {
@@ -92,15 +84,6 @@ func (b *Bot) renderPage(ctx context.Context, s *Session, elapsed time.Duration)
 		s.Page = len(s.Pages) - 1
 	}
 	ref := &s.Pages[s.Page]
-	if ref.series != nil {
-		e := seriesEmbed(*ref.series)
-		e.Footer = b.footer(elapsed)
-		content := s.Content
-		if len(s.Pages) > 1 {
-			content = strings.TrimRight(content, "\n") + fmt.Sprintf("\nPage %d out of %d", s.Page+1, len(s.Pages))
-		}
-		return content, []*discordgo.MessageEmbed{e}, pagerRows(s.Page, len(s.Pages), false, b.selectOptions(s))
-	}
 	if ref.detail == nil {
 		w, err := b.svc.Search.Detail(ctx, ref.summary.Slug)
 		if err != nil {
@@ -136,19 +119,16 @@ func (b *Bot) selectOptions(s *Session) []discordgo.SelectMenuOption {
 	options := make([]discordgo.SelectMenuOption, 0, limit)
 	for i := 0; i < limit; i++ {
 		summary := s.Pages[i].summary
-		option := discordgo.SelectMenuOption{
-			Label:   truncate(fmt.Sprintf("%d. %s", i+1, summary.Name), maxChoiceLength),
-			Value:   strconv.Itoa(i),
-			Default: i == s.Page,
+		desc := fmt.Sprintf("❤️ %s · 🗑️ %s", thousands(summary.Likes), thousands(summary.Trash))
+		if r, ok := ranking.Lookup(summary.Slug); ok && r.Stars > 0 {
+			desc = strings.Repeat("★", r.Stars) + " #" + thousands(r.Position) + " · " + desc
 		}
-		if s.Pages[i].series == nil {
-			desc := fmt.Sprintf("❤️ %s · 🗑️ %s", thousands(summary.Likes), thousands(summary.Trash))
-			if r, ok := ranking.Lookup(summary.Slug); ok && r.Stars > 0 {
-				desc = strings.Repeat("★", r.Stars) + " #" + thousands(r.Position) + " · " + desc
-			}
-			option.Description = truncate(desc, maxChoiceLength)
-		}
-		options = append(options, option)
+		options = append(options, discordgo.SelectMenuOption{
+			Label:       truncate(fmt.Sprintf("%d. %s", i+1, summary.Name), maxChoiceLength),
+			Description: truncate(desc, maxChoiceLength),
+			Value:       strconv.Itoa(i),
+			Default:     i == s.Page,
+		})
 	}
 	return options
 }

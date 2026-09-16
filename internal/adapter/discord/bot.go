@@ -51,7 +51,6 @@ const (
 
 	commandWaifu  = "waifu"
 	commandWAlias = "w"
-	commandSeries = "series"
 	commandSell   = "Sell Waifu"
 
 	subRoll   = "roll"
@@ -144,15 +143,6 @@ func (b *Bot) Commands() []*discordgo.ApplicationCommand {
 			Options:          waifuOptions(),
 		},
 		{
-			Name:             commandSeries,
-			Description:      "Look up series",
-			Contexts:         &allContexts,
-			IntegrationTypes: &integrations,
-			Options: []*discordgo.ApplicationCommandOption{
-				sub(subSearch, "Search for a series and list its waifus", seriesOptions()...),
-			},
-		},
-		{
 			Type:             discordgo.MessageApplicationCommand,
 			Name:             commandSell,
 			Contexts:         &guildOnly,
@@ -219,10 +209,6 @@ func (b *Bot) handleCommand(ctx context.Context, ic *interaction) {
 		default:
 			b.log.Warn("unknown waifu subcommand", "sub", sub)
 		}
-	case commandSeries:
-		if sub == subSearch {
-			b.seriesSearch(ctx, ic, opts)
-		}
 	default:
 		b.log.Warn("unknown command", "name", data.Name)
 	}
@@ -262,15 +248,18 @@ func (b *Bot) handleModal(ctx context.Context, ic *interaction) {
 func (b *Bot) handleAutocomplete(ctx context.Context, ic *interaction) {
 	data := ic.ApplicationCommandData()
 	sub, opts := subcommand(data)
-	switch {
-	case data.Name == commandSeries && sub == subSearch:
-		b.seriesAutocomplete(ctx, ic, opts)
-	case data.Name != commandWaifu && data.Name != commandWAlias:
+	if data.Name != commandWaifu && data.Name != commandWAlias {
 		return
-	case sub == subTrade:
+	}
+	switch sub {
+	case subTrade:
 		b.tradeAutocomplete(ctx, ic, opts, data.Resolved)
-	case sub == subSearch:
-		b.searchAutocomplete(ic, opts)
+	case subSearch:
+		if o := focusedOption(opts); o != nil && o.Name == optSeries {
+			b.seriesAutocomplete(ctx, ic, opts)
+		} else {
+			b.searchAutocomplete(ic, opts)
+		}
 	}
 }
 
@@ -305,6 +294,15 @@ func subcommand(data discordgo.ApplicationCommandInteractionData) (string, []*di
 		return first.Name, first.Options
 	}
 	return "", data.Options
+}
+
+func focusedOption(opts []*discordgo.ApplicationCommandInteractionDataOption) *discordgo.ApplicationCommandInteractionDataOption {
+	for _, o := range opts {
+		if o.Focused {
+			return o
+		}
+	}
+	return nil
 }
 
 func describeOptions(opts []*discordgo.ApplicationCommandInteractionDataOption) string {
