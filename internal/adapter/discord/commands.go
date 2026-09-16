@@ -181,7 +181,8 @@ func (b *Bot) search(ctx context.Context, ic *interaction, opts []*discordgo.App
 		return
 	}
 	start := b.cfg.Clock.Now()
-	if slug, ok := directSlug(stringOption(opts, optQuery)); ok {
+	query := queryFromOptions(opts)
+	if slug, ok := directSlug(query.Term); ok {
 		w, err := b.svc.Search.Detail(ctx, slug)
 		if errors.Is(err, app.ErrNotFound) {
 			b.editText(ic, mention(ic.userID())+" "+msgWaifuNotFound)
@@ -191,15 +192,23 @@ func (b *Bot) search(ctx context.Context, ic *interaction, opts []*discordgo.App
 			b.failed(ic, "search", err)
 			return
 		}
+		if hasSearchOptions(opts) && !b.svc.Search.Matches(w.WaifuSummary, query) {
+			b.editText(ic, fmt.Sprintf("%s %s", mention(ic.userID()), fmt.Sprintf(msgPickFilteredFmt, w.Name, b.ratingSummary(w))))
+			return
+		}
 		b.edit(ic, mention(ic.userID()), []*discordgo.MessageEmbed{b.waifuEmbed(w, b.cfg.Clock.Now().Sub(start))}, nil)
 		return
 	}
-	query := queryFromOptions(opts)
 	if strings.TrimSpace(query.Term) == "" && !hasSearchOptions(opts) {
 		b.editText(ic, mention(ic.userID())+" "+msgSearchNeedsInput)
 		return
 	}
 	results, err := b.svc.Search.Waifus(ctx, query)
+	var filtered *app.FilteredOutError
+	if errors.As(err, &filtered) {
+		b.editText(ic, fmt.Sprintf("%s %s", mention(ic.userID()), fmt.Sprintf(msgFilteredOutFmt, filtered.Found)))
+		return
+	}
 	if errors.Is(err, app.ErrNotFound) {
 		b.editText(ic, mention(ic.userID())+" "+msgWaifuNotFound)
 		return
@@ -209,6 +218,17 @@ func (b *Bot) search(ctx context.Context, ic *interaction, opts []*discordgo.App
 		return
 	}
 	b.openPager(ctx, ic, mention(ic.userID()), pagesFromSummaries(results), false, b.cfg.Clock.Now().Sub(start))
+}
+
+func (b *Bot) ratingSummary(w domain.Waifu) string {
+	parts := []string{}
+	if r, ok := b.svc.Search.Rank(w.Slug); ok && r.Stars > 0 {
+		parts = append(parts, strings.Repeat("★", r.Stars)+strings.Repeat("☆", domain.MaxStars-r.Stars), "rank #"+thousands(r.Position))
+	} else {
+		parts = append(parts, "unranked")
+	}
+	parts = append(parts, fmt.Sprintf("%s likes", thousands(w.Likes)), fmt.Sprintf("%s trash", thousands(w.Trash)))
+	return strings.Join(parts, ", ")
 }
 
 func (b *Bot) searchAutocomplete(ic *interaction, opts []*discordgo.ApplicationCommandInteractionDataOption) {

@@ -47,11 +47,23 @@ func (s *SearchService) Waifus(ctx context.Context, query Query) ([]domain.Waifu
 			return nil, fmt.Errorf("search waifus %q: %w", query.Term, err)
 		}
 	}
+	found := len(results)
 	results = query.Apply(results, LookupFrom(s.ranking))
 	if len(results) == 0 {
+		if found > 0 {
+			return nil, &FilteredOutError{Found: found}
+		}
 		return nil, ErrNotFound
 	}
 	return results, nil
+}
+
+func (s *SearchService) Matches(w domain.WaifuSummary, query Query) bool {
+	return len(query.Apply([]domain.WaifuSummary{w}, LookupFrom(s.ranking))) == 1
+}
+
+func (s *SearchService) Rank(slug string) (domain.RankedWaifu, bool) {
+	return LookupFrom(s.ranking)(slug)
 }
 
 func (s *SearchService) collect(_ context.Context, maxPages int, fetch func(page int) (SearchPage, error)) ([]domain.WaifuSummary, error) {

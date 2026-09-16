@@ -28,6 +28,14 @@ func (e *DailyAlreadyClaimedError) Error() string {
 	return fmt.Sprintf("daily already claimed at %s, next in %s", e.ClaimedAt.Format(time.RFC3339), domain.FormatCountdown(e.RefreshIn))
 }
 
+type FilteredOutError struct {
+	Found int
+}
+
+func (e *FilteredOutError) Error() string {
+	return fmt.Sprintf("%d results matched but none passed the filters", e.Found)
+}
+
 func Rolled(rng Random) int {
 	return rng.IntN(domain.D100Max-domain.D100Min+1) + domain.D100Min
 }

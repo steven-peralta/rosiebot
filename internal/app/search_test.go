@@ -48,8 +48,15 @@ func TestSearchService_SortAndFilters(t *testing.T) {
 	if err != nil || len(got) != 1 || got[0].Slug != "a" {
 		t.Errorf("filters = %v %v", got, err)
 	}
-	if _, err := svc.Waifus(f.ctx, app.Query{Term: "rem"}.WithFilter(app.SortLikes, ">", 1000)); !errors.Is(err, app.ErrNotFound) {
+	var filtered *app.FilteredOutError
+	if _, err := svc.Waifus(f.ctx, app.Query{Term: "rem"}.WithFilter(app.SortLikes, ">", 1000)); !errors.As(err, &filtered) || filtered.Found != 3 || filtered.Error() == "" {
 		t.Errorf("filter matching nothing = %v", err)
+	}
+	if !svc.Matches(items[1], app.Query{}.WithFilter(app.SortLikes, ">=", 500)) || svc.Matches(items[2], app.Query{}.WithFilter(app.SortLikes, ">=", 500)) {
+		t.Error("Matches should apply the filters to a single summary")
+	}
+	if _, ok := svc.Rank("nobody"); ok {
+		t.Error("Rank of unknown slug")
 	}
 
 	f.ranking.Set(rankingOf(10))

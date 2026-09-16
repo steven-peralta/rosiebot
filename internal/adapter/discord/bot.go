@@ -196,6 +196,7 @@ func (b *Bot) handleCommand(ctx context.Context, ic *interaction) {
 		return
 	}
 	sub, opts := subcommand(data)
+	b.log.Info("command", "user", ic.userID(), "guild", ic.GuildID, "name", data.Name, "sub", sub, "options", describeOptions(opts))
 	switch data.Name {
 	case commandWaifu, commandWAlias:
 		switch sub {
@@ -304,6 +305,14 @@ func subcommand(data discordgo.ApplicationCommandInteractionData) (string, []*di
 		return first.Name, first.Options
 	}
 	return "", data.Options
+}
+
+func describeOptions(opts []*discordgo.ApplicationCommandInteractionDataOption) string {
+	parts := make([]string, 0, len(opts))
+	for _, o := range opts {
+		parts = append(parts, fmt.Sprintf("%s=%v", o.Name, o.Value))
+	}
+	return strings.Join(parts, " ")
 }
 
 func option(opts []*discordgo.ApplicationCommandInteractionDataOption, name string) *discordgo.ApplicationCommandInteractionDataOption {

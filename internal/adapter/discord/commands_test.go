@@ -407,6 +407,23 @@ func TestSearch_TypedOptions(t *testing.T) {
 	if got := editContent(f.api.lastEdit()); got != "<@alice>" {
 		t.Errorf("min_stars should leave a single result: %q", got)
 	}
+	f.source.EXPECT().SearchWaifus(mock.Anything, "low", 1).Return(app.SearchPage{Page: 1, LastPage: 1, Items: items[:1]}, nil).Once()
+	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optQuery, "low"), minStars))
+	if got := editContent(f.api.lastEdit()); got != "<@alice> 1 results matched, but none passed your filters." {
+		t.Errorf("filtered out = %q", got)
+	}
+	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optQuery, slugChoicePrefix+"ranked-004"), minStars))
+	if got := editContent(f.api.lastEdit()); got != "<@alice> Name ranked-004 doesn't pass your filters (★★★★☆, rank #5, 10 likes, 1 trash)." {
+		t.Errorf("picked suggestion below filter = %q", got)
+	}
+	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optQuery, slugChoicePrefix+"low"), minStars))
+	if got := editContent(f.api.lastEdit()); got != "<@alice> Name low doesn't pass your filters (unranked, 10 likes, 1 trash)." {
+		t.Errorf("picked unranked below filter = %q", got)
+	}
+	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optQuery, slugChoicePrefix+"ranked-001"), minStars))
+	if (*f.api.lastEdit().Embeds)[0].Title != "Name ranked-001" {
+		t.Error("picked suggestion that passes the filter should open the card")
+	}
 	ranked := &discordgo.ApplicationCommandInteractionDataOption{Name: optRanked, Type: discordgo.ApplicationCommandOptionBoolean, Value: true}
 	minLikes := &discordgo.ApplicationCommandInteractionDataOption{Name: optMinLikes, Type: discordgo.ApplicationCommandOptionInteger, Value: float64(5)}
 	maxTrash := &discordgo.ApplicationCommandInteractionDataOption{Name: optMaxTrash, Type: discordgo.ApplicationCommandOptionInteger, Value: float64(1)}
