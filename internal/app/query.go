@@ -20,7 +20,22 @@ const (
 	SortTrash SortField = "trash"
 	SortTotal SortField = "total"
 	SortName  SortField = "name"
+	SortRank  SortField = "rank"
+	SortStars SortField = "stars"
 )
+
+type RankLookup func(slug string) (domain.RankedWaifu, bool)
+
+func NoRanking(string) (domain.RankedWaifu, bool) { return domain.RankedWaifu{}, false }
+
+func LookupFrom(p RankingProvider) RankLookup {
+	return func(slug string) (domain.RankedWaifu, bool) {
+		if p == nil {
+			return domain.RankedWaifu{}, false
+		}
+		return p.Current().Lookup(slug)
+	}
+}
 
 type Filter struct {
 	Field SortField
@@ -57,14 +72,14 @@ func ParseQuery(raw string) (Query, error) {
 			}
 			sf, ok := parseSortField(value)
 			if !ok {
-				return Query{}, fmt.Errorf("%w: unknown sort field %q (use likes, trash, total, or name)", ErrBadQuery, value)
+				return Query{}, fmt.Errorf("%w: unknown sort field %q (use likes, trash, total, rank, stars, or name)", ErrBadQuery, value)
 			}
 			q.SortBy, q.Descending = sf, desc
 			continue
 		}
 		sf, ok := parseSortField(field)
 		if !ok || sf == SortName {
-			return Query{}, fmt.Errorf("%w: unknown filter %q (use likes, trash, or total)", ErrBadQuery, field)
+			return Query{}, fmt.Errorf("%w: unknown filter %q (use likes, trash, total, rank, or stars)", ErrBadQuery, field)
 		}
 		op := "="
 		for _, candidate := range []string{"<=", ">=", "<", ">", "="} {
@@ -93,26 +108,43 @@ func parseSortField(s string) (SortField, bool) {
 		return SortTotal, true
 	case "name":
 		return SortName, true
+	case "rank", "position":
+		return SortRank, true
+	case "stars", "star", "tier":
+		return SortStars, true
 	default:
 		return SortNone, false
 	}
 }
 
-func fieldValue(w domain.WaifuSummary, f SortField) int {
+func fieldValue(w domain.WaifuSummary, f SortField, lookup RankLookup) (int, bool) {
 	switch f {
 	case SortLikes:
-		return w.Likes
+		return w.Likes, true
 	case SortTrash:
-		return w.Trash
+		return w.Trash, true
 	case SortTotal:
-		return w.TotalVotes()
+		return w.TotalVotes(), true
+	case SortRank:
+		if r, ok := lookup(w.Slug); ok {
+			return r.Position, true
+		}
+		return 0, false
+	case SortStars:
+		if r, ok := lookup(w.Slug); ok {
+			return r.Stars, true
+		}
+		return 0, false
 	default:
-		return 0
+		return 0, false
 	}
 }
 
-func (f Filter) matches(w domain.WaifuSummary) bool {
-	v := fieldValue(w, f.Field)
+func (f Filter) matches(w domain.WaifuSummary, lookup RankLookup) bool {
+	v, ok := fieldValue(w, f.Field, lookup)
+	if !ok {
+		return false
+	}
 	switch f.Op {
 	case "<":
 		return v < f.Value
@@ -127,12 +159,15 @@ func (f Filter) matches(w domain.WaifuSummary) bool {
 	}
 }
 
-func (q Query) Apply(items []domain.WaifuSummary) []domain.WaifuSummary {
+func (q Query) Apply(items []domain.WaifuSummary, lookup RankLookup) []domain.WaifuSummary {
+	if lookup == nil {
+		lookup = NoRanking
+	}
 	out := make([]domain.WaifuSummary, 0, len(items))
 	for _, it := range items {
 		keep := true
 		for _, f := range q.Filters {
-			if !f.matches(it) {
+			if !f.matches(it, lookup) {
 				keep = false
 				break
 			}
@@ -144,17 +179,26 @@ func (q Query) Apply(items []domain.WaifuSummary) []domain.WaifuSummary {
 	if q.SortBy == SortNone {
 		return out
 	}
-	less := func(a, b domain.WaifuSummary) bool {
-		if q.SortBy == SortName {
-			return strings.ToLower(a.Name) < strings.ToLower(b.Name)
-		}
-		return fieldValue(a, q.SortBy) < fieldValue(b, q.SortBy)
+	if q.SortBy == SortName {
+		sort.SliceStable(out, func(i, j int) bool {
+			a, b := strings.ToLower(out[i].Name), strings.ToLower(out[j].Name)
+			if q.Descending {
+				return b < a
+			}
+			return a < b
+		})
+		return out
 	}
 	sort.SliceStable(out, func(i, j int) bool {
-		if q.Descending {
-			return less(out[j], out[i])
+		a, aok := fieldValue(out[i], q.SortBy, lookup)
+		b, bok := fieldValue(out[j], q.SortBy, lookup)
+		if aok != bok {
+			return aok
 		}
-		return less(out[i], out[j])
+		if q.Descending {
+			return b < a
+		}
+		return a < b
 	})
 	return out
 }

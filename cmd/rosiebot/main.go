@@ -76,7 +76,7 @@ func run(ctx context.Context, dryRun bool) error {
 		Daily:     app.NewDailyService(players, clock, rng, cfg.Timezone),
 		Coins:     app.NewCoinsService(players),
 		Inventory: app.NewInventoryService(players),
-		Search:    app.NewSearchService(source),
+		Search:    app.NewSearchService(source, ranking),
 		Trade:     app.NewTradeService(players),
 		Wotd:      wotd,
 		Ranking:   ranking,

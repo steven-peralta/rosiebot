@@ -22,11 +22,12 @@ type SeriesResult struct {
 }
 
 type SearchService struct {
-	source WaifuSource
+	source  WaifuSource
+	ranking RankingProvider
 }
 
-func NewSearchService(source WaifuSource) *SearchService {
-	return &SearchService{source: source}
+func NewSearchService(source WaifuSource, ranking RankingProvider) *SearchService {
+	return &SearchService{source: source, ranking: ranking}
 }
 
 func (s *SearchService) Waifus(ctx context.Context, raw string) ([]domain.WaifuSummary, error) {
@@ -47,7 +48,7 @@ func (s *SearchService) Waifus(ctx context.Context, raw string) ([]domain.WaifuS
 			return nil, fmt.Errorf("search waifus %q: %w", query.Term, err)
 		}
 	}
-	results = query.Apply(results)
+	results = query.Apply(results, LookupFrom(s.ranking))
 	if len(results) == 0 {
 		return nil, ErrNotFound
 	}

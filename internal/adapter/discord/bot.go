@@ -124,7 +124,7 @@ func (b *Bot) Commands() []*discordgo.ApplicationCommand {
 				sub(subDaily, "Get your daily dose of waifu coins"),
 				sub(subCoins, "See how many coins you or another user has", userOpt("Whose balance to show")),
 				sub(subOwned, "See the waifus that you or another user owns", userOpt("Whose collection to show")),
-				sub(subSearch, "Search for a waifu", queryOpt("Name, plus optional sortby:-likes or likes:>100 tokens; empty lists the catalog", false)),
+				sub(subSearch, "Search for a waifu", queryOpt("Name, plus optional sortby:-rank or likes:>100 tokens; empty lists the catalog", false)),
 				sub(subRandom, "Pull a random waifu"),
 				sub(subToday, "Show the waifu of the day"),
 				sub(subTrade, "Trade waifus with another user",
