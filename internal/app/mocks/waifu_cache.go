@@ -383,16 +383,16 @@ func (_c *WaifuCache_PutPage_Call) RunAndReturn(run func(ctx context.Context, ke
 }
 
 // PutSeries provides a mock function for the type WaifuCache
-func (_mock *WaifuCache) PutSeries(ctx context.Context, key string, series []domain.Series, fetchedAt time.Time) error {
-	ret := _mock.Called(ctx, key, series, fetchedAt)
+func (_mock *WaifuCache) PutSeries(ctx context.Context, key string, series []domain.Series, lastPage int, fetchedAt time.Time) error {
+	ret := _mock.Called(ctx, key, series, lastPage, fetchedAt)
 
 	if len(ret) == 0 {
 		panic("no return value specified for PutSeries")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, []domain.Series, time.Time) error); ok {
-		r0 = returnFunc(ctx, key, series, fetchedAt)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, []domain.Series, int, time.Time) error); ok {
+		r0 = returnFunc(ctx, key, series, lastPage, fetchedAt)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -408,12 +408,13 @@ type WaifuCache_PutSeries_Call struct {
 //   - ctx context.Context
 //   - key string
 //   - series []domain.Series
+//   - lastPage int
 //   - fetchedAt time.Time
-func (_e *WaifuCache_Expecter) PutSeries(ctx any, key any, series any, fetchedAt any) *WaifuCache_PutSeries_Call {
-	return &WaifuCache_PutSeries_Call{Call: _e.mock.On("PutSeries", ctx, key, series, fetchedAt)}
+func (_e *WaifuCache_Expecter) PutSeries(ctx any, key any, series any, lastPage any, fetchedAt any) *WaifuCache_PutSeries_Call {
+	return &WaifuCache_PutSeries_Call{Call: _e.mock.On("PutSeries", ctx, key, series, lastPage, fetchedAt)}
 }
 
-func (_c *WaifuCache_PutSeries_Call) Run(run func(ctx context.Context, key string, series []domain.Series, fetchedAt time.Time)) *WaifuCache_PutSeries_Call {
+func (_c *WaifuCache_PutSeries_Call) Run(run func(ctx context.Context, key string, series []domain.Series, lastPage int, fetchedAt time.Time)) *WaifuCache_PutSeries_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -427,15 +428,20 @@ func (_c *WaifuCache_PutSeries_Call) Run(run func(ctx context.Context, key strin
 		if args[2] != nil {
 			arg2 = args[2].([]domain.Series)
 		}
-		var arg3 time.Time
+		var arg3 int
 		if args[3] != nil {
-			arg3 = args[3].(time.Time)
+			arg3 = args[3].(int)
+		}
+		var arg4 time.Time
+		if args[4] != nil {
+			arg4 = args[4].(time.Time)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
 			arg3,
+			arg4,
 		)
 	})
 	return _c
@@ -446,7 +452,7 @@ func (_c *WaifuCache_PutSeries_Call) Return(err error) *WaifuCache_PutSeries_Cal
 	return _c
 }
 
-func (_c *WaifuCache_PutSeries_Call) RunAndReturn(run func(ctx context.Context, key string, series []domain.Series, fetchedAt time.Time) error) *WaifuCache_PutSeries_Call {
+func (_c *WaifuCache_PutSeries_Call) RunAndReturn(run func(ctx context.Context, key string, series []domain.Series, lastPage int, fetchedAt time.Time) error) *WaifuCache_PutSeries_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -33,6 +33,7 @@ type CachedPage struct {
 
 type CachedSeries struct {
 	Series    []domain.Series
+	LastPage  int
 	FetchedAt time.Time
 }
 
@@ -42,7 +43,7 @@ type WaifuCache interface {
 	GetPage(ctx context.Context, key string) (CachedPage, error)
 	PutPage(ctx context.Context, key string, page SearchPage, fetchedAt time.Time) error
 	GetSeries(ctx context.Context, key string) (CachedSeries, error)
-	PutSeries(ctx context.Context, key string, series []domain.Series, fetchedAt time.Time) error
+	PutSeries(ctx context.Context, key string, series []domain.Series, lastPage int, fetchedAt time.Time) error
 	Prune(ctx context.Context, unreadSince time.Time) (int64, error)
 }
 
@@ -156,7 +157,7 @@ func (s *CachedSource) SearchWorks(ctx context.Context, term string) ([]domain.S
 			if err != nil {
 				return err
 			}
-			return s.cache.PutSeries(ctx, key, series, s.clock.Now())
+			return s.cache.PutSeries(ctx, key, series, 1, s.clock.Now())
 		})
 		return cached.Series, nil
 	case !errors.Is(err, ErrNotFound):
@@ -166,10 +167,39 @@ func (s *CachedSource) SearchWorks(ctx context.Context, term string) ([]domain.S
 	if err != nil {
 		return nil, err
 	}
-	if err := s.cache.PutSeries(ctx, key, series, now); err != nil {
+	if err := s.cache.PutSeries(ctx, key, series, 1, now); err != nil {
 		s.log.Warn("series cache write failed", "key", key, "err", err)
 	}
 	return series, nil
+}
+
+func (s *CachedSource) ListWorks(ctx context.Context, page int) (SeriesPage, error) {
+	key := pageKey("worklist", "", page)
+	now := s.clock.Now()
+	cached, err := s.cache.GetSeries(ctx, key)
+	switch {
+	case err == nil && now.Sub(cached.FetchedAt) < s.cfg.SearchTTL:
+		return SeriesPage{Items: cached.Series, Page: page, LastPage: cached.LastPage}, nil
+	case err == nil:
+		s.refresh("series:"+key, func(ctx context.Context) error {
+			sp, err := s.next.ListWorks(ctx, page)
+			if err != nil {
+				return err
+			}
+			return s.cache.PutSeries(ctx, key, sp.Items, sp.LastPage, s.clock.Now())
+		})
+		return SeriesPage{Items: cached.Series, Page: page, LastPage: cached.LastPage}, nil
+	case !errors.Is(err, ErrNotFound):
+		s.log.Warn("series cache read failed", "key", key, "err", err)
+	}
+	sp, err := s.next.ListWorks(ctx, page)
+	if err != nil {
+		return SeriesPage{}, err
+	}
+	if err := s.cache.PutSeries(ctx, key, sp.Items, sp.LastPage, now); err != nil {
+		s.log.Warn("series cache write failed", "key", key, "err", err)
+	}
+	return sp, nil
 }
 
 func (s *CachedSource) Work(ctx context.Context, slug string) (domain.Series, error) {

@@ -433,6 +433,24 @@ func TestSearch_TypedOptions(t *testing.T) {
 	}
 }
 
+func TestSearch_SoftOptionalQuery(t *testing.T) {
+	f := newFixture(t)
+	f.run(f.slash(aliceID, commandWaifu, subSearch, nil))
+	if got := editContent(f.api.lastEdit()); got != "<@alice> "+msgSearchNeedsInput {
+		t.Errorf("no input = %q", got)
+	}
+	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optQuery, " ")))
+	if got := editContent(f.api.lastEdit()); got != "<@alice> "+msgSearchNeedsInput {
+		t.Errorf("blank query = %q", got)
+	}
+	f.source.EXPECT().ListCharacters(mock.Anything, 1).Return(app.SearchPage{Page: 1, LastPage: 1, Items: []domain.WaifuSummary{summary("zeta"), summary("alpha")}}, nil).Once()
+	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optSort, "name_asc")))
+	e := f.api.lastEdit()
+	if editContent(e) != "<@alice>\nPage 1 out of 2" || (*e.Embeds)[0].Title != "Name alpha" {
+		t.Errorf("browse with option = %q %q", editContent(e), (*e.Embeds)[0].Title)
+	}
+}
+
 func TestSearch_Autocomplete(t *testing.T) {
 	f := newFixture(t)
 	focused := strOpt(optQuery, "ranked-00")
@@ -569,8 +587,54 @@ func TestSeriesSearch_Autocomplete(t *testing.T) {
 		t.Error("lookup failure should yield no choices")
 	}
 	seriesOpts := f.bot.Commands()[2].Options[0].Options
-	if len(seriesOpts) != 6 || !seriesOpts[0].Required || !seriesOpts[0].Autocomplete {
+	if len(seriesOpts) != 6 || seriesOpts[0].Required || !seriesOpts[0].Autocomplete {
 		t.Errorf("series options = %+v", seriesOpts)
+	}
+}
+
+func TestSeriesSearch_SoftOptionalQuery(t *testing.T) {
+	f := newFixture(t)
+	f.run(f.slash(aliceID, commandSeries, subSearch, nil))
+	if got := editContent(f.api.lastEdit()); got != "<@alice> "+msgSeriesNeedsInput {
+		t.Errorf("no input = %q", got)
+	}
+	f.run(f.slash(aliceID, commandSeries, subSearch, nil, strOpt(optQuery, "   ")))
+	if got := editContent(f.api.lastEdit()); got != "<@alice> "+msgSeriesNeedsInput {
+		t.Errorf("blank query = %q", got)
+	}
+
+	catalog := []domain.Series{{Slug: "bleach", Name: "Bleach", URL: "https://www.mywaifulist.moe/series/bleach", Description: "soul reapers"}, {Slug: "akira", Name: "Akira"}}
+	f.source.EXPECT().ListWorks(mock.Anything, 1).Return(app.SeriesPage{Items: catalog, Page: 1, LastPage: 1}, nil).Times(2)
+	ic := f.slash(aliceID, commandSeries, subSearch, nil, strOpt(optSort, "name_asc"))
+	f.run(ic)
+	e := f.api.lastEdit()
+	if editContent(e) != "<@alice> Browsing series\nPage 1 out of 2" || (*e.Embeds)[0].Title != "Akira" || len(*e.Components) != 2 {
+		t.Fatalf("browse = %q title=%q rows=%d", editContent(e), (*e.Embeds)[0].Title, len(*e.Components))
+	}
+	menu := (*e.Components)[1].(discordgo.ActionsRow).Components[0].(discordgo.SelectMenu)
+	if menu.Options[1].Label != "2. Bleach" || menu.Options[1].Description != "" {
+		t.Errorf("series select = %+v", menu.Options)
+	}
+	msg := f.message("msg-" + ic.ID)
+	f.run(f.click(aliceID, msg, pagerPrefix+pagerNext))
+	if r := f.api.lastRespond(); r.Data.Embeds[0].Title != "Bleach" || r.Data.Embeds[0].URL != "https://www.mywaifulist.moe/series/bleach" {
+		t.Errorf("series page 2 = %+v", r.Data.Embeds[0])
+	}
+	ranked := &discordgo.ApplicationCommandInteractionDataOption{Name: optRanked, Type: discordgo.ApplicationCommandOptionBoolean, Value: true}
+	f.run(f.slash(aliceID, commandSeries, subSearch, nil, ranked))
+	if !strings.HasPrefix(editContent(f.api.lastEdit()), "<@alice> Browsing series") {
+		t.Error("any option should allow browsing")
+	}
+
+	f.source.EXPECT().ListWorks(mock.Anything, 1).Return(app.SeriesPage{Page: 1, LastPage: 1}, nil).Once()
+	f.run(f.slash(aliceID, commandSeries, subSearch, nil, ranked))
+	if got := editContent(f.api.lastEdit()); got != "<@alice> "+msgSeriesNotFound {
+		t.Errorf("empty catalog = %q", got)
+	}
+	f.source.EXPECT().ListWorks(mock.Anything, 1).Return(app.SeriesPage{}, errors.New("boom")).Once()
+	f.run(f.slash(aliceID, commandSeries, subSearch, nil, ranked))
+	if got := editContent(f.api.lastEdit()); got != "<@alice> "+msgUnexpected {
+		t.Errorf("browse error = %q", got)
 	}
 }
 

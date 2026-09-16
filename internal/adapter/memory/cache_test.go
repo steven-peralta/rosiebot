@@ -42,7 +42,7 @@ func TestWaifuCache(t *testing.T) {
 	if _, err := c.GetSeries(ctx, "s"); !errors.Is(err, app.ErrNotFound) {
 		t.Fatalf("series miss = %v", err)
 	}
-	if err := c.PutSeries(ctx, "s", []domain.Series{{Slug: "re-zero"}}, clock.now); err != nil {
+	if err := c.PutSeries(ctx, "s", []domain.Series{{Slug: "re-zero"}}, 1, clock.now); err != nil {
 		t.Fatal(err)
 	}
 	if got, err := c.GetSeries(ctx, "s"); err != nil || len(got.Series) != 1 {

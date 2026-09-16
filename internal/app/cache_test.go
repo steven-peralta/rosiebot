@@ -129,7 +129,7 @@ func (brokenCache) GetSeries(context.Context, string) (app.CachedSeries, error) 
 	return app.CachedSeries{}, errors.New("disk on fire")
 }
 
-func (brokenCache) PutSeries(context.Context, string, []domain.Series, time.Time) error {
+func (brokenCache) PutSeries(context.Context, string, []domain.Series, int, time.Time) error {
 	return errors.New("disk on fire")
 }
 
@@ -253,6 +253,36 @@ func TestCachedSource_SeriesSearchCached(t *testing.T) {
 	broken := app.NewCachedSource(f.source, brokenCache{}, f.clock, app.CacheConfig{}, nil)
 	f.source.EXPECT().SearchWorks(mock.Anything, "x").Return([]domain.Series{{Slug: "x"}}, nil).Once()
 	if got, err := broken.SearchWorks(f.ctx, "x"); err != nil || len(got) != 1 {
+		t.Errorf("broken cache should fall through: %v %v", got, err)
+	}
+}
+
+func TestCachedSource_ListWorksCached(t *testing.T) {
+	f := newCacheFixture(t)
+	page := app.SeriesPage{Items: []domain.Series{{Slug: "a"}}, Page: 2, LastPage: 9}
+	f.source.EXPECT().ListWorks(mock.Anything, 2).Return(page, nil).Once()
+	for range 2 {
+		got, err := f.cached.ListWorks(f.ctx, 2)
+		if err != nil || got.LastPage != 9 || got.Page != 2 || len(got.Items) != 1 {
+			t.Fatalf("list works = %+v %v", got, err)
+		}
+	}
+	f.clock.Advance(app.DefaultSearchTTL + time.Second)
+	f.source.EXPECT().ListWorks(mock.MatchedBy(app.IsBackground), 2).Return(app.SeriesPage{Items: []domain.Series{{Slug: "a"}, {Slug: "b"}}, Page: 2, LastPage: 10}, nil).Once()
+	if stale, err := f.cached.ListWorks(f.ctx, 2); err != nil || len(stale.Items) != 1 {
+		t.Fatalf("stale = %+v %v", stale, err)
+	}
+	f.cached.Flush()
+	if fresh, err := f.cached.ListWorks(f.ctx, 2); err != nil || len(fresh.Items) != 2 || fresh.LastPage != 10 {
+		t.Fatalf("refreshed = %+v %v", fresh, err)
+	}
+	f.source.EXPECT().ListWorks(mock.Anything, 3).Return(app.SeriesPage{}, errors.New("boom")).Once()
+	if _, err := f.cached.ListWorks(f.ctx, 3); err == nil {
+		t.Error("miss errors should propagate")
+	}
+	broken := app.NewCachedSource(f.source, brokenCache{}, f.clock, app.CacheConfig{}, nil)
+	f.source.EXPECT().ListWorks(mock.Anything, 1).Return(page, nil).Once()
+	if got, err := broken.ListWorks(f.ctx, 1); err != nil || len(got.Items) != 1 {
 		t.Errorf("broken cache should fall through: %v %v", got, err)
 	}
 }

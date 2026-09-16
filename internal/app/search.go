@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/steven-peralta/rosiebot/internal/domain"
@@ -126,6 +127,33 @@ func (s *SearchService) Series(ctx context.Context, term string, q Query) (Serie
 		return SeriesResult{}, ErrNotFound
 	}
 	return s.charactersOf(ctx, works[0], q)
+}
+
+func (s *SearchService) BrowseSeries(ctx context.Context, q Query) ([]domain.Series, error) {
+	var out []domain.Series
+	for page := 1; page <= MaxListPages; page++ {
+		sp, err := s.source.ListWorks(ctx, page)
+		if err != nil {
+			return nil, fmt.Errorf("list works page %d: %w", page, err)
+		}
+		out = append(out, sp.Items...)
+		if page >= sp.LastPage || len(sp.Items) == 0 {
+			break
+		}
+	}
+	if q.SortBy == SortName {
+		sort.SliceStable(out, func(i, j int) bool {
+			a, b := strings.ToLower(out[i].Name), strings.ToLower(out[j].Name)
+			if q.Descending {
+				return b < a
+			}
+			return a < b
+		})
+	}
+	if len(out) == 0 {
+		return nil, ErrNotFound
+	}
+	return out, nil
 }
 
 func (s *SearchService) SeriesBySlug(ctx context.Context, slug string, q Query) (SeriesResult, error) {

@@ -137,6 +137,14 @@ func TestSource_SearchWorks(t *testing.T) {
 	}
 }
 
+func TestSource_ListWorks(t *testing.T) {
+	s := newServer(t)
+	got, err := newClient(t, s).ListWorks(context.Background(), 3)
+	if err != nil || got.Page != 3 || got.LastPage != 40 || len(got.Items) != 1 || got.Items[0].Slug != "series-3" {
+		t.Errorf("list works = %+v %v", got, err)
+	}
+}
+
 func TestSource_Work(t *testing.T) {
 	s := newServer(t)
 	got, err := newClient(t, s).Work(context.Background(), "re-zero")
@@ -284,6 +292,9 @@ func TestLive_Smoke(t *testing.T) {
 		t.Errorf("search works: %+v %v", w, err)
 	} else if detail, err := c.Work(ctx, w[0].Slug); err != nil || detail.Slug != w[0].Slug {
 		t.Errorf("work detail: %+v %v", detail, err)
+	}
+	if sp, err := c.ListWorks(ctx, 1); err != nil || len(sp.Items) == 0 || sp.LastPage < 2 {
+		t.Errorf("list works: %+v %v", sp, err)
 	}
 	if p, err := c.PopularPage(ctx, 1000); err != nil || len(p.Rows) == 0 || p.LastPage == 0 {
 		t.Errorf("popular: %+v %v", p, err)

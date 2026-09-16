@@ -76,7 +76,7 @@ func starChoices() []*discordgo.ApplicationCommandOptionChoice {
 func searchOptions() []*discordgo.ApplicationCommandOption {
 	minZero := float64(0)
 	return []*discordgo.ApplicationCommandOption{
-		{Type: discordgo.ApplicationCommandOptionString, Name: optQuery, Description: "Name to search for; leave empty to browse the catalog", Autocomplete: true, MaxLength: 100},
+		{Type: discordgo.ApplicationCommandOptionString, Name: optQuery, Description: "Name to search for; leave empty with another option to browse the catalog", Autocomplete: true, MaxLength: 100},
 		{Type: discordgo.ApplicationCommandOptionString, Name: optSort, Description: "Order of the results", Choices: choicesFor(searchSorts)},
 		{Type: discordgo.ApplicationCommandOptionInteger, Name: optMinStars, Description: "Only characters rated at least this many stars", Choices: starChoices()},
 		{Type: discordgo.ApplicationCommandOptionInteger, Name: optMinLikes, Description: "Only characters with at least this many likes", MinValue: &minZero},
@@ -87,7 +87,7 @@ func searchOptions() []*discordgo.ApplicationCommandOption {
 
 func seriesOptions() []*discordgo.ApplicationCommandOption {
 	opts := searchOptions()
-	opts[0] = &discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optQuery, Description: "Series name to search for", Required: true, Autocomplete: true, MaxLength: 100}
+	opts[0] = &discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optQuery, Description: "Series name to search for; leave empty with another option to browse the catalog", Autocomplete: true, MaxLength: 100}
 	opts[1].Description = "Order of the series' characters (default: most liked first)"
 	return opts
 }
@@ -148,6 +148,15 @@ func queryFromOptions(opts []*discordgo.ApplicationCommandInteractionDataOption)
 		q = q.WithFilter(app.SortRank, ">=", 1)
 	}
 	return q
+}
+
+func hasSearchOptions(opts []*discordgo.ApplicationCommandInteractionDataOption) bool {
+	for _, name := range []string{optSort, optMinStars, optMinLikes, optMaxTrash, optRanked} {
+		if option(opts, name) != nil {
+			return true
+		}
+	}
+	return false
 }
 
 func directSlug(query string) (string, bool) {

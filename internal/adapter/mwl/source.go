@@ -72,6 +72,26 @@ func (c *Client) SearchWorks(ctx context.Context, term string) ([]domain.Series,
 	return seriesListFromDTO(env.Data), nil
 }
 
+func (c *Client) ListWorks(ctx context.Context, page int) (app.SeriesPage, error) {
+	var env struct {
+		Data []seriesDTO `json:"data"`
+		Meta *pageMeta   `json:"meta"`
+	}
+	if err := c.getJSON(ctx, "work", pageQuery(page, nil), &env); err != nil {
+		return app.SeriesPage{}, err
+	}
+	out := app.SeriesPage{Items: seriesListFromDTO(env.Data), Page: page, LastPage: page}
+	if env.Meta != nil {
+		if env.Meta.CurrentPage > 0 {
+			out.Page = env.Meta.CurrentPage
+		}
+		if env.Meta.LastPage > 0 {
+			out.LastPage = env.Meta.LastPage
+		}
+	}
+	return out, nil
+}
+
 func (c *Client) Work(ctx context.Context, slug string) (domain.Series, error) {
 	var env struct {
 		Data seriesDTO `json:"data"`

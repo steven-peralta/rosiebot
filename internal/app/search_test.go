@@ -294,3 +294,27 @@ func TestSearchService_SuggestSeries(t *testing.T) {
 		t.Error("expected error")
 	}
 }
+
+func TestSearchService_BrowseSeries(t *testing.T) {
+	f := newFixture(t)
+	svc := app.NewSearchService(f.source, f.ranking)
+	f.source.EXPECT().ListWorks(mock.Anything, 1).Return(app.SeriesPage{Items: []domain.Series{{Slug: "b", Name: "Bleach"}}, Page: 1, LastPage: 2}, nil).Once()
+	f.source.EXPECT().ListWorks(mock.Anything, 2).Return(app.SeriesPage{Items: []domain.Series{{Slug: "a", Name: "Akira"}}, Page: 2, LastPage: 2}, nil).Once()
+	got, err := svc.BrowseSeries(f.ctx, app.Query{SortBy: app.SortName, Descending: true})
+	if err != nil || len(got) != 2 || got[0].Slug != "b" {
+		t.Errorf("browse desc = %v %v", got, err)
+	}
+	f.source.EXPECT().ListWorks(mock.Anything, 1).Return(app.SeriesPage{Items: []domain.Series{{Slug: "b", Name: "Bleach"}, {Slug: "a", Name: "Akira"}}, Page: 1, LastPage: 1}, nil).Once()
+	got, err = svc.BrowseSeries(f.ctx, app.Query{SortBy: app.SortName})
+	if err != nil || got[0].Slug != "a" {
+		t.Errorf("browse asc = %v %v", got, err)
+	}
+	f.source.EXPECT().ListWorks(mock.Anything, 1).Return(app.SeriesPage{Page: 1, LastPage: 1}, nil).Once()
+	if _, err := svc.BrowseSeries(f.ctx, app.Query{}); !errors.Is(err, app.ErrNotFound) {
+		t.Errorf("empty catalog = %v", err)
+	}
+	f.source.EXPECT().ListWorks(mock.Anything, 1).Return(app.SeriesPage{}, errors.New("boom")).Once()
+	if _, err := svc.BrowseSeries(f.ctx, app.Query{}); err == nil {
+		t.Error("expected error")
+	}
+}

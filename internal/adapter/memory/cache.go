@@ -77,10 +77,10 @@ func (c *WaifuCache) GetSeries(ctx context.Context, key string) (app.CachedSerie
 	return entry, nil
 }
 
-func (c *WaifuCache) PutSeries(ctx context.Context, key string, series []domain.Series, fetchedAt time.Time) error {
+func (c *WaifuCache) PutSeries(ctx context.Context, key string, series []domain.Series, lastPage int, fetchedAt time.Time) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.series[key] = app.CachedSeries{Series: series, FetchedAt: fetchedAt}
+	c.series[key] = app.CachedSeries{Series: series, LastPage: lastPage, FetchedAt: fetchedAt}
 	return nil
 }
 

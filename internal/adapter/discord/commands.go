@@ -194,7 +194,12 @@ func (b *Bot) search(ctx context.Context, ic *interaction, opts []*discordgo.App
 		b.edit(ic, mention(ic.userID()), []*discordgo.MessageEmbed{b.waifuEmbed(w, b.cfg.Clock.Now().Sub(start))}, nil)
 		return
 	}
-	results, err := b.svc.Search.Waifus(ctx, queryFromOptions(opts))
+	query := queryFromOptions(opts)
+	if strings.TrimSpace(query.Term) == "" && !hasSearchOptions(opts) {
+		b.editText(ic, mention(ic.userID())+" "+msgSearchNeedsInput)
+		return
+	}
+	results, err := b.svc.Search.Waifus(ctx, query)
 	if errors.Is(err, app.ErrNotFound) {
 		b.editText(ic, mention(ic.userID())+" "+msgWaifuNotFound)
 		return
@@ -268,6 +273,23 @@ func (b *Bot) seriesSearch(ctx context.Context, ic *interaction, opts []*discord
 	}
 	start := b.cfg.Clock.Now()
 	query := queryFromOptions(opts)
+	if strings.TrimSpace(query.Term) == "" {
+		if !hasSearchOptions(opts) {
+			b.editText(ic, mention(ic.userID())+" "+msgSeriesNeedsInput)
+			return
+		}
+		series, err := b.svc.Search.BrowseSeries(ctx, query)
+		if errors.Is(err, app.ErrNotFound) {
+			b.editText(ic, mention(ic.userID())+" "+msgSeriesNotFound)
+			return
+		}
+		if err != nil {
+			b.failed(ic, "series browse", err)
+			return
+		}
+		b.openPager(ctx, ic, mention(ic.userID())+" Browsing series", pagesFromSeries(series), false, b.cfg.Clock.Now().Sub(start))
+		return
+	}
 	var (
 		res app.SeriesResult
 		err error

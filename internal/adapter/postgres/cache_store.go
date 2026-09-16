@@ -95,15 +95,20 @@ func (s *CacheStore) GetSeries(ctx context.Context, key string) (app.CachedSerie
 	if err != nil {
 		return app.CachedSeries{}, fmt.Errorf("postgres: get cached series: %w", err)
 	}
-	var series []domain.Series
-	if err := json.Unmarshal(row.Payload, &series); err != nil {
+	var entry seriesPayload
+	if err := json.Unmarshal(row.Payload, &entry); err != nil {
 		return app.CachedSeries{}, fmt.Errorf("postgres: decode cached series %s: %w", key, err)
 	}
-	return app.CachedSeries{Series: series, FetchedAt: row.FetchedAt}, nil
+	return app.CachedSeries{Series: entry.Series, LastPage: entry.LastPage, FetchedAt: row.FetchedAt}, nil
 }
 
-func (s *CacheStore) PutSeries(ctx context.Context, key string, series []domain.Series, fetchedAt time.Time) error {
-	payload, err := json.Marshal(series)
+type seriesPayload struct {
+	Series   []domain.Series `json:"series"`
+	LastPage int             `json:"last_page"`
+}
+
+func (s *CacheStore) PutSeries(ctx context.Context, key string, series []domain.Series, lastPage int, fetchedAt time.Time) error {
+	payload, err := json.Marshal(seriesPayload{Series: series, LastPage: lastPage})
 	if err != nil {
 		return fmt.Errorf("postgres: encode cached series: %w", err)
 	}

@@ -116,7 +116,7 @@ func TestCacheStore_SeriesRoundTrip(t *testing.T) {
 		t.Fatalf("miss = %v", err)
 	}
 	series := []domain.Series{{Slug: "re-zero", Name: "Re:Zero", URL: "u"}, {Slug: "other", Name: "Other"}}
-	if err := s.PutSeries(ctx, "works|re zero|1", series, now); err != nil {
+	if err := s.PutSeries(ctx, "works|re zero|1", series, 1, now); err != nil {
 		t.Fatal(err)
 	}
 	got, err := s.GetSeries(ctx, "works|re zero|1")
@@ -134,7 +134,7 @@ func TestCacheStore_SeriesRoundTrip(t *testing.T) {
 	if _, err := s.GetSeries(cancelled, "x"); err == nil {
 		t.Error("GetSeries on cancelled context")
 	}
-	if err := s.PutSeries(cancelled, "x", series, now); err == nil {
+	if err := s.PutSeries(cancelled, "x", series, 1, now); err == nil {
 		t.Error("PutSeries on cancelled context")
 	}
 }

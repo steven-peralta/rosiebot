@@ -13,6 +13,12 @@ type SearchPage struct {
 	LastPage int
 }
 
+type SeriesPage struct {
+	Items    []domain.Series
+	Page     int
+	LastPage int
+}
+
 type PopularPage struct {
 	Rows     []domain.WaifuSummary
 	Page     int
@@ -26,6 +32,7 @@ type WaifuSource interface {
 	ListCharacters(ctx context.Context, page int) (SearchPage, error)
 	SearchWaifus(ctx context.Context, term string, page int) (SearchPage, error)
 	SearchWorks(ctx context.Context, term string) ([]domain.Series, error)
+	ListWorks(ctx context.Context, page int) (SeriesPage, error)
 	Work(ctx context.Context, slug string) (domain.Series, error)
 	WorkCharacters(ctx context.Context, slug string, page int) (SearchPage, error)
 	PopularPage(ctx context.Context, page int) (PopularPage, error)
