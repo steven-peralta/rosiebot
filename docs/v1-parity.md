@@ -55,6 +55,8 @@ Deliberate departures from v1 are listed at the bottom with their reasons.
 | | | Decline text `You denied the trade.` | `discord.TestTrade_AcceptDeclineFlow` |
 | | | Offer is re-validated at accept time under lock | `app.TestTradeService_AcceptRevalidates`, `postgres.TestServices_TradeAcceptRaceOnPostgres`, `postgres.TestRepo_TransferAndLock` |
 | | | Duplicate slugs in a list count once | `domain.TestNormaliseTrade_Dedupe` |
+| | | Without `give`/`receive` an ephemeral trade builder opens; Send posts the same public offer | `discord.TestTradeBuilder_Flow`, `discord.TestTradeBuilder_ValidationCancelAndExpiry`, `discord.TestTradeBuilder_PagingAndFilter` |
+| | | Target can Counter an offer; the original is closed and marked countered | `discord.TestTradeBuilder_Counter` |
 | sell button | Sell Waifu context menu | Confirm text `Are you sure you want to sell your <name> for 100 coins?` | `discord.TestSell_ContextMenuFlow` |
 | | | Selling removes the waifu and credits 100 coins atomically | `app.TestInventoryService_Sell`, `postgres.TestRepo_Inventory`, `postgres.TestRepo_SellOwned_ConcurrentSellsOnce` |
 | | | Non-owned target rejected | `app.TestInventoryService_Sell`, `discord.TestSell_ContextMenuFlow` |
@@ -125,6 +127,7 @@ The v2 card is a deliberate redesign (owner request during live testing on 2026-
 | Waifu card redesigned: grouped Vitals/Details fields, stats line, author line, tier colours | Owner found the v1 grid of twelve emoji fields hard to read |
 | Selling a waifu that is currently shown in a live pager re-renders that pager at the same index | New behaviour enabled by the context-menu design |
 | Target player row created on demand for trades | v1 failed the trade when the target had never used the bot |
+| `/waifu trade <user>` with no lists opens an ephemeral builder (paged multi-select menus for both collections, name filter modal, Send/Cancel); offers gain a Counter button that opens the builder prefilled with the reversed offer | Owner asked for a trading interface built on Discord interactions instead of comma-separated slugs (`discord.TestTradeBuilder_*`) |
 | MWL client: only `/meta/random` and `/meta/daily` go through the ogen-generated client; character detail, search, work characters and rankings are hand-rolled over the same transport | The checked-in spec declares nullable fields as non-null strings (`appearances[].studio`, `release_date`) so the generated decoders reject live payloads, and it declares no `page` parameters. See `internal/adapter/mwl/source.go` |
 
 ## Manual release checklist (dev guild)
@@ -139,6 +142,7 @@ The v2 card is a deliberate redesign (owner request during live testing on 2026-
 - [ ] `/waifu random`
 - [ ] `/waifu today` twice in a row and after a restart
 - [ ] `/waifu trade` accept, decline, gift, and a conflict after the counterparty sells
+- [ ] `/waifu trade @user` with no lists: builder paging on a collection over 25, filter modal, Cancel, Send, then Counter from the other account
 - [ ] Sell Waifu on an owned page, a roll result, a non-owned search result, and a non-bot message
 - [ ] DM gating for roll, daily, coins, owned, trade; search, random, today, series work in DMs
 - [ ] Ranking load log line with row count and cutoff page

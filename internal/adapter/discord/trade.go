@@ -14,6 +14,7 @@ import (
 const (
 	tradePrefix     = "trade:"
 	tradeAccept     = "accept"
+	tradeCounter    = "counter"
 	tradeDecline    = "decline"
 	maxChoices      = 25
 	maxChoiceLength = 100
@@ -37,50 +38,46 @@ func splitSlugs(s string) []string {
 func tradeComponents() []discordgo.MessageComponent {
 	return []discordgo.MessageComponent{discordgo.ActionsRow{Components: []discordgo.MessageComponent{
 		discordgo.Button{Style: discordgo.SuccessButton, CustomID: tradePrefix + tradeAccept, Emoji: &discordgo.ComponentEmoji{Name: "✅"}, Label: "Accept"},
+		discordgo.Button{Style: discordgo.PrimaryButton, CustomID: tradePrefix + tradeCounter, Emoji: &discordgo.ComponentEmoji{Name: "🔁"}, Label: "Counter"},
 		discordgo.Button{Style: discordgo.DangerButton, CustomID: tradePrefix + tradeDecline, Emoji: &discordgo.ComponentEmoji{Name: "🚫"}, Label: "Decline"},
 	}}}
 }
 
-func bulletNames(items []domain.OwnedWaifu) string {
-	if len(items) == 0 {
-		return "*nothing*"
-	}
-	lines := make([]string, len(items))
-	for i, it := range items {
-		lines[i] = "• " + it.Name
-	}
-	return strings.Join(lines, "\n")
-}
-
-func tradeEmbed(give, receive []domain.OwnedWaifu) *discordgo.MessageEmbed {
-	return &discordgo.MessageEmbed{
-		Title: "Trade Request",
-		Color: brandingColor,
-		Fields: []*discordgo.MessageEmbedField{
-			{Name: "**Has**", Value: bulletNames(give), Inline: true},
-			{Name: "**Wants**", Value: bulletNames(receive), Inline: true},
-		},
-	}
-}
-
 func (b *Bot) trade(ctx context.Context, ic *interaction, opts []*discordgo.ApplicationCommandInteractionDataOption, resolved *discordgo.ApplicationCommandInteractionDataResolved) {
-	if !b.deferReply(ic, false) {
+	target := resolvedUser(opts, resolved, optUser)
+	give, receive := splitSlugs(stringOption(opts, optGive)), splitSlugs(stringOption(opts, optReceive))
+	builder := len(give)+len(receive) == 0
+	respond := func(text string) {
+		if builder {
+			b.replyEphemeral(ic, text)
+		} else {
+			b.editText(ic, text)
+		}
+	}
+	if !builder && !b.deferReply(ic, false) {
 		return
 	}
-	target := resolvedUser(opts, resolved, optUser)
 	if target == nil {
-		b.editText(ic, mention(ic.userID())+" "+msgUserNotFound)
+		respond(mention(ic.userID()) + " " + msgUserNotFound)
 		return
 	}
 	if target.Bot {
-		b.editText(ic, mention(ic.userID())+" You can't trade with a bot.")
+		respond(mention(ic.userID()) + " You can't trade with a bot.")
+		return
+	}
+	if target.ID == ic.userID() {
+		respond(mention(ic.userID()) + " You can't trade with yourself.")
+		return
+	}
+	if builder {
+		b.openTradeBuilder(ctx, ic, target, domain.TradeOffer{}, "")
 		return
 	}
 	offer := domain.TradeOffer{
 		Sender:  ic.key(),
 		Target:  domain.PlayerKey{GuildID: ic.GuildID, UserID: target.ID},
-		Give:    splitSlugs(stringOption(opts, optGive)),
-		Receive: splitSlugs(stringOption(opts, optReceive)),
+		Give:    give,
+		Receive: receive,
 	}
 	proposal, err := b.svc.Trade.Propose(ctx, offer)
 	if err != nil {
@@ -93,7 +90,7 @@ func (b *Bot) trade(ctx context.Context, ic *interaction, opts []*discordgo.Appl
 		return
 	}
 	content := fmt.Sprintf(msgTradeOfferFmt, mention(target.ID), mention(ic.userID()))
-	msg := b.edit(ic, content, []*discordgo.MessageEmbed{tradeEmbed(proposal.Give, proposal.Receive)}, tradeComponents())
+	msg := b.edit(ic, content, []*discordgo.MessageEmbed{b.tradeEmbed(proposal.Give, proposal.Receive)}, tradeComponents())
 	if msg == nil {
 		return
 	}
@@ -122,6 +119,12 @@ func (b *Bot) tradeButton(ctx context.Context, ic *interaction, action string) {
 	}
 	user := ic.userID()
 	switch action {
+	case tradeCounter:
+		if user != s.TargetID {
+			b.replyEphemeral(ic, msgNotYourMenu)
+			return
+		}
+		b.startCounter(ctx, ic, s)
 	case tradeDecline:
 		if user != s.TargetID && user != s.SenderID {
 			b.replyEphemeral(ic, msgNotYourMenu)

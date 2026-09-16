@@ -14,7 +14,7 @@ A Discord waifu gacha bot backed by [MyWaifuList](https://mywaifulist.moe). Roll
 | `/waifu list [series] [sort] [min_stars] [min_likes] [max_trash] [ranked]` | Browse without a name: the ranked set (every character with more than 100 votes) by rank, or one series, filtered and sorted the same way as search. |
 | `/waifu random` | Show a random waifu. |
 | `/waifu today` | Show the waifu of the day. |
-| `/waifu trade <user> [give] [receive]` | Offer a trade or a gift; the other side confirms with a button. |
+| `/waifu trade <user> [give] [receive]` | Offer a trade or a gift. With no `give` or `receive`, a private trade builder opens: pick from both collections with paged menus, filter by name, then Send. The other side can Accept, Counter (opens the builder prefilled with the reversed offer), or Decline. |
 | `/w …` | Shorthand for every `/waifu` subcommand. |
 | **Sell Waifu** (message context menu) | Right-click any bot message showing a waifu you own to sell it for 100 coins. |
 

@@ -28,10 +28,11 @@ const (
 )
 
 type call struct {
-	kind    string
-	resp    *discordgo.InteractionResponse
-	edit    *discordgo.WebhookEdit
-	msgEdit *discordgo.MessageEdit
+	kind     string
+	resp     *discordgo.InteractionResponse
+	edit     *discordgo.WebhookEdit
+	msgEdit  *discordgo.MessageEdit
+	followup *discordgo.WebhookParams
 }
 
 type fakeAPI struct {
@@ -82,11 +83,25 @@ func (f *fakeAPI) InteractionResponseEdit(i *discordgo.Interaction, e *discordgo
 	return msg, nil
 }
 
-func (f *fakeAPI) FollowupMessageCreate(*discordgo.Interaction, bool, *discordgo.WebhookParams, ...discordgo.RequestOption) (*discordgo.Message, error) {
+func (f *fakeAPI) FollowupMessageCreate(i *discordgo.Interaction, _ bool, p *discordgo.WebhookParams, _ ...discordgo.RequestOption) (*discordgo.Message, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.calls = append(f.calls, call{kind: "followup"})
-	return &discordgo.Message{}, nil
+	f.calls = append(f.calls, call{kind: "followup", followup: p})
+	id := "fu-" + i.ID
+	msg := &discordgo.Message{ID: id, ChannelID: i.ChannelID, Author: &discordgo.User{ID: botID}, Content: p.Content, Embeds: p.Embeds, Components: p.Components}
+	f.messages[id] = msg
+	return msg, nil
+}
+
+func (f *fakeAPI) lastFollowup() *discordgo.WebhookParams {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for i := len(f.calls) - 1; i >= 0; i-- {
+		if f.calls[i].kind == "followup" {
+			return f.calls[i].followup
+		}
+	}
+	return nil
 }
 
 func (f *fakeAPI) ChannelMessage(_, messageID string, _ ...discordgo.RequestOption) (*discordgo.Message, error) {

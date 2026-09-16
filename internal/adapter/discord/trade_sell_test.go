@@ -32,7 +32,6 @@ func TestTrade_ViolationTexts(t *testing.T) {
 		"target has":     {give: "shared", want: "<@alice>, <@bob> already owns shared."},
 		"target lacks":   {receive: "ghost", want: "<@alice>, <@bob> doesn't own ghost."},
 		"sender has":     {receive: "shared", want: "<@alice>, you already own shared."},
-		"empty":          {want: "<@alice> A trade needs at least one waifu on either side."},
 		"overlap":        {give: "rem", receive: "rem", want: "<@alice> A waifu can't be on both sides of a trade."},
 		"dedupe + valid": {give: "rem, rem", receive: "ram", want: "<@bob>: <@alice> is offering the following trade request:"},
 	}

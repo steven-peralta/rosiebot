@@ -14,6 +14,7 @@ type SessionKind int
 const (
 	SessionPager SessionKind = iota
 	SessionTrade
+	SessionTradeBuilder
 )
 
 type tradeState int32
@@ -43,6 +44,7 @@ type Session struct {
 	Receive   []domain.OwnedWaifu
 	SenderID  string
 	TargetID  string
+	Builder   *tradeBuilder
 	ExpiresAt time.Time
 	ttl       time.Duration
 	state     atomic.Int32

@@ -237,6 +237,8 @@ func (b *Bot) handleComponent(ctx context.Context, ic *interaction) {
 		b.tradeButton(ctx, ic, strings.TrimPrefix(id, tradePrefix))
 	case strings.HasPrefix(id, rollPrefix):
 		b.rollAgain(ctx, ic, strings.TrimPrefix(id, rollPrefix))
+	case strings.HasPrefix(id, builderPrefix):
+		b.builderComponent(ctx, ic, strings.TrimPrefix(id, builderPrefix))
 	default:
 		b.log.Warn("unknown component", "custom_id", id)
 	}
@@ -244,8 +246,11 @@ func (b *Bot) handleComponent(ctx context.Context, ic *interaction) {
 
 func (b *Bot) handleModal(ctx context.Context, ic *interaction) {
 	data := ic.ModalSubmitData()
-	if data.CustomID == pagerJumpModal {
+	switch data.CustomID {
+	case pagerJumpModal:
 		b.pagerJumpSubmit(ctx, ic, data)
+	case builderFilterModal:
+		b.builderFilterSubmit(ic, data)
 	}
 }
 
