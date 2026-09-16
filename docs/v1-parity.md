@@ -113,7 +113,10 @@ The v2 card is a deliberate redesign (owner request during live testing on 2026-
 | Trades may be one-sided gifts | Owner decision |
 | Sell is a message context menu command instead of a reaction button | Owner decision; works on any bot message showing a waifu and survives restarts |
 | Reroll on already-owned capped at 5 attempts, uncharged on exhaustion | v1 recursed without bound |
-| `sortby:[+-]field` and `field:<op>value` search tokens apply to the fetched result set (up to 30 results), fields limited to likes, trash, total, name | The MWL search endpoint is term only, so sorting and filtering happen client-side over what it returns (`app.TestSearchService_SortAndFilterTokens`, `TestParseQuery`) |
+| v1 `sortby:`/`field:` text tokens replaced by typed slash options: `sort` (choice list), `min_stars` (1..5), `min_likes`, `max_trash`, `ranked`; sorting and filtering apply to the fetched result set (up to 30 results) | Owner asked to leverage slash command features instead of a text mini-language; the MWL search endpoint is term only (`app.TestSearchService_SortAndFilters`, `TestQuery_Apply`, `discord.TestSearch_TypedOptions`) |
+| `query` autocompletes character names from the in-memory ranking table; picking a suggestion opens that card directly | `discord.TestSearch_Autocomplete`, `app.TestSearchService_Suggest` |
+| Result pagers include a select menu of up to 25 results for direct jumps, alongside the v1-style buttons and jump modal | `discord.TestOwned_SortAndSelectMenu` |
+| `/waifu owned` gains a `sort` option (oldest, newest, rank, likes, name); default stays acquisition order | `discord.TestOwned_SortAndSelectMenu` |
 | `studio:` branch of series search dropped | Broken in v1 (crashed on no match) |
 | Numeric MWL id no longer shown in the embed title | The current MWL API does not expose it on character detail |
 | Waifu card redesigned: grouped Vitals/Details fields, stats line, author line, tier colours | Owner found the v1 grid of twelve emoji fields hard to read |

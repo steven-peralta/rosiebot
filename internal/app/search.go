@@ -30,13 +30,12 @@ func NewSearchService(source WaifuSource, ranking RankingProvider) *SearchServic
 	return &SearchService{source: source, ranking: ranking}
 }
 
-func (s *SearchService) Waifus(ctx context.Context, raw string) ([]domain.WaifuSummary, error) {
-	query, err := ParseQuery(raw)
-	if err != nil {
-		return nil, err
-	}
+func (s *SearchService) Waifus(ctx context.Context, query Query) ([]domain.WaifuSummary, error) {
 	query.Term = cleanTerm(query.Term)
-	var results []domain.WaifuSummary
+	var (
+		results []domain.WaifuSummary
+		err     error
+	)
 	if query.Empty() {
 		results, err = s.collect(ctx, MaxListPages, func(page int) (SearchPage, error) { return s.source.ListCharacters(ctx, page) })
 		if err != nil {
@@ -80,6 +79,37 @@ func (s *SearchService) Random(ctx context.Context) (domain.Waifu, error) {
 
 func (s *SearchService) Detail(ctx context.Context, slug string) (domain.Waifu, error) {
 	return s.source.Get(ctx, slug)
+}
+
+func (s *SearchService) Suggest(prefix string, limit int) []domain.RankedWaifu {
+	prefix = strings.ToLower(strings.TrimSpace(prefix))
+	if s.ranking == nil {
+		return nil
+	}
+	current := s.ranking.Current()
+	if current == nil || limit <= 0 {
+		return nil
+	}
+	var out []domain.RankedWaifu
+	for _, row := range current.Rows() {
+		if prefix != "" && !matchesName(row.WaifuSummary, prefix) {
+			continue
+		}
+		out = append(out, row)
+		if len(out) >= limit {
+			break
+		}
+	}
+	return out
+}
+
+func matchesName(w domain.WaifuSummary, prefix string) bool {
+	for _, n := range []string{w.Name, w.OriginalName, w.RomajiName, w.Slug} {
+		if n != "" && strings.Contains(strings.ToLower(n), prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *SearchService) Series(ctx context.Context, term string) (SeriesResult, error) {

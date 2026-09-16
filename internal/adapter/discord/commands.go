@@ -97,7 +97,34 @@ func (b *Bot) owned(ctx context.Context, ic *interaction, opts []*discordgo.Appl
 		b.editText(ic, mention(ic.userID())+" "+msgOwnsNothing)
 		return
 	}
-	b.openPager(ctx, ic, mention(ic.userID()), pagesFromOwned(items), key.UserID == ic.userID(), b.cfg.Clock.Now().Sub(start))
+	pages := pagesFromOwned(sortOwned(items, stringOption(opts, optSort), app.LookupFrom(b.svc.Ranking)))
+	b.openPager(ctx, ic, mention(ic.userID()), pages, key.UserID == ic.userID(), b.cfg.Clock.Now().Sub(start))
+}
+
+func sortOwned(items []domain.OwnedWaifu, sortValue string, lookup app.RankLookup) []domain.OwnedWaifu {
+	choice, ok := findSort(ownedSorts, sortValue)
+	if !ok || choice.value == "oldest" {
+		return items
+	}
+	if choice.value == "newest" {
+		out := make([]domain.OwnedWaifu, len(items))
+		for i, it := range items {
+			out[len(items)-1-i] = it
+		}
+		return out
+	}
+	bySlug := make(map[string]domain.OwnedWaifu, len(items))
+	summaries := make([]domain.WaifuSummary, len(items))
+	for i, it := range items {
+		bySlug[it.Slug] = it
+		summaries[i] = domain.WaifuSummary{Slug: it.Slug, UUID: it.UUID, Name: it.Name, PictureURL: it.PictureURL, Likes: it.Likes, Trash: it.Trash}
+	}
+	sorted := app.Query{SortBy: choice.field, Descending: choice.desc}.Apply(summaries, lookup)
+	out := make([]domain.OwnedWaifu, len(sorted))
+	for i, s := range sorted {
+		out[i] = bySlug[s.Slug]
+	}
+	return out
 }
 
 func (b *Bot) search(ctx context.Context, ic *interaction, opts []*discordgo.ApplicationCommandInteractionDataOption) {
@@ -105,13 +132,22 @@ func (b *Bot) search(ctx context.Context, ic *interaction, opts []*discordgo.App
 		return
 	}
 	start := b.cfg.Clock.Now()
-	results, err := b.svc.Search.Waifus(ctx, stringOption(opts, optQuery))
-	if errors.Is(err, app.ErrNotFound) {
-		b.editText(ic, mention(ic.userID())+" "+msgWaifuNotFound)
+	if slug, ok := directSlug(stringOption(opts, optQuery)); ok {
+		w, err := b.svc.Search.Detail(ctx, slug)
+		if errors.Is(err, app.ErrNotFound) {
+			b.editText(ic, mention(ic.userID())+" "+msgWaifuNotFound)
+			return
+		}
+		if err != nil {
+			b.failed(ic, "search", err)
+			return
+		}
+		b.edit(ic, mention(ic.userID()), []*discordgo.MessageEmbed{b.waifuEmbed(w, b.cfg.Clock.Now().Sub(start))}, nil)
 		return
 	}
-	if errors.Is(err, app.ErrBadQuery) {
-		b.editText(ic, mention(ic.userID())+" "+err.Error())
+	results, err := b.svc.Search.Waifus(ctx, queryFromOptions(opts))
+	if errors.Is(err, app.ErrNotFound) {
+		b.editText(ic, mention(ic.userID())+" "+msgWaifuNotFound)
 		return
 	}
 	if err != nil {
@@ -119,6 +155,23 @@ func (b *Bot) search(ctx context.Context, ic *interaction, opts []*discordgo.App
 		return
 	}
 	b.openPager(ctx, ic, mention(ic.userID()), pagesFromSummaries(results), false, b.cfg.Clock.Now().Sub(start))
+}
+
+func (b *Bot) searchAutocomplete(ic *interaction, opts []*discordgo.ApplicationCommandInteractionDataOption) {
+	typed := ""
+	for _, o := range opts {
+		if o.Focused && o.Name == optQuery {
+			typed, _ = o.Value.(string)
+		}
+	}
+	choices := suggestionChoices(b.svc.Search.Suggest(typed, maxSuggestions))
+	err := b.s.InteractionRespond(ic.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionApplicationCommandAutocompleteResult,
+		Data: &discordgo.InteractionResponseData{Choices: choices},
+	})
+	if err != nil {
+		b.log.Warn("search autocomplete respond failed", "err", err)
+	}
 }
 
 func (b *Bot) random(ctx context.Context, ic *interaction) {

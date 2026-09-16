@@ -187,7 +187,7 @@ func TestOwned_EmptyAndPager(t *testing.T) {
 	ic := f.slash(aliceID, commandWaifu, subOwned, nil)
 	f.run(ic)
 	e := f.api.lastEdit()
-	if editContent(e) != "<@alice>\nPage 1 out of 3" || len(*e.Components) != 2 || (*e.Embeds)[0].Title != "Name a" {
+	if editContent(e) != "<@alice>\nPage 1 out of 3" || len(*e.Components) != 3 || (*e.Embeds)[0].Title != "Name a" {
 		t.Errorf("first page = %q comps=%v title=%q", editContent(e), hasComponents(*e.Components), (*e.Embeds)[0].Title)
 	}
 	msgID := "msg-" + ic.ID
@@ -255,6 +255,48 @@ func TestOwned_EmptyAndPager(t *testing.T) {
 	}
 }
 
+func TestOwned_SortAndSelectMenu(t *testing.T) {
+	f := newFixture(t)
+	f.give(aliceID, "b-old", "a-new")
+	f.run(f.slash(aliceID, commandWaifu, subOwned, nil))
+	if (*f.api.lastEdit().Embeds)[0].Title != "Name b-old" {
+		t.Error("default order should be acquisition order, oldest first")
+	}
+	f.run(f.slash(aliceID, commandWaifu, subOwned, nil, strOpt(optSort, "newest")))
+	if (*f.api.lastEdit().Embeds)[0].Title != "Name a-new" {
+		t.Error("newest first")
+	}
+	ic := f.slash(aliceID, commandWaifu, subOwned, nil, strOpt(optSort, "name_asc"))
+	f.run(ic)
+	e := f.api.lastEdit()
+	if (*e.Embeds)[0].Title != "Name a-new" || len(*e.Components) != 3 {
+		t.Fatalf("name sort = %q rows=%d", (*e.Embeds)[0].Title, len(*e.Components))
+	}
+	menu := (*e.Components)[1].(discordgo.ActionsRow).Components[0].(discordgo.SelectMenu)
+	if menu.CustomID != pagerPrefix+pagerSelect || len(menu.Options) != 2 || menu.Options[1].Label != "2. Name b-old" || !menu.Options[0].Default {
+		t.Errorf("select menu = %+v", menu)
+	}
+	msg := f.message("msg-" + ic.ID)
+	pick := f.click(aliceID, msg, pagerPrefix+pagerSelect)
+	pick.Data = discordgo.MessageComponentInteractionData{CustomID: pagerPrefix + pagerSelect, Values: []string{"1"}}
+	f.run(pick)
+	if r := f.api.lastRespond(); r.Data.Content != "<@alice>\nPage 2 out of 2" || r.Data.Embeds[0].Title != "Name b-old" {
+		t.Errorf("select jump = %+v", r.Data)
+	}
+	bad := f.click(aliceID, msg, pagerPrefix+pagerSelect)
+	bad.Data = discordgo.MessageComponentInteractionData{CustomID: pagerPrefix + pagerSelect, Values: []string{"nope"}}
+	f.api.reset()
+	f.run(bad)
+	if len(f.api.calls) != 0 {
+		t.Error("malformed select value should be ignored")
+	}
+	f.give(aliceID, "ranked-001")
+	f.run(f.slash(aliceID, commandWaifu, subOwned, nil, strOpt(optSort, "rank_asc")))
+	if (*f.api.lastEdit().Embeds)[0].Title != "Name ranked-001" {
+		t.Error("rank sort should put the ranked waifu first")
+	}
+}
+
 func TestOwned_SingleResultHasNoPager(t *testing.T) {
 	f := newFixture(t)
 	f.give(aliceID, "only")
@@ -293,6 +335,71 @@ func TestSearch_Texts(t *testing.T) {
 	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optQuery, "boom")))
 	if got := editContent(f.api.lastEdit()); got != "<@alice> "+msgUnexpected {
 		t.Errorf("error = %q", got)
+	}
+}
+
+func TestSearch_TypedOptions(t *testing.T) {
+	f := newFixture(t)
+	items := []domain.WaifuSummary{summary("low"), summary("ranked-004"), summary("ranked-001")}
+	items[0].Likes = 1
+	f.source.EXPECT().SearchWaifus(mock.Anything, "r", 1).Return(app.SearchPage{Page: 1, LastPage: 1, Items: items}, nil).Times(3)
+
+	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optQuery, "r"), strOpt(optSort, "rank_asc")))
+	if (*f.api.lastEdit().Embeds)[0].Title != "Name ranked-001" {
+		t.Errorf("rank sort first page = %q", (*f.api.lastEdit().Embeds)[0].Title)
+	}
+	minStars := &discordgo.ApplicationCommandInteractionDataOption{Name: optMinStars, Type: discordgo.ApplicationCommandOptionInteger, Value: float64(5)}
+	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optQuery, "r"), minStars))
+	if got := editContent(f.api.lastEdit()); got != "<@alice>" {
+		t.Errorf("min_stars should leave a single result: %q", got)
+	}
+	ranked := &discordgo.ApplicationCommandInteractionDataOption{Name: optRanked, Type: discordgo.ApplicationCommandOptionBoolean, Value: true}
+	minLikes := &discordgo.ApplicationCommandInteractionDataOption{Name: optMinLikes, Type: discordgo.ApplicationCommandOptionInteger, Value: float64(5)}
+	maxTrash := &discordgo.ApplicationCommandInteractionDataOption{Name: optMaxTrash, Type: discordgo.ApplicationCommandOptionInteger, Value: float64(1)}
+	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optQuery, "r"), ranked, minLikes, maxTrash))
+	if got := editContent(f.api.lastEdit()); got != "<@alice>\nPage 1 out of 2" {
+		t.Errorf("ranked+likes+trash filters = %q", got)
+	}
+
+	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optQuery, slugChoicePrefix+"rem")))
+	e := f.api.lastEdit()
+	if (*e.Embeds)[0].Title != "Name rem" || hasComponents(*e.Components) {
+		t.Errorf("direct slug should open one card: %+v", e)
+	}
+	f.source.ExpectedCalls = nil
+	f.source.EXPECT().Get(mock.Anything, "ghost").Return(domain.Waifu{}, app.ErrNotFound).Once()
+	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optQuery, slugChoicePrefix+"ghost")))
+	if got := editContent(f.api.lastEdit()); got != "<@alice> "+msgWaifuNotFound {
+		t.Errorf("missing direct slug = %q", got)
+	}
+	f.source.EXPECT().Get(mock.Anything, "boom").Return(domain.Waifu{}, errors.New("boom")).Once()
+	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optQuery, slugChoicePrefix+"boom")))
+	if got := editContent(f.api.lastEdit()); got != "<@alice> "+msgUnexpected {
+		t.Errorf("direct slug error = %q", got)
+	}
+}
+
+func TestSearch_Autocomplete(t *testing.T) {
+	f := newFixture(t)
+	focused := strOpt(optQuery, "ranked-00")
+	focused.Focused = true
+	ic := f.slash(aliceID, commandWaifu, subSearch, nil, focused)
+	ic.Type = discordgo.InteractionApplicationCommandAutocomplete
+	f.run(ic)
+	r := f.api.lastRespond()
+	if r.Type != discordgo.InteractionApplicationCommandAutocompleteResult || len(r.Data.Choices) != 10 {
+		t.Fatalf("choices = %+v", r)
+	}
+	if r.Data.Choices[0].Value != slugChoicePrefix+"ranked-000" || !strings.HasPrefix(r.Data.Choices[0].Name, "Ranked 000 · ★") {
+		t.Errorf("first choice = %+v", r.Data.Choices[0])
+	}
+	f.ranking.Set(nil)
+	f.run(ic)
+	if len(f.api.lastRespond().Data.Choices) != 0 {
+		t.Error("no ranking means no suggestions")
+	}
+	if len(f.bot.Commands()[0].Options[4].Options) != 6 {
+		t.Errorf("search should expose six options: %d", len(f.bot.Commands()[0].Options[4].Options))
 	}
 }
 

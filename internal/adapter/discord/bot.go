@@ -119,8 +119,9 @@ func (b *Bot) Commands() []*discordgo.ApplicationCommand {
 			sub(subRoll, "Roll for a waifu"),
 			sub(subDaily, "Get your daily dose of waifu coins"),
 			sub(subCoins, "See how many coins you or another user has", userOpt("Whose balance to show")),
-			sub(subOwned, "See the waifus that you or another user owns", userOpt("Whose collection to show")),
-			sub(subSearch, "Search for a waifu", queryOpt("Name, plus optional sortby:-rank or likes:>100 tokens; empty lists the catalog", false)),
+			sub(subOwned, "See the waifus that you or another user owns", userOpt("Whose collection to show"),
+				&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optSort, Description: "Order of the collection", Choices: choicesFor(ownedSorts)}),
+			sub(subSearch, "Search for a waifu", searchOptions()...),
 			sub(subRandom, "Pull a random waifu"),
 			sub(subToday, "Show the waifu of the day"),
 			sub(subTrade, "Trade waifus with another user",
@@ -261,8 +262,14 @@ func (b *Bot) handleModal(ctx context.Context, ic *interaction) {
 func (b *Bot) handleAutocomplete(ctx context.Context, ic *interaction) {
 	data := ic.ApplicationCommandData()
 	sub, opts := subcommand(data)
-	if (data.Name == commandWaifu || data.Name == commandWAlias) && sub == subTrade {
+	if data.Name != commandWaifu && data.Name != commandWAlias {
+		return
+	}
+	switch sub {
+	case subTrade:
 		b.tradeAutocomplete(ctx, ic, opts, data.Resolved)
+	case subSearch:
+		b.searchAutocomplete(ic, opts)
 	}
 }
 

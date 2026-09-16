@@ -1,16 +1,11 @@
 package app
 
 import (
-	"errors"
-	"fmt"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/steven-peralta/rosiebot/internal/domain"
 )
-
-var ErrBadQuery = errors.New("bad query")
 
 type SortField string
 
@@ -50,71 +45,11 @@ type Query struct {
 	Filters    []Filter
 }
 
-func (q Query) Empty() bool { return q.Term == "" }
+func (q Query) Empty() bool { return strings.TrimSpace(q.Term) == "" }
 
-func ParseQuery(raw string) (Query, error) {
-	var q Query
-	var words []string
-	for _, tok := range strings.Fields(raw) {
-		field, value, hasColon := strings.Cut(tok, ":")
-		if !hasColon {
-			words = append(words, tok)
-			continue
-		}
-		field = strings.ToLower(field)
-		if field == "sortby" {
-			desc := false
-			switch {
-			case strings.HasPrefix(value, "-"):
-				desc, value = true, value[1:]
-			case strings.HasPrefix(value, "+"):
-				value = value[1:]
-			}
-			sf, ok := parseSortField(value)
-			if !ok {
-				return Query{}, fmt.Errorf("%w: unknown sort field %q (use likes, trash, total, rank, stars, or name)", ErrBadQuery, value)
-			}
-			q.SortBy, q.Descending = sf, desc
-			continue
-		}
-		sf, ok := parseSortField(field)
-		if !ok || sf == SortName {
-			return Query{}, fmt.Errorf("%w: unknown filter %q (use likes, trash, total, rank, or stars)", ErrBadQuery, field)
-		}
-		op := "="
-		for _, candidate := range []string{"<=", ">=", "<", ">", "="} {
-			if strings.HasPrefix(value, candidate) {
-				op, value = candidate, value[len(candidate):]
-				break
-			}
-		}
-		n, err := strconv.Atoi(value)
-		if err != nil {
-			return Query{}, fmt.Errorf("%w: %s needs a number, got %q", ErrBadQuery, field, value)
-		}
-		q.Filters = append(q.Filters, Filter{Field: sf, Op: op, Value: n})
-	}
-	q.Term = strings.Join(words, " ")
-	return q, nil
-}
-
-func parseSortField(s string) (SortField, bool) {
-	switch strings.ToLower(s) {
-	case "likes", "like":
-		return SortLikes, true
-	case "trash":
-		return SortTrash, true
-	case "total", "votes":
-		return SortTotal, true
-	case "name":
-		return SortName, true
-	case "rank", "position":
-		return SortRank, true
-	case "stars", "star", "tier":
-		return SortStars, true
-	default:
-		return SortNone, false
-	}
+func (q Query) WithFilter(field SortField, op string, value int) Query {
+	q.Filters = append(q.Filters, Filter{Field: field, Op: op, Value: value})
+	return q
 }
 
 func fieldValue(w domain.WaifuSummary, f SortField, lookup RankLookup) (int, bool) {

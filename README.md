@@ -9,12 +9,13 @@ A Discord waifu gacha bot backed by [MyWaifuList](https://mywaifulist.moe). Roll
 | `/waifu roll` | Spend 200 coins on a random waifu. 12% chance of a critical roll from the ranked set, 1% chance of the waifu of the day. |
 | `/waifu daily` | Claim 400 coins once per day (window resets at 10:00 bot time), with a chance to double or quintuple. |
 | `/waifu coins [user]` | Show a balance. |
-| `/waifu owned [user]` | Browse a collection, one waifu per page. |
-| `/waifu search <query>` | Search waifus. |
+| `/waifu owned [user] [sort]` | Browse a collection, one waifu per page, with a Sell button on your own. |
+| `/waifu search [query] [sort] [min_stars] [min_likes] [max_trash] [ranked]` | Search waifus with name autocomplete; leave the query empty to browse the catalog. |
 | `/waifu random` | Show a random waifu. |
 | `/waifu today` | Show the waifu of the day. |
 | `/waifu trade <user> [give] [receive]` | Offer a trade or a gift; the other side confirms with a button. |
 | `/series search <query>` | Find a series and list its waifus by likes. |
+| `/w …` | Shorthand for every `/waifu` subcommand. |
 | **Sell Waifu** (message context menu) | Right-click any bot message showing a waifu you own to sell it for 100 coins. |
 
 Character details and search pages are cached in Postgres and refreshed lazily: a stale entry is served immediately while one background request refreshes it, so nothing depends on a scheduled job. Random rolls and the waifu of the day always go to the live API, so newly submitted characters appear as soon as MyWaifuList lists them.

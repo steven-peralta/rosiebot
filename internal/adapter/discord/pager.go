@@ -19,12 +19,17 @@ const (
 	pagerJump      = "jump"
 	pagerNext      = "next"
 	pagerLast      = "last"
+	pagerSelect    = "select"
 	pagerJumpModal = "pg:jumpmodal"
 	pagerJumpInput = "page"
 	janitorPeriod  = time.Minute
 )
 
 func pagerComponents(page, total int, sellable bool) []discordgo.MessageComponent {
+	return pagerRows(page, total, sellable, nil)
+}
+
+func pagerRows(page, total int, sellable bool, options []discordgo.SelectMenuOption) []discordgo.MessageComponent {
 	var rows []discordgo.MessageComponent
 	if total > 1 {
 		btn := func(id, emoji string, disabled bool) discordgo.Button {
@@ -37,6 +42,14 @@ func pagerComponents(page, total int, sellable bool) []discordgo.MessageComponen
 			btn(pagerNext, "▶️", page >= total-1),
 			btn(pagerLast, "⏭", page >= total-1),
 		}})
+		if len(options) > 1 {
+			rows = append(rows, discordgo.ActionsRow{Components: []discordgo.MessageComponent{discordgo.SelectMenu{
+				MenuType:    discordgo.StringSelectMenu,
+				CustomID:    pagerPrefix + pagerSelect,
+				Placeholder: "Jump to a result",
+				Options:     options,
+			}}})
+		}
 	}
 	if sellable {
 		rows = append(rows, discordgo.ActionsRow{Components: []discordgo.MessageComponent{sellAskButton()}})
@@ -94,7 +107,30 @@ func (b *Bot) renderPage(ctx context.Context, s *Session, elapsed time.Duration)
 	if len(s.Pages) > 1 {
 		content = strings.TrimRight(content, "\n") + fmt.Sprintf("\nPage %d out of %d", s.Page+1, len(s.Pages))
 	}
-	return content, []*discordgo.MessageEmbed{embed}, pagerComponents(s.Page, len(s.Pages), s.Sellable)
+	return content, []*discordgo.MessageEmbed{embed}, pagerRows(s.Page, len(s.Pages), s.Sellable, b.selectOptions(s))
+}
+
+func (b *Bot) selectOptions(s *Session) []discordgo.SelectMenuOption {
+	if len(s.Pages) <= 1 {
+		return nil
+	}
+	ranking := b.svc.Ranking.Current()
+	limit := min(len(s.Pages), maxSuggestions)
+	options := make([]discordgo.SelectMenuOption, 0, limit)
+	for i := 0; i < limit; i++ {
+		summary := s.Pages[i].summary
+		desc := fmt.Sprintf("❤️ %s · 🗑️ %s", thousands(summary.Likes), thousands(summary.Trash))
+		if r, ok := ranking.Lookup(summary.Slug); ok && r.Stars > 0 {
+			desc = strings.Repeat("★", r.Stars) + " #" + thousands(r.Position) + " · " + desc
+		}
+		options = append(options, discordgo.SelectMenuOption{
+			Label:       truncate(fmt.Sprintf("%d. %s", i+1, summary.Name), maxChoiceLength),
+			Description: truncate(desc, maxChoiceLength),
+			Value:       strconv.Itoa(i),
+			Default:     i == s.Page,
+		})
+	}
+	return options
 }
 
 func (b *Bot) openPager(ctx context.Context, ic *interaction, content string, pages []pageRef, sellable bool, elapsed time.Duration) {
@@ -136,6 +172,16 @@ func (b *Bot) pagerButton(ctx context.Context, ic *interaction, action string) {
 		return
 	}
 	switch action {
+	case pagerSelect:
+		values := ic.MessageComponentData().Values
+		if len(values) != 1 {
+			return
+		}
+		n, err := strconv.Atoi(values[0])
+		if err != nil {
+			return
+		}
+		s.Page = n
 	case pagerFirst:
 		s.Page = 0
 	case pagerPrev:
