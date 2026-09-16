@@ -1,0 +1,219 @@
+package memory
+
+import (
+	"context"
+	"errors"
+	"testing"
+	"time"
+
+	"github.com/steven-peralta/rosiebot/internal/app"
+	"github.com/steven-peralta/rosiebot/internal/domain"
+)
+
+var (
+	alice = domain.PlayerKey{GuildID: "g", UserID: "alice"}
+	bob   = domain.PlayerKey{GuildID: "g", UserID: "bob"}
+)
+
+func owned(slug string, at time.Time) domain.OwnedWaifu {
+	return domain.OwnedWaifu{Slug: slug, Name: "N " + slug, AcquiredAt: at}
+}
+
+func TestPlayerStore_TxRollsBackOnError(t *testing.T) {
+	ctx := context.Background()
+	s := NewPlayerStore(nil)
+	if _, err := s.EnsurePlayer(ctx, alice); err != nil {
+		t.Fatal(err)
+	}
+	boom := errors.New("boom")
+	err := s.WithinTx(ctx, func(r app.PlayerRepo) error {
+		if _, ok, err := r.DebitCoins(ctx, alice, 50); err != nil || !ok {
+			t.Fatal("debit inside tx failed")
+		}
+		if _, err := r.AddOwned(ctx, alice, owned("rem", time.Now())); err != nil {
+			t.Fatal(err)
+		}
+		return boom
+	})
+	if !errors.Is(err, boom) {
+		t.Fatalf("err = %v", err)
+	}
+	p, _ := s.GetPlayer(ctx, alice)
+	n, _ := s.CountOwned(ctx, alice)
+	if p.Coins != domain.StartingCoins || n != 0 {
+		t.Errorf("rollback failed: coins=%d owned=%d", p.Coins, n)
+	}
+}
+
+func TestPlayerStore_TxCommits(t *testing.T) {
+	ctx := context.Background()
+	s := NewPlayerStore(nil)
+	err := s.WithinTx(ctx, func(r app.PlayerRepo) error {
+		if _, err := r.EnsurePlayer(ctx, alice); err != nil {
+			return err
+		}
+		if _, err := r.GetPlayer(ctx, alice); err != nil {
+			return err
+		}
+		if _, err := r.LockPlayers(ctx, alice); err != nil {
+			return err
+		}
+		if _, err := r.AddOwned(ctx, alice, owned("rem", time.Now())); err != nil {
+			return err
+		}
+		if _, err := r.GetOwned(ctx, alice, "rem"); err != nil {
+			return err
+		}
+		if _, _, err := r.ClaimDaily(ctx, alice, 400, time.Now().Add(-time.Hour), time.Now()); err != nil {
+			return err
+		}
+		if _, err := r.ListOwned(ctx, alice, "", 0); err != nil {
+			return err
+		}
+		if n, err := r.CountOwned(ctx, alice); err != nil || n != 1 {
+			t.Errorf("count = %d, %v", n, err)
+		}
+		if _, ok, err := r.SellOwned(ctx, alice, "rem", 100); err != nil || !ok {
+			t.Errorf("sell = %v, %v", ok, err)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, _ := s.GetPlayer(ctx, alice)
+	if p.Coins != domain.StartingCoins+400+100 {
+		t.Errorf("coins = %d", p.Coins)
+	}
+}
+
+func TestPlayerStore_UnknownPlayerBehaviour(t *testing.T) {
+	ctx := context.Background()
+	s := NewPlayerStore(nil)
+	if _, err := s.GetPlayer(ctx, alice); !errors.Is(err, app.ErrNotFound) {
+		t.Errorf("GetPlayer = %v", err)
+	}
+	if _, err := s.LockPlayers(ctx, alice); !errors.Is(err, app.ErrNotFound) {
+		t.Errorf("LockPlayers = %v", err)
+	}
+	if _, ok, _ := s.DebitCoins(ctx, alice, 1); ok {
+		t.Error("debit of unknown player should not succeed")
+	}
+	if _, ok, _ := s.ClaimDaily(ctx, alice, 1, time.Time{}, time.Time{}); ok {
+		t.Error("claim of unknown player should not succeed")
+	}
+	if _, err := s.AddOwned(ctx, alice, owned("x", time.Time{})); !errors.Is(err, app.ErrNotFound) {
+		t.Errorf("AddOwned = %v", err)
+	}
+	if _, ok, _ := s.SellOwned(ctx, alice, "x", 1); ok {
+		t.Error("sell of unknown player should not succeed")
+	}
+	if _, err := s.GetOwned(ctx, alice, "x"); !errors.Is(err, app.ErrNotFound) {
+		t.Errorf("GetOwned = %v", err)
+	}
+}
+
+func TestPlayerStore_AddOwnedDuplicateAndTransfer(t *testing.T) {
+	ctx := context.Background()
+	s := NewPlayerStore(nil)
+	for _, k := range []domain.PlayerKey{alice, bob} {
+		if _, err := s.EnsurePlayer(ctx, k); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if ins, _ := s.AddOwned(ctx, alice, owned("rem", time.Time{})); !ins {
+		t.Fatal("first insert should succeed")
+	}
+	if ins, _ := s.AddOwned(ctx, alice, owned("rem", time.Time{})); ins {
+		t.Fatal("duplicate insert should report false")
+	}
+	if _, err := s.AddOwned(ctx, bob, owned("rem", time.Time{})); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.TransferOwned(ctx, alice, bob, []string{"rem"}); !errors.Is(err, app.ErrAlreadyOwned) {
+		t.Errorf("transfer onto duplicate = %v", err)
+	}
+	moved, err := s.TransferOwned(ctx, alice, bob, []string{"missing"})
+	if err != nil || moved != 0 {
+		t.Errorf("transfer of missing = %d, %v", moved, err)
+	}
+	players, err := s.LockPlayers(ctx, bob, alice)
+	if err != nil || players[0].Key != alice || players[1].Key != bob {
+		t.Errorf("LockPlayers order = %+v, %v", players, err)
+	}
+	slugs, _ := s.OwnedSlugs(ctx, bob, []string{"rem", "nope"})
+	if len(slugs) != 1 || slugs[0] != "rem" {
+		t.Errorf("OwnedSlugs = %v", slugs)
+	}
+}
+
+func TestPlayerStore_ListOwnedPrefixAndLimit(t *testing.T) {
+	ctx := context.Background()
+	s := NewPlayerStore(nil)
+	if _, err := s.EnsurePlayer(ctx, alice); err != nil {
+		t.Fatal(err)
+	}
+	base := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	for i, slug := range []string{"rem", "ram", "emilia"} {
+		if _, err := s.AddOwned(ctx, alice, owned(slug, base.Add(time.Duration(i)*time.Minute))); err != nil {
+			t.Fatal(err)
+		}
+	}
+	all, _ := s.ListOwned(ctx, alice, "", 0)
+	if len(all) != 3 || all[0].Slug != "rem" || all[2].Slug != "emilia" {
+		t.Errorf("all = %+v", all)
+	}
+	r, _ := s.ListOwned(ctx, alice, "n r", 0)
+	if len(r) != 2 {
+		t.Errorf("prefix = %+v", r)
+	}
+	one, _ := s.ListOwned(ctx, alice, "", 1)
+	if len(one) != 1 {
+		t.Errorf("limit = %+v", one)
+	}
+	if _, ok, _ := s.SellOwned(ctx, bob, "rem", 1); ok {
+		t.Error("selling someone else's waifu should fail")
+	}
+}
+
+func TestRankingStoreAndHolder(t *testing.T) {
+	ctx := context.Background()
+	rs := NewRankingStore()
+	if _, err := rs.LoadLatest(ctx); !errors.Is(err, app.ErrNotFound) {
+		t.Errorf("empty LoadLatest = %v", err)
+	}
+	r := domain.BuildRanking([]domain.WaifuSummary{{Slug: "a", Likes: 500, Trash: 1}}, domain.DefaultMinVotes, time.Time{}, 0)
+	if err := rs.Save(ctx, r); err != nil {
+		t.Fatal(err)
+	}
+	got, err := rs.LoadLatest(ctx)
+	if err != nil || got.Len() != 1 {
+		t.Errorf("LoadLatest = %v, %v", got, err)
+	}
+	h := NewRankingHolder(nil)
+	if h.Current() != nil {
+		t.Error("holder should start empty")
+	}
+	h.Set(r)
+	if h.Current().Len() != 1 {
+		t.Error("holder should publish the ranking")
+	}
+}
+
+func TestDailyStore(t *testing.T) {
+	ctx := context.Background()
+	d := NewDailyStore()
+	day := time.Date(2026, 9, 16, 0, 0, 0, 0, time.UTC)
+	if _, err := d.Get(ctx, day); !errors.Is(err, app.ErrNotFound) {
+		t.Errorf("Get on empty = %v", err)
+	}
+	if w, err := d.Put(ctx, day, domain.WaifuSummary{Slug: "a"}); err != nil || w.Slug != "a" {
+		t.Errorf("Put = %+v, %v", w, err)
+	}
+	if w, err := d.Put(ctx, day, domain.WaifuSummary{Slug: "b"}); err != nil || w.Slug != "a" {
+		t.Errorf("second Put = %+v, %v", w, err)
+	}
+	if w, err := d.Get(ctx, day); err != nil || w.Slug != "a" {
+		t.Errorf("Get = %+v, %v", w, err)
+	}
+}

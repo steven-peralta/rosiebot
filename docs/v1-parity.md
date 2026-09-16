@@ -17,45 +17,45 @@ Deliberate departures from v1 are listed at the bottom with their reasons.
 
 | v1 | v2 | Behaviour | Proved by |
 |---|---|---|---|
-| `!wroll` | `/waifu roll` | d100 = 1 rolls the waifu of the day | `domain.TestRollKind_D100Table` |
-| | | d100 in 2..13 is a critical roll: uniform pick from the ranked set | `domain.TestRollKind_D100Table`, `domain.TestRanking_RandomAndSample` |
+| `!wroll` | `/waifu roll` | d100 = 1 rolls the waifu of the day | `domain.TestRollKind_D100Table`, `app.TestRollService_WaifuOfTheDayRoll` |
+| | | d100 in 2..13 is a critical roll: uniform pick from the ranked set | `domain.TestRollKind_D100Table`, `domain.TestRanking_RandomAndSample`, `app.TestRollService_CriticalUsesRankedSet`, `TestRollService_CriticalFallbackBeforeSnapshot` |
 | | | d100 in 14..100 is a regular roll: uniform pick from the catalog | `domain.TestRollKind_D100Table` |
-| | | Already-owned result rerolls the whole d100 | |
-| | | Balance below 200 returns `You don't have enough coins!` without an API call | |
-| | | Debit and inventory insert are atomic; concurrent rolls cannot overspend | |
+| | | Already-owned result rerolls the whole d100 | `app.TestRollService_RerollOnOwned`, `TestRollService_LostRaceRerolls`, `TestRollService_RerollCapUncharged` |
+| | | Balance below 200 returns `You don't have enough coins!` without an API call | `app.TestRollService_InsufficientCoinsNoAPICall` (text: discord phase) |
+| | | Debit and inventory insert are atomic; concurrent rolls cannot overspend | `app.TestRollService_ConcurrentDebitLosesWhenBalanceGone`, `TestRollService_DetailFailureDoesNotCharge` (Postgres race: phase 4) |
 | | | Critical prefix `:sparkles: **CRITICAL ROLL!!** :sparkles:` | |
 | | | WOTD prefix `:star2: **You rolled the Waifu of the Day. Congrats!**` | |
 | | | Trailer `Here's who you rolled:` | |
 | `!wdaily` | `/waifu daily` | d100 = 1 multiplies by 5 and shows `:sparkles: **CRITICAL ROLL!!** :sparkles:` | `domain.TestDailyMultiplier_D100Table` |
-| | | d100 in 2..21 multiplies by 2 with the same banner | `domain.TestDailyMultiplier_D100Table` |
+| | | d100 in 2..21 multiplies by 2 with the same banner | `domain.TestDailyMultiplier_D100Table`, `app.TestDailyService_Multipliers` |
 | | | Success text `You claimed :coin: N coins` | |
-| | | One claim per 10:00 window in the bot timezone | `domain.TestDailyWindowStart_AroundTen`, `TestDailyWindowStart_DST`, `TestDailyClaimAllowed` |
+| | | One claim per 10:00 window in the bot timezone | `domain.TestDailyWindowStart_AroundTen`, `TestDailyWindowStart_DST`, `TestDailyClaimAllowed`, `app.TestDailyService_ClaimOncePerWindow`, `TestDailyService_ClaimBeforeTenUsesPreviousWindow` |
 | | | Repeat claim text `You've already claimed your daily for today. You can claim again in HH:MM:SS` | |
 | `!wcoins [@user]` | `/waifu coins [user]` | `You have :coin: 1 coin` / `You have :coin: N coins` | |
 | | | Target form `<target> has :coin: N coins` | |
-| `!wowned [@user]` | `/waifu owned [user]` | Paginated, one waifu per page | |
+| `!wowned [@user]` | `/waifu owned [user]` | Paginated, one waifu per page | `app.TestInventoryService_ListOrderAndEmpty` (paging: discord phase) |
 | | | Empty inventory text `Specified user doesn't own any waifus.` | |
 | `!wsearch <q>` | `/waifu search <query>` | Paginated results, one per page | |
 | | | No match text `Waifu was not found.` | |
-| `!ssearch <q>` | `/series search <query>` | Best series match, then its characters by likes descending | |
+| `!ssearch <q>` | `/series search <query>` | Best series match, then its characters by likes descending | `app.TestSearchService_SeriesSortsCharactersByLikesAcrossPages` |
 | | | Header `Showing results for series <name>` | |
 | | | No match text `Series was not found.` | |
-| `!wrandom` | `/waifu random` | One random waifu | |
-| `!wotd` | `/waifu today` | Same waifu for the whole day across all guilds | |
-| | | Picked from ranked waifus with 1..4 stars | `domain.TestWotdEligible_StarsBetween1And4` |
+| `!wrandom` | `/waifu random` | One random waifu | `app.TestSearchService_RandomFetchesDetail` |
+| `!wotd` | `/waifu today` | Same waifu for the whole day across all guilds | `app.TestWotd_SameForWholeDayAndPersisted` |
+| | | Picked from ranked waifus with 1..4 stars | `domain.TestWotdEligible_StarsBetween1And4`, `app.TestWotd_PickHasBetween1And4Stars` |
 | | | Resets at local midnight; text `Here's the Waifu of the Day:\nRefreshes in HH:MM:SS` | |
-| | | Survives a restart | |
-| `!wtrade` | `/waifu trade <user> [give] [receive]` | Sender must own everything offered: `you don't own X` | |
-| | | Target must not own anything offered: `<target> already owns X` | |
-| | | Target must own everything requested: `<target> doesn't own X` | |
-| | | Sender must not own anything requested: `you already own X` | |
+| | | Survives a restart | `app.TestWotd_SameForWholeDayAndPersisted` |
+| `!wtrade` | `/waifu trade <user> [give] [receive]` | Sender must own everything offered: `you don't own X` | `domain.TestValidateTrade_Matrix`, `app.TestTradeService_ProposeRejections` (text: discord phase) |
+| | | Target must not own anything offered: `<target> already owns X` | `domain.TestValidateTrade_Matrix`, `app.TestTradeService_ProposeRejections` |
+| | | Target must own everything requested: `<target> doesn't own X` | `domain.TestValidateTrade_Matrix`, `app.TestTradeService_ProposeRejections` |
+| | | Sender must not own anything requested: `you already own X` | `domain.TestValidateTrade_Matrix`, `app.TestTradeService_ProposeRejections` |
 | | | Target confirms; accept text `You accepted the trade.` | |
 | | | Decline text `You denied the trade.` | |
-| | | Offer is re-validated at accept time under lock | |
+| | | Offer is re-validated at accept time under lock | `app.TestTradeService_AcceptRevalidates` (Postgres locking: phase 4) |
 | | | Duplicate slugs in a list count once | `domain.TestNormaliseTrade_Dedupe` |
 | sell button | Sell Waifu context menu | Confirm text `Are you sure you want to sell your <name> for 100 coins?` | |
-| | | Selling removes the waifu and credits 100 coins atomically | |
-| | | Non-owned target rejected | |
+| | | Selling removes the waifu and credits 100 coins atomically | `app.TestInventoryService_Sell` (Postgres CTE: phase 4) |
+| | | Non-owned target rejected | `app.TestInventoryService_Sell` |
 
 ## Ranking and stars
 
