@@ -1,0 +1,8 @@
+generator:
+  features:
+    disable_all: true
+    enable:
+      - client/request/validation
+      - paths/client
+  ignore_not_implemented:
+    - all

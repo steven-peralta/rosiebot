@@ -1,0 +1,142 @@
+version: '3'
+
+vars:
+  MODULE: github.com/steven-peralta/rosiebot
+  BIN: bin/rosiebot
+  MAIN: ./cmd/rosiebot
+  MWL_SPEC: api/mwl/openapi.json
+  MWL_GEN: internal/adapter/mwl/gen
+  PG_DIR: internal/adapter/postgres
+  MIGRATIONS: '{{.PG_DIR}}/migrations'
+  MIGRATE_BIN: bin/migrate
+  MIGRATE_TAGS: pgx5
+  MIGRATE_URL:
+    sh: printf '%s' "$DATABASE_URL" | sed -E 's#^postgres(ql)?://#pgx5://#'
+
+tasks:
+  default:
+    cmds:
+      - task: build
+
+  build:
+    desc: Compile the bot binary
+    cmds:
+      - go build -o {{.BIN}} {{.MAIN}}
+    sources:
+      - '**/*.go'
+      - go.mod
+      - go.sum
+    generates:
+      - '{{.BIN}}'
+
+  run:
+    desc: Run the bot from source
+    cmds:
+      - go run {{.MAIN}} {{.CLI_ARGS}}
+
+  test:
+    desc: Run unit tests with the race detector
+    cmds:
+      - go test -race -cover ./...
+
+  lint:
+    desc: Run golangci-lint
+    cmds:
+      - go tool golangci-lint run ./...
+
+  fmt:
+    desc: Format Go sources
+    cmds:
+      - go tool golangci-lint fmt ./...
+
+  tidy:
+    desc: Tidy go.mod and go.sum
+    cmds:
+      - go mod tidy
+
+  generate:
+    desc: Run every code generator
+    cmds:
+      - task: gen:mwl
+      - task: gen:sqlc
+      - task: gen:mocks
+
+  gen:mwl:
+    desc: Generate the MyWaifuList client from the OpenAPI spec
+    cmds:
+      - go tool ogen --target {{.MWL_GEN}} --package gen --clean --config ogen.yaml {{.MWL_SPEC}}
+    sources:
+      - '{{.MWL_SPEC}}'
+      - ogen.yaml
+    generates:
+      - '{{.MWL_GEN}}/**/*.go'
+
+  gen:sqlc:
+    desc: Generate type-safe Postgres queries
+    cmds:
+      - go tool sqlc generate
+    status:
+      - test -z "$(ls {{.PG_DIR}}/queries/*.sql 2>/dev/null)"
+
+  gen:mocks:
+    desc: Generate mocks for the application ports
+    cmds:
+      - go tool mockery
+    sources:
+      - .mockery.yaml
+      - internal/app/*.go
+    generates:
+      - internal/app/mocks/**/*.go
+
+  gen:check:
+    desc: Fail if generated code is out of date
+    cmds:
+      - task: generate
+      - git diff --exit-code -- {{.MWL_GEN}} {{.PG_DIR}}/gen internal/app/mocks
+
+  tools:migrate:
+    desc: Build the golang-migrate CLI with the pgx v5 driver (go tool cannot pass build tags)
+    cmds:
+      - go build -tags {{.MIGRATE_TAGS}} -o {{.MIGRATE_BIN}} github.com/golang-migrate/migrate/v4/cmd/migrate
+    sources:
+      - go.mod
+      - go.sum
+    generates:
+      - '{{.MIGRATE_BIN}}'
+
+  migrate:new:
+    desc: Create an up/down migration pair (task migrate:new -- <name>)
+    deps: [tools:migrate]
+    cmds:
+      - '{{.MIGRATE_BIN}} create -ext sql -dir {{.MIGRATIONS}} -seq {{.CLI_ARGS}}'
+
+  migrate:up:
+    desc: Apply all pending migrations to DATABASE_URL
+    deps: [tools:migrate]
+    cmds:
+      - '{{.MIGRATE_BIN}} -path {{.MIGRATIONS}} -database "{{.MIGRATE_URL}}" up'
+
+  migrate:down:
+    desc: Roll back the most recent migration on DATABASE_URL (task migrate:down -- <n> for more)
+    deps: [tools:migrate]
+    cmds:
+      - '{{.MIGRATE_BIN}} -path {{.MIGRATIONS}} -database "{{.MIGRATE_URL}}" down {{.CLI_ARGS | default "1"}}'
+
+  migrate:version:
+    desc: Show the current migration version on DATABASE_URL
+    deps: [tools:migrate]
+    cmds:
+      - '{{.MIGRATE_BIN}} -path {{.MIGRATIONS}} -database "{{.MIGRATE_URL}}" version'
+
+  check:
+    desc: Everything CI runs
+    cmds:
+      - task: gen:check
+      - task: lint
+      - task: test
+      - task: build
+
+  clean:
+    desc: Remove build output
+    cmds:
+      - rm -rf bin

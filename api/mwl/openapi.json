@@ -1,0 +1,4449 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "MyWaifuList API",
+    "version": "1.0.0",
+    "description": "The MyWaifuList public API. Authenticate every request with your API key in the `apikey` header (or as an `Authorization: Bearer` token), plus the `uwu: owo` header — Cloudflare rejects anything without it before it ever reaches us. Requests are rate limited to 60 per minute.\n\nKeys are available to Patreon supporters at the developer tier. Servers aren't free and we're broke bitches, so if you want in: [support us on Patreon](https://www.patreon.com/mywaifulist)."
+  },
+  "servers": [
+    {
+      "url": "https://mywaifulist.moe/api/v1"
+    }
+  ],
+  "security": [
+    {
+      "apiKey": [],
+      "uwu": []
+    }
+  ],
+  "paths": {
+    "/character": {
+      "get": {
+        "operationId": "character.index",
+        "summary": "Return waifu list",
+        "tags": [
+          "Character"
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated set of `FilteredWaifuResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/FilteredWaifuResource"
+                      }
+                    },
+                    "links": {
+                      "type": "object",
+                      "properties": {
+                        "first": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "last": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "prev": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "next": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "first",
+                        "last",
+                        "prev",
+                        "next"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "from": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 1
+                        },
+                        "last_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "links": {
+                          "type": "array",
+                          "description": "Generated paginator links.",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "active": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "url",
+                              "label",
+                              "active"
+                            ]
+                          }
+                        },
+                        "path": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "Base path for paginator generated URLs."
+                        },
+                        "per_page": {
+                          "type": "integer",
+                          "description": "Number of items shown per page.",
+                          "minimum": 0
+                        },
+                        "to": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "description": "Number of the last item in the slice.",
+                          "minimum": 1
+                        },
+                        "total": {
+                          "type": "integer",
+                          "description": "Total number of items being paginated.",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "current_page",
+                        "from",
+                        "last_page",
+                        "links",
+                        "path",
+                        "per_page",
+                        "to",
+                        "total"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "links",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/character/{identifier}": {
+      "get": {
+        "operationId": "character.show",
+        "summary": "Returns a single waifu by UUID or slug",
+        "tags": [
+          "Character"
+        ],
+        "parameters": [
+          {
+            "name": "identifier",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "`AlphaCharacterResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AlphaCharacterResource"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/character/{identifier}/images": {
+      "get": {
+        "operationId": "character.images",
+        "summary": "Returns waifu images",
+        "tags": [
+          "Character"
+        ],
+        "parameters": [
+          {
+            "name": "identifier",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/character/{identifier}/quotes": {
+      "get": {
+        "operationId": "character.quotes",
+        "summary": "Returns the character's quotes",
+        "tags": [
+          "Character"
+        ],
+        "parameters": [
+          {
+            "name": "identifier",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of `AlphaQuoteResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AlphaQuoteResource"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/character/{identifier}/seiyuu": {
+      "get": {
+        "operationId": "character.seiyuu",
+        "summary": "Returns the seiyuu who voice the character",
+        "tags": [
+          "Character"
+        ],
+        "parameters": [
+          {
+            "name": "identifier",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of `AlphaSeiyuuSummaryResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AlphaSeiyuuSummaryResource"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/meta/daily": {
+      "get": {
+        "operationId": "character.daily",
+        "summary": "Display the Waifu of the day resource",
+        "tags": [
+          "Character"
+        ],
+        "responses": {
+          "200": {
+            "description": "`AlphaCharacterSummaryResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AlphaCharacterSummaryResource"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/ModelNotFoundException"
+          }
+        }
+      }
+    },
+    "/meta/random": {
+      "get": {
+        "operationId": "character.random",
+        "summary": "Display a random Waifu resource",
+        "tags": [
+          "Character"
+        ],
+        "responses": {
+          "200": {
+            "description": "`AlphaCharacterSummaryResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AlphaCharacterSummaryResource"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/meta/trending": {
+      "get": {
+        "operationId": "character.trendingToday",
+        "tags": [
+          "Character"
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of `AlphaCharacterSummaryResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AlphaCharacterSummaryResource"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/meta/trending/week": {
+      "get": {
+        "operationId": "character.trendingWeek",
+        "tags": [
+          "Character"
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of `AlphaCharacterSummaryResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AlphaCharacterSummaryResource"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/airing/best": {
+      "get": {
+        "operationId": "character.topSeasonalBest",
+        "summary": "Returns this seasons top performing Waifus",
+        "tags": [
+          "Character"
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer"
+                        },
+                        "last_page": {
+                          "type": "integer"
+                        },
+                        "per_page": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "current_page",
+                        "last_page",
+                        "per_page",
+                        "total"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/airing/worst": {
+      "get": {
+        "operationId": "character.topSeasonalTrash",
+        "summary": "Returns the top trash from this season",
+        "tags": [
+          "Character"
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer"
+                        },
+                        "last_page": {
+                          "type": "integer"
+                        },
+                        "per_page": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "current_page",
+                        "last_page",
+                        "per_page",
+                        "total"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/airing/popular": {
+      "get": {
+        "operationId": "character.topSeasonalPopular",
+        "summary": "Returns the most voted on this season",
+        "tags": [
+          "Character"
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer"
+                        },
+                        "last_page": {
+                          "type": "integer"
+                        },
+                        "per_page": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "current_page",
+                        "last_page",
+                        "per_page",
+                        "total"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ranking/best": {
+      "get": {
+        "operationId": "character.bestWaifus",
+        "tags": [
+          "Character"
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ranking/worst": {
+      "get": {
+        "operationId": "character.worstWaifus",
+        "tags": [
+          "Character"
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ranking/popular": {
+      "get": {
+        "operationId": "character.popularWaifus",
+        "tags": [
+          "Character"
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/search": {
+      "get": {
+        "operationId": "search.search",
+        "description": "Searches characters and series in a single combined result set, sorted by relevance.",
+        "summary": "Search characters and series",
+        "tags": [
+          "Search"
+        ],
+        "parameters": [
+          {
+            "name": "term",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "$ref": "#/components/schemas/FilteredWaifuResource"
+                          },
+                          {
+                            "$ref": "#/components/schemas/FilteredSeriesResource"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationException"
+          }
+        }
+      }
+    },
+    "/search/waifus": {
+      "get": {
+        "operationId": "search.waifu",
+        "summary": "Search waifus",
+        "tags": [
+          "Search"
+        ],
+        "parameters": [
+          {
+            "name": "term",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of `FilteredWaifuResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/FilteredWaifuResource"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationException"
+          }
+        }
+      }
+    },
+    "/search/husbandos": {
+      "get": {
+        "operationId": "search.husbando",
+        "summary": "Search husbandos",
+        "tags": [
+          "Search"
+        ],
+        "parameters": [
+          {
+            "name": "term",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of `FilteredWaifuResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/FilteredWaifuResource"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationException"
+          }
+        }
+      }
+    },
+    "/search/works": {
+      "get": {
+        "operationId": "search.series",
+        "summary": "Search series",
+        "tags": [
+          "Search"
+        ],
+        "parameters": [
+          {
+            "name": "term",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of `FilteredSeriesResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/FilteredSeriesResource"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationException"
+          }
+        }
+      }
+    },
+    "/search/seiyuu": {
+      "get": {
+        "operationId": "search.seiyuu",
+        "summary": "Search seiyuu",
+        "tags": [
+          "Search"
+        ],
+        "parameters": [
+          {
+            "name": "term",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of `AlphaSeiyuuSummaryResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AlphaSeiyuuSummaryResource"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationException"
+          }
+        }
+      }
+    },
+    "/seiyuu": {
+      "get": {
+        "operationId": "seiyuu.index",
+        "summary": "Display a paginated listing of seiyuu",
+        "tags": [
+          "Seiyuu"
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated set of `AlphaSeiyuuSummaryResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AlphaSeiyuuSummaryResource"
+                      }
+                    },
+                    "links": {
+                      "type": "object",
+                      "properties": {
+                        "first": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "last": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "prev": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "next": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "first",
+                        "last",
+                        "prev",
+                        "next"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "from": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 1
+                        },
+                        "last_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "links": {
+                          "type": "array",
+                          "description": "Generated paginator links.",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "active": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "url",
+                              "label",
+                              "active"
+                            ]
+                          }
+                        },
+                        "path": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "Base path for paginator generated URLs."
+                        },
+                        "per_page": {
+                          "type": "integer",
+                          "description": "Number of items shown per page.",
+                          "minimum": 0
+                        },
+                        "to": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "description": "Number of the last item in the slice.",
+                          "minimum": 1
+                        },
+                        "total": {
+                          "type": "integer",
+                          "description": "Total number of items being paginated.",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "current_page",
+                        "from",
+                        "last_page",
+                        "links",
+                        "path",
+                        "per_page",
+                        "to",
+                        "total"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "links",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/seiyuu/{identifier}": {
+      "get": {
+        "operationId": "seiyuu.show",
+        "summary": "Display the specified seiyuu",
+        "tags": [
+          "Seiyuu"
+        ],
+        "parameters": [
+          {
+            "name": "identifier",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "`AlphaSeiyuuResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AlphaSeiyuuResource"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/seiyuu/{identifier}/characters": {
+      "get": {
+        "operationId": "seiyuu.characters",
+        "summary": "Display the characters voiced by the specified seiyuu",
+        "tags": [
+          "Seiyuu"
+        ],
+        "parameters": [
+          {
+            "name": "identifier",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated set of `AlphaCharacterSummaryResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AlphaCharacterSummaryResource"
+                      }
+                    },
+                    "links": {
+                      "type": "object",
+                      "properties": {
+                        "first": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "last": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "prev": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "next": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "first",
+                        "last",
+                        "prev",
+                        "next"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "from": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 1
+                        },
+                        "last_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "links": {
+                          "type": "array",
+                          "description": "Generated paginator links.",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "active": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "url",
+                              "label",
+                              "active"
+                            ]
+                          }
+                        },
+                        "path": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "Base path for paginator generated URLs."
+                        },
+                        "per_page": {
+                          "type": "integer",
+                          "description": "Number of items shown per page.",
+                          "minimum": 0
+                        },
+                        "to": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "description": "Number of the last item in the slice.",
+                          "minimum": 1
+                        },
+                        "total": {
+                          "type": "integer",
+                          "description": "Total number of items being paginated.",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "current_page",
+                        "from",
+                        "last_page",
+                        "links",
+                        "path",
+                        "per_page",
+                        "to",
+                        "total"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "links",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/studios": {
+      "get": {
+        "operationId": "studio.index",
+        "summary": "Display a paginated listing of studios",
+        "tags": [
+          "Studio"
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated set of `AlphaStudioResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AlphaStudioResource"
+                      }
+                    },
+                    "links": {
+                      "type": "object",
+                      "properties": {
+                        "first": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "last": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "prev": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "next": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "first",
+                        "last",
+                        "prev",
+                        "next"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "from": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 1
+                        },
+                        "last_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "links": {
+                          "type": "array",
+                          "description": "Generated paginator links.",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "active": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "url",
+                              "label",
+                              "active"
+                            ]
+                          }
+                        },
+                        "path": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "Base path for paginator generated URLs."
+                        },
+                        "per_page": {
+                          "type": "integer",
+                          "description": "Number of items shown per page.",
+                          "minimum": 0
+                        },
+                        "to": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "description": "Number of the last item in the slice.",
+                          "minimum": 1
+                        },
+                        "total": {
+                          "type": "integer",
+                          "description": "Total number of items being paginated.",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "current_page",
+                        "from",
+                        "last_page",
+                        "links",
+                        "path",
+                        "per_page",
+                        "to",
+                        "total"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "links",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/studio/{slug}": {
+      "get": {
+        "operationId": "studio.show",
+        "summary": "Display the specified studio",
+        "tags": [
+          "Studio"
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "`AlphaStudioResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AlphaStudioResource"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/studio/{slug}/works": {
+      "get": {
+        "operationId": "studio.works",
+        "summary": "Display the works produced by the specified studio",
+        "tags": [
+          "Studio"
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated set of `AlphaWorkSummaryResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AlphaWorkSummaryResource"
+                      }
+                    },
+                    "links": {
+                      "type": "object",
+                      "properties": {
+                        "first": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "last": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "prev": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "next": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "first",
+                        "last",
+                        "prev",
+                        "next"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "from": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 1
+                        },
+                        "last_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "links": {
+                          "type": "array",
+                          "description": "Generated paginator links.",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "active": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "url",
+                              "label",
+                              "active"
+                            ]
+                          }
+                        },
+                        "path": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "Base path for paginator generated URLs."
+                        },
+                        "per_page": {
+                          "type": "integer",
+                          "description": "Number of items shown per page.",
+                          "minimum": 0
+                        },
+                        "to": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "description": "Number of the last item in the slice.",
+                          "minimum": 1
+                        },
+                        "total": {
+                          "type": "integer",
+                          "description": "Total number of items being paginated.",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "current_page",
+                        "from",
+                        "last_page",
+                        "links",
+                        "path",
+                        "per_page",
+                        "to",
+                        "total"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "links",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tags": {
+      "get": {
+        "operationId": "tag.index",
+        "summary": "Display a paginated listing of tags, most used first",
+        "tags": [
+          "Tag"
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated set of `AlphaTagResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AlphaTagResource"
+                      }
+                    },
+                    "links": {
+                      "type": "object",
+                      "properties": {
+                        "first": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "last": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "prev": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "next": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "first",
+                        "last",
+                        "prev",
+                        "next"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "from": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 1
+                        },
+                        "last_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "links": {
+                          "type": "array",
+                          "description": "Generated paginator links.",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "active": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "url",
+                              "label",
+                              "active"
+                            ]
+                          }
+                        },
+                        "path": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "Base path for paginator generated URLs."
+                        },
+                        "per_page": {
+                          "type": "integer",
+                          "description": "Number of items shown per page.",
+                          "minimum": 0
+                        },
+                        "to": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "description": "Number of the last item in the slice.",
+                          "minimum": 1
+                        },
+                        "total": {
+                          "type": "integer",
+                          "description": "Total number of items being paginated.",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "current_page",
+                        "from",
+                        "last_page",
+                        "links",
+                        "path",
+                        "per_page",
+                        "to",
+                        "total"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "links",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tag/{slug}/characters": {
+      "get": {
+        "operationId": "tag.characters",
+        "summary": "Display the characters tagged with the specified tag",
+        "tags": [
+          "Tag"
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated set of `AlphaCharacterSummaryResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AlphaCharacterSummaryResource"
+                      }
+                    },
+                    "links": {
+                      "type": "object",
+                      "properties": {
+                        "first": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "last": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "prev": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "next": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "first",
+                        "last",
+                        "prev",
+                        "next"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "from": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 1
+                        },
+                        "last_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "links": {
+                          "type": "array",
+                          "description": "Generated paginator links.",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "active": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "url",
+                              "label",
+                              "active"
+                            ]
+                          }
+                        },
+                        "path": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "Base path for paginator generated URLs."
+                        },
+                        "per_page": {
+                          "type": "integer",
+                          "description": "Number of items shown per page.",
+                          "minimum": 0
+                        },
+                        "to": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "description": "Number of the last item in the slice.",
+                          "minimum": 1
+                        },
+                        "total": {
+                          "type": "integer",
+                          "description": "Total number of items being paginated.",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "current_page",
+                        "from",
+                        "last_page",
+                        "links",
+                        "path",
+                        "per_page",
+                        "to",
+                        "total"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "links",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/{id}": {
+      "get": {
+        "operationId": "user.show",
+        "summary": "Returns a user's public profile, including created, liked, and trashed waifu counts",
+        "tags": [
+          "User"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "`UserResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/UserResource"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/{id}/created": {
+      "get": {
+        "operationId": "user.created",
+        "summary": "Returns the waifus a user has submitted to the site",
+        "tags": [
+          "User"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated set of `WaifuResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/WaifuResourceCollection"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "links": {
+                          "type": "object",
+                          "properties": {
+                            "first": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "last": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "prev": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "next": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "first",
+                            "last",
+                            "prev",
+                            "next"
+                          ]
+                        },
+                        "meta": {
+                          "type": "object",
+                          "properties": {
+                            "current_page": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "from": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ],
+                              "minimum": 1
+                            },
+                            "last_page": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "links": {
+                              "type": "array",
+                              "description": "Generated paginator links.",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "url": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "active": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "url",
+                                  "label",
+                                  "active"
+                                ]
+                              }
+                            },
+                            "path": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "description": "Base path for paginator generated URLs."
+                            },
+                            "per_page": {
+                              "type": "integer",
+                              "description": "Number of items shown per page.",
+                              "minimum": 0
+                            },
+                            "to": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ],
+                              "description": "Number of the last item in the slice.",
+                              "minimum": 1
+                            },
+                            "total": {
+                              "type": "integer",
+                              "description": "Total number of items being paginated.",
+                              "minimum": 0
+                            }
+                          },
+                          "required": [
+                            "current_page",
+                            "from",
+                            "last_page",
+                            "links",
+                            "path",
+                            "per_page",
+                            "to",
+                            "total"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "links",
+                        "meta"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/{id}/like": {
+      "get": {
+        "operationId": "user.like",
+        "summary": "Returns the waifus a user has liked",
+        "tags": [
+          "User"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated set of `WaifuResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/WaifuResourceCollection"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "links": {
+                          "type": "object",
+                          "properties": {
+                            "first": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "last": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "prev": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "next": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "first",
+                            "last",
+                            "prev",
+                            "next"
+                          ]
+                        },
+                        "meta": {
+                          "type": "object",
+                          "properties": {
+                            "current_page": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "from": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ],
+                              "minimum": 1
+                            },
+                            "last_page": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "links": {
+                              "type": "array",
+                              "description": "Generated paginator links.",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "url": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "active": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "url",
+                                  "label",
+                                  "active"
+                                ]
+                              }
+                            },
+                            "path": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "description": "Base path for paginator generated URLs."
+                            },
+                            "per_page": {
+                              "type": "integer",
+                              "description": "Number of items shown per page.",
+                              "minimum": 0
+                            },
+                            "to": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ],
+                              "description": "Number of the last item in the slice.",
+                              "minimum": 1
+                            },
+                            "total": {
+                              "type": "integer",
+                              "description": "Total number of items being paginated.",
+                              "minimum": 0
+                            }
+                          },
+                          "required": [
+                            "current_page",
+                            "from",
+                            "last_page",
+                            "links",
+                            "path",
+                            "per_page",
+                            "to",
+                            "total"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "links",
+                        "meta"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/{id}/trash": {
+      "get": {
+        "operationId": "user.trash",
+        "summary": "Returns the waifus a user has trashed",
+        "tags": [
+          "User"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated set of `WaifuResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/WaifuResourceCollection"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "links": {
+                          "type": "object",
+                          "properties": {
+                            "first": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "last": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "prev": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "next": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "first",
+                            "last",
+                            "prev",
+                            "next"
+                          ]
+                        },
+                        "meta": {
+                          "type": "object",
+                          "properties": {
+                            "current_page": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "from": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ],
+                              "minimum": 1
+                            },
+                            "last_page": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "links": {
+                              "type": "array",
+                              "description": "Generated paginator links.",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "url": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "active": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "url",
+                                  "label",
+                                  "active"
+                                ]
+                              }
+                            },
+                            "path": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "description": "Base path for paginator generated URLs."
+                            },
+                            "per_page": {
+                              "type": "integer",
+                              "description": "Number of items shown per page.",
+                              "minimum": 0
+                            },
+                            "to": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ],
+                              "description": "Number of the last item in the slice.",
+                              "minimum": 1
+                            },
+                            "total": {
+                              "type": "integer",
+                              "description": "Total number of items being paginated.",
+                              "minimum": 0
+                            }
+                          },
+                          "required": [
+                            "current_page",
+                            "from",
+                            "last_page",
+                            "links",
+                            "path",
+                            "per_page",
+                            "to",
+                            "total"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "links",
+                        "meta"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/{id}/seiyuu": {
+      "get": {
+        "operationId": "user.seiyuu",
+        "summary": "Returns the seiyuu (voice actors) a user has favorited",
+        "tags": [
+          "User"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated set of `AlphaSeiyuuSummaryResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AlphaSeiyuuSummaryResource"
+                      }
+                    },
+                    "links": {
+                      "type": "object",
+                      "properties": {
+                        "first": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "last": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "prev": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "next": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "first",
+                        "last",
+                        "prev",
+                        "next"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "from": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 1
+                        },
+                        "last_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "links": {
+                          "type": "array",
+                          "description": "Generated paginator links.",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "active": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "url",
+                              "label",
+                              "active"
+                            ]
+                          }
+                        },
+                        "path": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "Base path for paginator generated URLs."
+                        },
+                        "per_page": {
+                          "type": "integer",
+                          "description": "Number of items shown per page.",
+                          "minimum": 0
+                        },
+                        "to": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "description": "Number of the last item in the slice.",
+                          "minimum": 1
+                        },
+                        "total": {
+                          "type": "integer",
+                          "description": "Total number of items being paginated.",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "current_page",
+                        "from",
+                        "last_page",
+                        "links",
+                        "path",
+                        "per_page",
+                        "to",
+                        "total"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "links",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/{id}/lists": {
+      "get": {
+        "operationId": "user.lists",
+        "summary": "Returns defined lists for users",
+        "tags": [
+          "User"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of `UserListResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/UserListResource"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/{userId}/list/{listId}": {
+      "get": {
+        "operationId": "user.list",
+        "summary": "Returns the specific list for a user",
+        "tags": [
+          "User"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "listId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "`FilteredUserList`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/FilteredUserList"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/work": {
+      "get": {
+        "operationId": "work.index",
+        "summary": "Returns all series, ordered alphabetically",
+        "tags": [
+          "Work"
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated set of `AlphaWorkSummaryResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AlphaWorkSummaryResource"
+                      }
+                    },
+                    "links": {
+                      "type": "object",
+                      "properties": {
+                        "first": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "last": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "prev": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "next": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "first",
+                        "last",
+                        "prev",
+                        "next"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "from": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 1
+                        },
+                        "last_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "links": {
+                          "type": "array",
+                          "description": "Generated paginator links.",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "active": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "url",
+                              "label",
+                              "active"
+                            ]
+                          }
+                        },
+                        "path": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "Base path for paginator generated URLs."
+                        },
+                        "per_page": {
+                          "type": "integer",
+                          "description": "Number of items shown per page.",
+                          "minimum": 0
+                        },
+                        "to": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "description": "Number of the last item in the slice.",
+                          "minimum": 1
+                        },
+                        "total": {
+                          "type": "integer",
+                          "description": "Total number of items being paginated.",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "current_page",
+                        "from",
+                        "last_page",
+                        "links",
+                        "path",
+                        "per_page",
+                        "to",
+                        "total"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "links",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/work/{slug}": {
+      "get": {
+        "operationId": "work.show",
+        "summary": "Returns a single series by UUID or slug",
+        "tags": [
+          "Work"
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "`AlphaWorkResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AlphaWorkResource"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/work/{slug}/characters": {
+      "get": {
+        "operationId": "work.characters",
+        "summary": "Returns the waifus that appear in a series",
+        "tags": [
+          "Work"
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated set of `AlphaCharacterSummaryResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AlphaCharacterSummaryResource"
+                      }
+                    },
+                    "links": {
+                      "type": "object",
+                      "properties": {
+                        "first": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "last": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "prev": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "next": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "first",
+                        "last",
+                        "prev",
+                        "next"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "from": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 1
+                        },
+                        "last_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "links": {
+                          "type": "array",
+                          "description": "Generated paginator links.",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "active": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "url",
+                              "label",
+                              "active"
+                            ]
+                          }
+                        },
+                        "path": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "Base path for paginator generated URLs."
+                        },
+                        "per_page": {
+                          "type": "integer",
+                          "description": "Number of items shown per page.",
+                          "minimum": 0
+                        },
+                        "to": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "description": "Number of the last item in the slice.",
+                          "minimum": 1
+                        },
+                        "total": {
+                          "type": "integer",
+                          "description": "Total number of items being paginated.",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "current_page",
+                        "from",
+                        "last_page",
+                        "links",
+                        "path",
+                        "per_page",
+                        "to",
+                        "total"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "links",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/work/{slug}/franchise": {
+      "get": {
+        "operationId": "work.related",
+        "summary": "Returns all series related to this series by using the root name of the originally found series",
+        "tags": [
+          "Work"
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of `AlphaWorkSummaryResource`\n\nArray of `AlphaWorkResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/AlphaWorkSummaryResource"
+                          }
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/AlphaWorkResource"
+                          }
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/airing": {
+      "get": {
+        "operationId": "work.airing",
+        "summary": "Display the currently airing shows for the season",
+        "tags": [
+          "Work"
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of `AlphaWorkSummaryResource`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AlphaWorkSummaryResource"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/airing/meta": {
+      "get": {
+        "operationId": "work.meta",
+        "tags": [
+          "Work"
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "season": {
+                      "type": "string",
+                      "const": "fall"
+                    },
+                    "year": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "season",
+                    "year"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/airing/{season}/{year}": {
+      "get": {
+        "operationId": "work.getAiringDuringSeason",
+        "summary": "Returns shows that were airing during a given season",
+        "tags": [
+          "Work"
+        ],
+        "parameters": [
+          {
+            "name": "season",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "year",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of items",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "An error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "Error overview.",
+                      "example": ""
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "apikey"
+      },
+      "uwu": {
+        "type": "apiKey",
+        "description": "Cloudflare WAF handshake. Requests without `uwu: owo` are rejected at the edge before they reach the API. The value is always `owo`.",
+        "in": "header",
+        "name": "uwu"
+      }
+    },
+    "schemas": {
+      "AlphaCharacterResource": {
+        "type": "object",
+        "properties": {
+          "uuid": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "original_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "romaji_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "display_picture": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "display_picture_artist": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "display_picture_source": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "weight": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "height": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "bust": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "hip": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "waist": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "blood_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "origin": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "age": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "birthday_month": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "birthday_day": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "birthday_year": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "likes": {
+            "type": "integer"
+          },
+          "trash": {
+            "type": "integer"
+          },
+          "popularity_rank": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "like_rank": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "trash_rank": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "husbando": {
+            "type": "boolean"
+          },
+          "nsfw": {
+            "type": "boolean"
+          },
+          "virtual_youtuber": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": "string"
+          },
+          "appearances": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "uuid": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "original_name": {
+                  "type": "string"
+                },
+                "romaji_name": {
+                  "type": "string"
+                },
+                "slug": {
+                  "type": "string"
+                },
+                "display_picture": {
+                  "type": "string"
+                },
+                "studio": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "uuid",
+                "name",
+                "original_name",
+                "romaji_name",
+                "slug",
+                "display_picture",
+                "studio",
+                "url"
+              ]
+            }
+          }
+        },
+        "required": [
+          "uuid",
+          "slug",
+          "name",
+          "original_name",
+          "romaji_name",
+          "display_picture",
+          "display_picture_artist",
+          "display_picture_source",
+          "description",
+          "weight",
+          "height",
+          "bust",
+          "hip",
+          "waist",
+          "blood_type",
+          "origin",
+          "age",
+          "birthday_month",
+          "birthday_day",
+          "birthday_year",
+          "likes",
+          "trash",
+          "popularity_rank",
+          "like_rank",
+          "trash_rank",
+          "husbando",
+          "nsfw",
+          "virtual_youtuber",
+          "url",
+          "appearances"
+        ],
+        "title": "AlphaCharacterResource"
+      },
+      "AlphaCharacterSummaryResource": {
+        "type": "object",
+        "properties": {
+          "uuid": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "original_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "romaji_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "display_picture": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "likes": {
+            "type": "integer"
+          },
+          "trash": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "uuid",
+          "slug",
+          "name",
+          "original_name",
+          "romaji_name",
+          "display_picture",
+          "likes",
+          "trash"
+        ],
+        "title": "AlphaCharacterSummaryResource"
+      },
+      "AlphaQuoteResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "quote": {
+            "type": "string"
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "likes": {
+            "type": "integer"
+          },
+          "trash": {
+            "type": "integer"
+          },
+          "total_votes": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "quote",
+          "source",
+          "likes",
+          "trash",
+          "total_votes"
+        ],
+        "title": "AlphaQuoteResource"
+      },
+      "AlphaSeiyuuResource": {
+        "type": "object",
+        "properties": {
+          "uuid": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "native_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "kana_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "given_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "family_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "date_of_birth": {
+            "type": "string"
+          },
+          "date_of_death": {
+            "type": "string"
+          },
+          "gender": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "country_of_origin": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "place_of_birth": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "biography": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "website": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "twitter": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instagram": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "youtube": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "bilibili": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "weibo": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "display_picture": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "favorites_count": {
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid",
+          "slug",
+          "name",
+          "native_name",
+          "kana_name",
+          "given_name",
+          "family_name",
+          "date_of_birth",
+          "date_of_death",
+          "gender",
+          "country_of_origin",
+          "place_of_birth",
+          "biography",
+          "website",
+          "twitter",
+          "instagram",
+          "youtube",
+          "bilibili",
+          "weibo",
+          "display_picture",
+          "url"
+        ],
+        "title": "AlphaSeiyuuResource"
+      },
+      "AlphaSeiyuuSummaryResource": {
+        "type": "object",
+        "properties": {
+          "uuid": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "native_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "display_picture": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid",
+          "slug",
+          "name",
+          "native_name",
+          "display_picture",
+          "url"
+        ],
+        "title": "AlphaSeiyuuSummaryResource"
+      },
+      "AlphaStudioResource": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "original_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "romaji_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "display_picture": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "founded": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "headquarters": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "website": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "works_count": {
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "original_name",
+          "romaji_name",
+          "description",
+          "display_picture",
+          "founded",
+          "headquarters",
+          "website",
+          "url"
+        ],
+        "title": "AlphaStudioResource"
+      },
+      "AlphaTagResource": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "characters_count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "slug",
+          "name"
+        ],
+        "title": "AlphaTagResource"
+      },
+      "AlphaWorkResource": {
+        "type": "object",
+        "properties": {
+          "uuid": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "original_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "romaji_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "display_picture": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "release_date": {
+            "type": "string"
+          },
+          "episode_count": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "nsfw": {
+            "type": "boolean"
+          },
+          "airing_start": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "airing_end": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "studio": {
+            "$ref": "#/components/schemas/StudioResource"
+          },
+          "url": {
+            "type": "string"
+          },
+          "entity": {
+            "type": "string",
+            "const": "series"
+          }
+        },
+        "required": [
+          "uuid",
+          "name",
+          "slug",
+          "original_name",
+          "romaji_name",
+          "description",
+          "display_picture",
+          "release_date",
+          "episode_count",
+          "type",
+          "nsfw",
+          "airing_start",
+          "airing_end",
+          "url",
+          "entity"
+        ],
+        "title": "AlphaWorkResource"
+      },
+      "AlphaWorkSummaryResource": {
+        "type": "object",
+        "properties": {
+          "uuid": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "original_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "romaji_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "display_picture": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "studio": {
+            "$ref": "#/components/schemas/StudioResource"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid",
+          "name",
+          "slug",
+          "original_name",
+          "romaji_name",
+          "description",
+          "display_picture",
+          "url"
+        ],
+        "title": "AlphaWorkSummaryResource"
+      },
+      "FilteredSeriesResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "uuid": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "original_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "romaji_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "slug": {
+            "type": "string"
+          },
+          "display_picture": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "studio": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "uuid",
+          "name",
+          "original_name",
+          "romaji_name",
+          "slug",
+          "display_picture",
+          "studio",
+          "url"
+        ],
+        "title": "FilteredSeriesResource"
+      },
+      "FilteredUserList": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "order": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "waifus": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "slug": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "order": {
+                  "type": "string"
+                },
+                "like_rank": {
+                  "type": "string"
+                },
+                "trash_rank": {
+                  "type": "string"
+                },
+                "popularity_rank": {
+                  "type": "string"
+                },
+                "series": {
+                  "$ref": "#/components/schemas/FilteredSeriesResource"
+                },
+                "url": {
+                  "type": "string"
+                },
+                "display_picture": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "slug",
+                "id",
+                "order",
+                "like_rank",
+                "trash_rank",
+                "popularity_rank",
+                "series",
+                "url",
+                "display_picture"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "order",
+          "waifus"
+        ],
+        "title": "FilteredUserList"
+      },
+      "FilteredWaifuResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "uuid": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "original_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "romaji": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "romaji_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "display_picture": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "likes": {
+            "type": "integer"
+          },
+          "trash": {
+            "type": "integer"
+          },
+          "husbando": {
+            "type": "boolean"
+          },
+          "nsfw": {
+            "type": "boolean"
+          },
+          "virtual_youtuber": {
+            "type": "boolean"
+          },
+          "appearances": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilteredSeriesResource"
+            }
+          },
+          "url": {
+            "type": "string"
+          },
+          "relevance": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "enum": [
+                  1
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "uuid",
+          "name",
+          "slug",
+          "original_name",
+          "romaji",
+          "romaji_name",
+          "display_picture",
+          "description",
+          "likes",
+          "trash",
+          "husbando",
+          "nsfw",
+          "virtual_youtuber",
+          "url",
+          "relevance"
+        ],
+        "title": "FilteredWaifuResource"
+      },
+      "StudioResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "original_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "romaji_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "image": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "founded": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "website": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "entity": {
+            "type": "string",
+            "const": "studio"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "original_name",
+          "romaji_name",
+          "description",
+          "image",
+          "founded",
+          "website",
+          "entity"
+        ],
+        "title": "StudioResource"
+      },
+      "UserListResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "order": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "order"
+        ],
+        "title": "UserListResource"
+      },
+      "UserResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "joined": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "waifus_created": {
+            "type": "string"
+          },
+          "waifus_liked": {
+            "type": "string"
+          },
+          "waifus_trashed": {
+            "type": "string"
+          },
+          "banner": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "true_love": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "slug"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "joined",
+          "avatar",
+          "waifus_created",
+          "waifus_liked",
+          "waifus_trashed",
+          "banner",
+          "true_love"
+        ],
+        "title": "UserResource"
+      },
+      "WaifuResourceCollection": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilteredWaifuResource"
+            }
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "WaifuResourceCollection"
+      }
+    },
+    "responses": {
+      "ValidationException": {
+        "description": "Validation error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "description": "Errors overview."
+                },
+                "errors": {
+                  "type": "object",
+                  "description": "A detailed description of each field that failed validation.",
+                  "additionalProperties": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "required": [
+                "message",
+                "errors"
+              ]
+            }
+          }
+        }
+      },
+      "ModelNotFoundException": {
+        "description": "Not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "description": "Error overview."
+                }
+              },
+              "required": [
+                "message"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

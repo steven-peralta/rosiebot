@@ -35,3 +35,9 @@ Thumbs.db
 
 # Ignore built ts files
 /dist/
+
+# Go build output
+/bin/
+
+# Task runner cache
+/.task/

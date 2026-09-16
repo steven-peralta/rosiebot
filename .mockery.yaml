@@ -1,0 +1,9 @@
+all: false
+dir: '{{.InterfaceDir}}/mocks'
+pkgname: mocks
+filename: '{{.InterfaceName | snakecase}}.go'
+structname: '{{.InterfaceName}}'
+packages:
+  github.com/steven-peralta/rosiebot/internal/app:
+    config:
+      all: true
