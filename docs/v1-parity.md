@@ -107,6 +107,7 @@ Deliberate departures from v1 are listed at the bottom with their reasons.
 | `studio:` branch of series search dropped | Broken in v1 (crashed on no match) |
 | Numeric MWL id no longer shown in the embed title | The current MWL API does not expose it on character detail |
 | Target player row created on demand for trades | v1 failed the trade when the target had never used the bot |
+| MWL client: only `/meta/random` and `/meta/daily` go through the ogen-generated client; character detail, search, work characters and rankings are hand-rolled over the same transport | The checked-in spec declares nullable fields as non-null strings (`appearances[].studio`, `release_date`) so the generated decoders reject live payloads, and it declares no `page` parameters. See `internal/adapter/mwl/source.go` |
 
 ## Manual release checklist (dev guild)
 
