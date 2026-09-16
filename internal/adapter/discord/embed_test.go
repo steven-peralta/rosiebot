@@ -24,9 +24,9 @@ func field(e *discordgo.MessageEmbed, name string) *discordgo.MessageEmbedField 
 	return nil
 }
 
-func TestWaifuEmbed_AllFields(t *testing.T) {
-	w := domain.Waifu{
-		WaifuSummary: domain.WaifuSummary{Slug: "rem", Name: "Rem", OriginalName: "レム", PictureURL: "https://img/rem", Likes: 16199, Trash: 3203},
+func fullWaifu() domain.Waifu {
+	return domain.Waifu{
+		WaifuSummary: domain.WaifuSummary{Slug: "rem", Name: "Rem", OriginalName: "レム", RomajiName: "Remu", PictureURL: "https://img/rem", Likes: 16199, Trash: 3203},
 		URL:          "https://www.mywaifulist.moe/waifu/rem",
 		Description:  strings.Repeat("a", 300),
 		NSFW:         true,
@@ -38,74 +38,90 @@ func TestWaifuEmbed_AllFields(t *testing.T) {
 		BloodType:    "A",
 		Origin:       "Lugnica",
 		Age:          ptrI(0),
-		Appearances:  []domain.Series{{Name: "Re:Zero"}, {Name: "Isekai Quartet"}},
-	}
-	ranked := &domain.RankedWaifu{Position: 3, Stars: 5}
-	e := waifuEmbed(w, ranked)
-
-	if e.Title != ":star::star::star::star::star:\n:underage: Rem - レム" {
-		t.Errorf("title = %q", e.Title)
-	}
-	if e.URL != w.URL || e.Image == nil || e.Image.URL != w.PictureURL || e.Color != brandingColor {
-		t.Errorf("url/image/color = %q %+v %x", e.URL, e.Image, e.Color)
-	}
-	if !strings.HasPrefix(e.Description, "**Description** (may have spoilers):\n||") || !strings.HasSuffix(e.Description, "...||") || len([]rune(e.Description)) != len([]rune("**Description** (may have spoilers):\n||||"))+256+3 {
-		t.Errorf("description = %q", e.Description)
-	}
-	checks := map[string]string{
-		":heart: Likes":              "16199",
-		":wastebasket: Trash":        "3203",
-		":trophy: Rank":              "#3",
-		":scales: Weight":            "45 kg (99 lbs)",
-		":straight_ruler: Height":    "154 cm (5 ft 0 in)",
-		":bikini: Bust":              "81 cm",
-		":pear: Hip":                 "83 cm",
-		":jeans: Waist":              "56 cm",
-		":earth_americas: Origin":    "||Lugnica||",
-		":calendar_spiral: Age":      "0",
-		":drop_of_blood: Blood Type": "A",
-		":book: Series":              "Re:Zero",
-	}
-	for name, want := range checks {
-		f := field(e, name)
-		if f == nil || f.Value != want || !f.Inline {
-			t.Errorf("field %q = %+v, want %q inline", name, f, want)
-		}
-	}
-	appears := e.Fields[len(e.Fields)-1]
-	if appears.Name != ":camera_with_flash: Appears In" || appears.Value != "Re:Zero, Isekai Quartet" || appears.Inline {
-		t.Errorf("appears = %+v", appears)
-	}
-	inline := 0
-	for _, f := range e.Fields {
-		if f.Inline {
-			inline++
-		}
-	}
-	if inline%3 != 0 {
-		t.Errorf("inline fields should be padded to a multiple of 3, got %d", inline)
+		Appearances:  []domain.Series{{Name: "Re:Zero", URL: "https://www.mywaifulist.moe/series/re-zero"}, {Name: "Isekai Quartet"}},
 	}
 }
 
-func TestWaifuEmbed_Sparse(t *testing.T) {
+func TestWaifuEmbed_FullCard(t *testing.T) {
+	e := waifuEmbed(fullWaifu(), &domain.RankedWaifu{Position: 3, Stars: 5})
+
+	if e.Title != "🔞 Rem" || e.URL != "https://www.mywaifulist.moe/waifu/rem" {
+		t.Errorf("title/url = %q %q", e.Title, e.URL)
+	}
+	if e.Author == nil || e.Author.Name != "Re:Zero" || e.Author.URL != "https://www.mywaifulist.moe/series/re-zero" {
+		t.Errorf("author = %+v", e.Author)
+	}
+	if e.Image == nil || e.Image.URL != "https://img/rem" || e.Color != starColors[5] {
+		t.Errorf("image/color = %+v %x", e.Image, e.Color)
+	}
+	lines := strings.Split(e.Description, "\n")
+	if lines[0] != "*レム · Remu*" {
+		t.Errorf("alt names line = %q", lines[0])
+	}
+	if lines[1] != "★★★★★ · #3" {
+		t.Errorf("rating line = %q", lines[1])
+	}
+	if lines[2] != "❤️ 16,199 · 🗑️ 3,203 · 83% liked" {
+		t.Errorf("votes line = %q", lines[2])
+	}
+	if lines[3] != "" || !strings.HasPrefix(lines[4], "||aaaa") || !strings.HasSuffix(lines[4], "...||") || len([]rune(lines[4])) != 256+3+4 {
+		t.Errorf("description = %q", lines[4])
+	}
+
+	vitals := field(e, "Vitals")
+	if vitals == nil || !vitals.Inline || vitals.Value != "Height 154 cm (5′0″)\nWeight 45 kg (99 lb)\nB·W·H 81/56/83" {
+		t.Errorf("vitals = %+v", vitals)
+	}
+	details := field(e, "Details")
+	if details == nil || !details.Inline || details.Value != "Age 0\nBlood type A\nOrigin ||Lugnica||" {
+		t.Errorf("details = %+v", details)
+	}
+	appears := field(e, "Appears in")
+	if appears == nil || appears.Inline || appears.Value != "Re:Zero · Isekai Quartet" {
+		t.Errorf("appears = %+v", appears)
+	}
+	if len(e.Fields) != 3 {
+		t.Errorf("fields = %d", len(e.Fields))
+	}
+}
+
+func TestWaifuEmbed_SparseAndUnranked(t *testing.T) {
 	w := domain.Waifu{WaifuSummary: domain.WaifuSummary{Slug: "x", Name: "X", Likes: 1, Trash: 2}}
 	e := waifuEmbed(w, nil)
-	if e.Title != "X" || e.Description != "" || e.Image != nil {
+	if e.Title != "X" || e.Author != nil || e.Image != nil || e.Color != brandingColor || len(e.Fields) != 0 {
 		t.Errorf("sparse = %+v", e)
 	}
-	if field(e, ":trophy: Rank") != nil || field(e, ":scales: Weight") != nil || field(e, ":book: Series") != nil {
-		t.Error("absent data must not produce fields")
+	if e.Description != "Unranked\n❤️ 1 · 🗑️ 2 · 33% liked" {
+		t.Errorf("sparse description = %q", e.Description)
 	}
-	if e.Fields[len(e.Fields)-1].Name == ":camera_with_flash: Appears In" {
-		t.Error("no appearances field without appearances")
+	zero := waifuEmbed(domain.Waifu{WaifuSummary: domain.WaifuSummary{Name: "Z"}}, &domain.RankedWaifu{Stars: 0})
+	if !strings.HasPrefix(zero.Description, "Unranked\n❤️ 0 · 🗑️ 0") || strings.Contains(zero.Description, "liked") {
+		t.Errorf("zero votes = %q", zero.Description)
 	}
-	unranked := waifuEmbed(w, &domain.RankedWaifu{Position: 0, Stars: 0})
-	if strings.Contains(unranked.Title, ":star:") {
-		t.Error("zero stars should not render a star line")
+	partial := waifuEmbed(domain.Waifu{WaifuSummary: domain.WaifuSummary{Name: "P", OriginalName: "P", RomajiName: "Pee"}, Bust: ptrF(80)}, &domain.RankedWaifu{Position: 1200, Stars: 2})
+	if !strings.HasPrefix(partial.Description, "*Pee*\n★★☆☆☆ · #1,200") {
+		t.Errorf("partial description = %q", partial.Description)
 	}
-	short := waifuEmbed(domain.Waifu{WaifuSummary: domain.WaifuSummary{Name: "S"}, Description: "brief"}, nil)
-	if short.Description != "**Description** (may have spoilers):\n||brief||" {
-		t.Errorf("short description = %q", short.Description)
+	if v := field(partial, "Vitals"); v == nil || v.Value != "B·W·H 80/?/?" {
+		t.Errorf("partial vitals = %+v", v)
+	}
+	if partial.Color != starColors[2] {
+		t.Errorf("two-star colour = %x", partial.Color)
+	}
+	brief := waifuEmbed(domain.Waifu{WaifuSummary: domain.WaifuSummary{Name: "B"}, Description: "  brief  "}, nil)
+	if !strings.HasSuffix(brief.Description, "\n\n||brief||") {
+		t.Errorf("brief description = %q", brief.Description)
+	}
+}
+
+func TestWaifuEmbed_AppearancesCapped(t *testing.T) {
+	w := domain.Waifu{WaifuSummary: domain.WaifuSummary{Name: "Many"}}
+	for i := range 9 {
+		w.Appearances = append(w.Appearances, domain.Series{Name: string(rune('A' + i))})
+	}
+	e := waifuEmbed(w, nil)
+	if got := field(e, "Appears in").Value; got != "A · B · C · D · E · F · +3 more" {
+		t.Errorf("appearances = %q", got)
 	}
 }
 
@@ -114,17 +130,23 @@ func TestHeightAndWeightConversions(t *testing.T) {
 		height, weight float64
 		wantH, wantW   string
 	}{
-		{height: 170, weight: 60, wantH: "170 cm (5 ft 6 in)", wantW: "60 kg (132 lbs)"},
-		{height: 182.5, weight: 70.4, wantH: "182.5 cm (5 ft 11 in)", wantW: "70.4 kg (155 lbs)"},
-		{height: 30.48, weight: 0.5, wantH: "30.48 cm (1 ft 0 in)", wantW: "0.5 kg (1 lbs)"},
+		{height: 170, weight: 60, wantH: "Height 170 cm (5′6″)", wantW: "Weight 60 kg (132 lb)"},
+		{height: 182.5, weight: 70.4, wantH: "Height 182.5 cm (5′11″)", wantW: "Weight 70.4 kg (155 lb)"},
+		{height: 30.48, weight: 0.5, wantH: "Height 30.48 cm (1′0″)", wantW: "Weight 0.5 kg (1 lb)"},
 	}
 	for _, c := range cases {
-		e := waifuEmbed(domain.Waifu{Height: ptrF(c.height), Weight: ptrF(c.weight)}, nil)
-		if got := field(e, ":straight_ruler: Height").Value; got != c.wantH {
-			t.Errorf("height %v = %q, want %q", c.height, got, c.wantH)
+		lines := vitalsLines(domain.Waifu{Height: ptrF(c.height), Weight: ptrF(c.weight)})
+		if lines[0] != c.wantH || lines[1] != c.wantW {
+			t.Errorf("%v/%v = %v", c.height, c.weight, lines)
 		}
-		if got := field(e, ":scales: Weight").Value; got != c.wantW {
-			t.Errorf("weight %v = %q, want %q", c.weight, got, c.wantW)
+	}
+}
+
+func TestThousands(t *testing.T) {
+	cases := map[int]string{0: "0", 999: "999", 1000: "1,000", 16199: "16,199", 1234567: "1,234,567"}
+	for n, want := range cases {
+		if got := thousands(n); got != want {
+			t.Errorf("thousands(%d) = %q, want %q", n, got, want)
 		}
 	}
 }
@@ -138,11 +160,11 @@ func TestSeriesEmbedAndFooter(t *testing.T) {
 	if got := f.bot.footer(0).Text; got != "rosiebot vtest" {
 		t.Errorf("footer = %q", got)
 	}
-	if got := f.bot.footer(1500 * time.Millisecond).Text; got != "rosiebot vtest (1500ms)" {
+	if got := f.bot.footer(1500 * time.Millisecond).Text; got != "rosiebot vtest · 1500ms" {
 		t.Errorf("footer with time = %q", got)
 	}
 	withRank := f.bot.waifuEmbed(detail("ranked-000"), 0)
-	if !strings.HasPrefix(withRank.Title, ":star:") || field(withRank, ":trophy: Rank").Value != "#1" {
+	if !strings.Contains(withRank.Description, "★★★★★ · #1") || withRank.Color != starColors[5] {
 		t.Errorf("ranking lookup not applied: %+v", withRank)
 	}
 }
@@ -208,20 +230,28 @@ func TestErrorText_V1Strings(t *testing.T) {
 }
 
 func TestPagerComponents(t *testing.T) {
-	row := pagerComponents(0, 3)[0].(discordgo.ActionsRow)
+	rows := pagerComponents(0, 3, false)
+	if len(rows) != 1 {
+		t.Fatalf("rows = %d", len(rows))
+	}
+	row := rows[0].(discordgo.ActionsRow)
 	first := row.Components[0].(discordgo.Button)
 	next := row.Components[3].(discordgo.Button)
 	if !first.Disabled || next.Disabled || first.CustomID != pagerPrefix+pagerFirst {
 		t.Errorf("page 0 = first:%v next:%v", first.Disabled, next.Disabled)
 	}
-	row = pagerComponents(2, 3)[0].(discordgo.ActionsRow)
-	if row.Components[3].(discordgo.Button).Disabled != true || row.Components[0].(discordgo.Button).Disabled {
+	row = pagerComponents(2, 3, false)[0].(discordgo.ActionsRow)
+	if !row.Components[3].(discordgo.Button).Disabled || row.Components[0].(discordgo.Button).Disabled {
 		t.Error("last page should disable forward buttons only")
 	}
-	row = pagerComponents(0, 1)[0].(discordgo.ActionsRow)
-	for _, c := range row.Components {
-		if !c.(discordgo.Button).Disabled {
-			t.Error("single page should disable everything")
-		}
+	if len(pagerComponents(0, 1, false)) != 0 {
+		t.Error("single page without sell has no rows")
+	}
+	rows = pagerComponents(0, 1, true)
+	if len(rows) != 1 || rows[0].(discordgo.ActionsRow).Components[0].(discordgo.Button).CustomID != sellPrefix+sellAsk {
+		t.Errorf("single sellable page = %+v", rows)
+	}
+	if len(pagerComponents(1, 3, true)) != 2 {
+		t.Error("multi-page sellable should have pager and sell rows")
 	}
 }

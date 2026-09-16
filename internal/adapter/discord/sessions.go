@@ -37,6 +37,7 @@ type Session struct {
 	Content   string
 	Pages     []pageRef
 	Page      int
+	Sellable  bool
 	Offer     domain.TradeOffer
 	Give      []domain.OwnedWaifu
 	Receive   []domain.OwnedWaifu

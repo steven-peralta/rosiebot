@@ -312,14 +312,53 @@ func TestSell_RerendersLivePager(t *testing.T) {
 
 	f.run(f.click(aliceID, nil, sellPrefix+"ok:"+channelID+":"+msgID))
 	me = f.api.lastMsgEdit()
-	if me == nil || *me.Content != "<@alice>" || len(*me.Components) != 0 || (*me.Embeds)[0].Title != "Name a" {
-		t.Errorf("single page should drop the buttons: %+v", me)
+	if me == nil || *me.Content != "<@alice>" || len(*me.Components) != 1 || (*me.Embeds)[0].Title != "Name a" {
+		t.Errorf("single page should keep only the sell row: %+v", me)
 	}
 
 	f.run(f.click(aliceID, nil, sellPrefix+"ok:"+channelID+":"+msgID))
 	me = f.api.lastMsgEdit()
 	if me == nil || !strings.HasSuffix(*me.Content, msgOwnsNothing) || f.bot.Sessions().Len() != 0 {
 		t.Errorf("selling the final waifu = %+v sessions=%d", me, f.bot.Sessions().Len())
+	}
+}
+
+func TestSell_ButtonOnOwnedCard(t *testing.T) {
+	f := newFixture(t)
+	f.give(aliceID, "solo")
+	ic := f.slash(aliceID, commandWaifu, subOwned, nil)
+	f.run(ic)
+	e := f.api.lastEdit()
+	if len(*e.Components) != 1 || (*e.Components)[0].(discordgo.ActionsRow).Components[0].(discordgo.Button).CustomID != sellPrefix+sellAsk {
+		t.Fatalf("single owned card should carry only the sell row: %+v", *e.Components)
+	}
+	msgID := "msg-" + ic.ID
+	msg := f.message(msgID)
+
+	f.run(f.click(bobID, msg, sellPrefix+sellAsk))
+	if got := f.respondContent(); got != "You don't own solo." {
+		t.Errorf("non-owner pressing sell = %q", got)
+	}
+
+	f.run(f.click(aliceID, msg, sellPrefix+sellAsk))
+	r := f.api.lastRespond()
+	if r.Data.Content != "Are you sure you want to sell your Name solo for 100 coins?" || r.Data.Flags&discordgo.MessageFlagsEphemeral == 0 {
+		t.Fatalf("confirm = %+v", r.Data)
+	}
+	okID := r.Data.Components[0].(discordgo.ActionsRow).Components[0].(discordgo.Button).CustomID
+	f.run(f.click(aliceID, nil, okID))
+	if got := f.api.lastRespond().Data.Content; got != "Sold Name solo for 100 coins. You now have 300 coins." {
+		t.Errorf("sold = %q", got)
+	}
+	me := f.api.lastMsgEdit()
+	if me == nil || me.ID != msgID || len(*me.Components) != 0 || !strings.HasSuffix(*me.Content, "(sold)") {
+		t.Errorf("card without a session should lose its sell button: %+v", me)
+	}
+
+	f.give(bobID, "x")
+	f.run(f.slash(aliceID, commandWaifu, subOwned, resolvedUsers(bobID), userOption(bobID)))
+	if len(*f.api.lastEdit().Components) != 0 {
+		t.Error("viewing someone else's collection must not offer a sell button")
 	}
 }
 
@@ -330,15 +369,15 @@ func TestSell_RemoveFromPagerEdgeCases(t *testing.T) {
 	f.run(ic)
 	msgID := "msg-" + ic.ID
 	f.api.reset()
-	f.bot.removeFromPager(t.Context(), msgID, "not-on-page")
-	f.bot.removeFromPager(t.Context(), "unknown", "a")
+	f.bot.removeFromPager(t.Context(), channelID, msgID, "not-on-page")
+	f.bot.removeFromPager(t.Context(), channelID, "unknown", "a")
 	if len(f.api.calls) != 0 {
 		t.Error("no edits expected")
 	}
 	f.api.mu.Lock()
 	delete(f.api.messages, msgID)
 	f.api.mu.Unlock()
-	f.bot.removeFromPager(t.Context(), msgID, "a")
+	f.bot.removeFromPager(t.Context(), channelID, msgID, "a")
 	if me := f.api.lastMsgEdit(); me == nil {
 		t.Error("removal should still re-render")
 	}

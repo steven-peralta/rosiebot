@@ -24,18 +24,24 @@ const (
 	janitorPeriod  = time.Minute
 )
 
-func pagerComponents(page, total int) []discordgo.MessageComponent {
-	single := total <= 1
-	btn := func(id, emoji string, disabled bool) discordgo.Button {
-		return discordgo.Button{Style: discordgo.SecondaryButton, CustomID: pagerPrefix + id, Emoji: &discordgo.ComponentEmoji{Name: emoji}, Disabled: disabled}
+func pagerComponents(page, total int, sellable bool) []discordgo.MessageComponent {
+	var rows []discordgo.MessageComponent
+	if total > 1 {
+		btn := func(id, emoji string, disabled bool) discordgo.Button {
+			return discordgo.Button{Style: discordgo.SecondaryButton, CustomID: pagerPrefix + id, Emoji: &discordgo.ComponentEmoji{Name: emoji}, Disabled: disabled}
+		}
+		rows = append(rows, discordgo.ActionsRow{Components: []discordgo.MessageComponent{
+			btn(pagerFirst, "⏮", page == 0),
+			btn(pagerPrev, "◀️", page == 0),
+			btn(pagerJump, "⤴️", false),
+			btn(pagerNext, "▶️", page >= total-1),
+			btn(pagerLast, "⏭", page >= total-1),
+		}})
 	}
-	return []discordgo.MessageComponent{discordgo.ActionsRow{Components: []discordgo.MessageComponent{
-		btn(pagerFirst, "⏮", single || page == 0),
-		btn(pagerPrev, "◀️", single || page == 0),
-		btn(pagerJump, "⤴️", single),
-		btn(pagerNext, "▶️", single || page >= total-1),
-		btn(pagerLast, "⏭", single || page >= total-1),
-	}}}
+	if sellable {
+		rows = append(rows, discordgo.ActionsRow{Components: []discordgo.MessageComponent{sellAskButton()}})
+	}
+	return rows
 }
 
 func pagesFromSummaries(items []domain.WaifuSummary) []pageRef {
@@ -88,15 +94,12 @@ func (b *Bot) renderPage(ctx context.Context, s *Session, elapsed time.Duration)
 	if len(s.Pages) > 1 {
 		content = strings.TrimRight(content, "\n") + fmt.Sprintf("\nPage %d out of %d", s.Page+1, len(s.Pages))
 	}
-	return content, []*discordgo.MessageEmbed{embed}, pagerComponents(s.Page, len(s.Pages))
+	return content, []*discordgo.MessageEmbed{embed}, pagerComponents(s.Page, len(s.Pages), s.Sellable)
 }
 
-func (b *Bot) openPager(ctx context.Context, ic *interaction, content string, pages []pageRef, elapsed time.Duration) {
-	s := &Session{Kind: SessionPager, OwnerID: ic.userID(), ChannelID: ic.ChannelID, Content: content, Pages: pages}
+func (b *Bot) openPager(ctx context.Context, ic *interaction, content string, pages []pageRef, sellable bool, elapsed time.Duration) {
+	s := &Session{Kind: SessionPager, OwnerID: ic.userID(), ChannelID: ic.ChannelID, Content: content, Pages: pages, Sellable: sellable}
 	c, embeds, components := b.renderPage(ctx, s, elapsed)
-	if len(pages) <= 1 {
-		components = nil
-	}
 	msg := b.edit(ic, c, embeds, components)
 	if msg == nil || len(pages) <= 1 {
 		return

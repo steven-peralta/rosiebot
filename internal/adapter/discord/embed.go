@@ -16,9 +16,17 @@ import (
 const (
 	brandingColor      = 0x7752a0
 	descriptionLimit   = 256
+	maxAppearances     = 6
 	mwlWaifuPathPrefix = "/waifu/"
-	blank              = "\u200b"
 )
+
+var starColors = map[int]int{
+	5: 0xf1c40f,
+	4: 0x9b59b6,
+	3: 0x3498db,
+	2: 0x2ecc71,
+	1: 0x95a5a6,
+}
 
 func truncate(s string, limit int) string {
 	r := []rune(s)
@@ -31,7 +39,7 @@ func truncate(s string, limit int) string {
 func (b *Bot) footer(elapsed time.Duration) *discordgo.MessageEmbedFooter {
 	text := "rosiebot v" + b.cfg.Version
 	if elapsed > 0 {
-		text += fmt.Sprintf(" (%dms)", elapsed.Milliseconds())
+		text += fmt.Sprintf(" · %dms", elapsed.Milliseconds())
 	}
 	return &discordgo.MessageEmbedFooter{Text: text}
 }
@@ -47,77 +55,141 @@ func (b *Bot) waifuEmbed(w domain.Waifu, elapsed time.Duration) *discordgo.Messa
 }
 
 func waifuEmbed(w domain.Waifu, ranked *domain.RankedWaifu) *discordgo.MessageEmbed {
-	var title strings.Builder
-	if ranked != nil && ranked.Stars > 0 {
-		title.WriteString(strings.Repeat(":star:", ranked.Stars))
-		title.WriteString("\n")
-	}
+	title := w.Name
 	if w.NSFW {
-		title.WriteString(":underage: ")
+		title = "🔞 " + title
 	}
-	title.WriteString(w.Name)
-	if w.OriginalName != "" {
-		title.WriteString(" - " + w.OriginalName)
-	}
+	e := &discordgo.MessageEmbed{Title: title, URL: w.URL, Color: cardColor(ranked)}
 
-	e := &discordgo.MessageEmbed{Title: title.String(), URL: w.URL, Color: brandingColor}
+	if series, ok := w.FirstSeries(); ok && series.Name != "" {
+		e.Author = &discordgo.MessageEmbedAuthor{Name: series.Name, URL: series.URL}
+	}
 	if w.PictureURL != "" {
 		e.Image = &discordgo.MessageEmbedImage{URL: w.PictureURL}
 	}
-	if w.Description != "" {
-		e.Description = "**Description** (may have spoilers):\n||" + truncate(w.Description, descriptionLimit) + "||"
-	}
 
-	add := func(name, value string) {
-		e.Fields = append(e.Fields, &discordgo.MessageEmbedField{Name: name, Value: value, Inline: true})
+	var lines []string
+	if names := altNames(w); names != "" {
+		lines = append(lines, "*"+names+"*")
 	}
-	add(":heart: Likes", strconv.Itoa(w.Likes))
-	add(":wastebasket: Trash", strconv.Itoa(w.Trash))
-	if ranked != nil && ranked.Position > 0 {
-		add(":trophy: Rank", "#"+strconv.Itoa(ranked.Position))
+	lines = append(lines, statsLine(w, ranked))
+	if w.Description != "" {
+		lines = append(lines, "", "||"+truncate(strings.TrimSpace(w.Description), descriptionLimit)+"||")
 	}
-	if w.Weight != nil {
-		add(":scales: Weight", fmt.Sprintf("%s kg (%d lbs)", num(*w.Weight), int(math.Round(*w.Weight*2.20462))))
+	e.Description = strings.Join(lines, "\n")
+
+	if vitals := vitalsLines(w); len(vitals) > 0 {
+		e.Fields = append(e.Fields, &discordgo.MessageEmbedField{Name: "Vitals", Value: strings.Join(vitals, "\n"), Inline: true})
 	}
+	if details := detailLines(w); len(details) > 0 {
+		e.Fields = append(e.Fields, &discordgo.MessageEmbedField{Name: "Details", Value: strings.Join(details, "\n"), Inline: true})
+	}
+	if appears := appearancesLine(w); appears != "" {
+		e.Fields = append(e.Fields, &discordgo.MessageEmbedField{Name: "Appears in", Value: appears})
+	}
+	return e
+}
+
+func cardColor(ranked *domain.RankedWaifu) int {
+	if ranked != nil {
+		if c, ok := starColors[ranked.Stars]; ok {
+			return c
+		}
+	}
+	return brandingColor
+}
+
+func altNames(w domain.Waifu) string {
+	var parts []string
+	for _, n := range []string{w.OriginalName, w.RomajiName} {
+		n = strings.TrimSpace(n)
+		if n == "" || strings.EqualFold(n, w.Name) {
+			continue
+		}
+		duplicate := false
+		for _, p := range parts {
+			if strings.EqualFold(p, n) {
+				duplicate = true
+			}
+		}
+		if !duplicate {
+			parts = append(parts, n)
+		}
+	}
+	return strings.Join(parts, " · ")
+}
+
+func statsLine(w domain.Waifu, ranked *domain.RankedWaifu) string {
+	rating := "Unranked"
+	if ranked != nil && ranked.Stars > 0 {
+		rating = strings.Repeat("★", ranked.Stars) + strings.Repeat("☆", domain.MaxStars-ranked.Stars)
+		if ranked.Position > 0 {
+			rating += fmt.Sprintf(" · #%s", thousands(ranked.Position))
+		}
+	}
+	votes := fmt.Sprintf("❤️ %s · 🗑️ %s", thousands(w.Likes), thousands(w.Trash))
+	if total := w.Likes + w.Trash; total > 0 {
+		votes += fmt.Sprintf(" · %d%% liked", int(math.Round(100*float64(w.Likes)/float64(total))))
+	}
+	return rating + "\n" + votes
+}
+
+func vitalsLines(w domain.Waifu) []string {
+	var lines []string
 	if w.Height != nil {
 		inches := *w.Height * 0.393701
-		add(":straight_ruler: Height", fmt.Sprintf("%s cm (%d ft %d in)", num(*w.Height), int(math.Floor(inches/12)), int(math.Floor(math.Mod(inches, 12)))))
+		lines = append(lines, fmt.Sprintf("Height %s cm (%d′%d″)", num(*w.Height), int(math.Floor(inches/12)), int(math.Floor(math.Mod(inches, 12)))))
 	}
-	if w.Bust != nil {
-		add(":bikini: Bust", num(*w.Bust)+" cm")
+	if w.Weight != nil {
+		lines = append(lines, fmt.Sprintf("Weight %s kg (%d lb)", num(*w.Weight), int(math.Round(*w.Weight*2.20462))))
 	}
-	if w.Hip != nil {
-		add(":pear: Hip", num(*w.Hip)+" cm")
+	if w.Bust != nil || w.Waist != nil || w.Hip != nil {
+		lines = append(lines, "B·W·H "+measure(w.Bust)+"/"+measure(w.Waist)+"/"+measure(w.Hip))
 	}
-	if w.Waist != nil {
-		add(":jeans: Waist", num(*w.Waist)+" cm")
-	}
-	if w.Origin != "" {
-		add(":earth_americas: Origin", "||"+w.Origin+"||")
-	}
+	return lines
+}
+
+func detailLines(w domain.Waifu) []string {
+	var lines []string
 	if w.Age != nil {
-		add(":calendar_spiral: Age", strconv.Itoa(*w.Age))
+		lines = append(lines, "Age "+strconv.Itoa(*w.Age))
 	}
 	if w.BloodType != "" {
-		add(":drop_of_blood: Blood Type", w.BloodType)
+		lines = append(lines, "Blood type "+w.BloodType)
 	}
-	if series, ok := w.FirstSeries(); ok && series.Name != "" {
-		add(":book: Series", series.Name)
+	if w.Origin != "" {
+		lines = append(lines, "Origin ||"+w.Origin+"||")
 	}
-	for pad := (3 - len(e.Fields)%3) % 3; pad > 0; pad-- {
-		add(blank, blank)
-	}
+	return lines
+}
 
+func appearancesLine(w domain.Waifu) string {
 	names := make([]string, 0, len(w.Appearances))
 	for _, a := range w.Appearances {
 		if a.Name != "" {
 			names = append(names, a.Name)
 		}
 	}
-	if len(names) > 0 {
-		e.Fields = append(e.Fields, &discordgo.MessageEmbedField{Name: ":camera_with_flash: Appears In", Value: strings.Join(names, ", ")})
+	if len(names) == 0 {
+		return ""
 	}
-	return e
+	extra := 0
+	if len(names) > maxAppearances {
+		extra = len(names) - maxAppearances
+		names = names[:maxAppearances]
+	}
+	line := strings.Join(names, " · ")
+	if extra > 0 {
+		line += fmt.Sprintf(" · +%d more", extra)
+	}
+	return line
+}
+
+func measure(v *float64) string {
+	if v == nil {
+		return "?"
+	}
+	return num(*v)
 }
 
 func summaryEmbed(s domain.WaifuSummary, ranked *domain.RankedWaifu) *discordgo.MessageEmbed {
@@ -141,6 +213,25 @@ func seriesEmbed(s domain.Series) *discordgo.MessageEmbed {
 
 func num(f float64) string {
 	return strconv.FormatFloat(f, 'f', -1, 64)
+}
+
+func thousands(n int) string {
+	s := strconv.Itoa(n)
+	if len(s) <= 3 {
+		return s
+	}
+	var out strings.Builder
+	lead := len(s) % 3
+	if lead > 0 {
+		out.WriteString(s[:lead])
+	}
+	for i := lead; i < len(s); i += 3 {
+		if out.Len() > 0 {
+			out.WriteByte(',')
+		}
+		out.WriteString(s[i : i+3])
+	}
+	return out.String()
 }
 
 func SlugFromEmbeds(embeds []*discordgo.MessageEmbed) (string, bool) {

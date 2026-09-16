@@ -89,8 +89,8 @@ func TestRoll_Texts(t *testing.T) {
 	if editContent(e) != "<@bob> :sparkles: **CRITICAL ROLL!!** :sparkles: Here's who you rolled:\n" {
 		t.Errorf("critical roll = %q", editContent(e))
 	}
-	if title := (*e.Embeds)[0].Title; !strings.HasPrefix(title, ":star:") {
-		t.Errorf("critical roll embed should show stars: %q", title)
+	if desc := (*e.Embeds)[0].Description; !strings.Contains(desc, "★") {
+		t.Errorf("critical roll embed should show stars: %q", desc)
 	}
 
 	f.give("carol")
@@ -187,7 +187,7 @@ func TestOwned_EmptyAndPager(t *testing.T) {
 	ic := f.slash(aliceID, commandWaifu, subOwned, nil)
 	f.run(ic)
 	e := f.api.lastEdit()
-	if editContent(e) != "<@alice>\nPage 1 out of 3" || !hasComponents(*e.Components) || (*e.Embeds)[0].Title != "Name a" {
+	if editContent(e) != "<@alice>\nPage 1 out of 3" || len(*e.Components) != 2 || (*e.Embeds)[0].Title != "Name a" {
 		t.Errorf("first page = %q comps=%v title=%q", editContent(e), hasComponents(*e.Components), (*e.Embeds)[0].Title)
 	}
 	msgID := "msg-" + ic.ID
@@ -260,8 +260,8 @@ func TestOwned_SingleResultHasNoPager(t *testing.T) {
 	f.give(aliceID, "only")
 	f.run(f.slash(aliceID, commandWaifu, subOwned, nil))
 	e := f.api.lastEdit()
-	if editContent(e) != "<@alice>" || hasComponents(*e.Components) || f.bot.Sessions().Len() != 0 {
-		t.Errorf("single = %q comps=%v sessions=%d", editContent(e), hasComponents(*e.Components), f.bot.Sessions().Len())
+	if editContent(e) != "<@alice>" || len(*e.Components) != 1 || f.bot.Sessions().Len() != 0 {
+		t.Errorf("single = %q comps=%d sessions=%d", editContent(e), len(*e.Components), f.bot.Sessions().Len())
 	}
 }
 

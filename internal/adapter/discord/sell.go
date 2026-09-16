@@ -13,9 +13,14 @@ import (
 
 const (
 	sellPrefix = "sell:"
+	sellAsk    = "ask"
 	sellOK     = "ok"
 	sellNo     = "no"
 )
+
+func sellAskButton() discordgo.Button {
+	return discordgo.Button{Style: discordgo.SecondaryButton, CustomID: sellPrefix + sellAsk, Emoji: &discordgo.ComponentEmoji{Name: "💰"}, Label: "Sell"}
+}
 
 func sellConfirmComponents(channelID, messageID string) []discordgo.MessageComponent {
 	return []discordgo.MessageComponent{discordgo.ActionsRow{Components: []discordgo.MessageComponent{
@@ -25,13 +30,17 @@ func sellConfirmComponents(channelID, messageID string) []discordgo.MessageCompo
 }
 
 func (b *Bot) sellContext(ctx context.Context, ic *interaction, data discordgo.ApplicationCommandInteractionData) {
-	if ic.GuildID == "" {
-		b.replyEphemeral(ic, fmt.Sprintf(msgDMFmt, "sell"))
-		return
-	}
 	var target *discordgo.Message
 	if data.Resolved != nil {
 		target = data.Resolved.Messages[data.TargetID]
+	}
+	b.offerSale(ctx, ic, target)
+}
+
+func (b *Bot) offerSale(ctx context.Context, ic *interaction, target *discordgo.Message) {
+	if ic.GuildID == "" {
+		b.replyEphemeral(ic, fmt.Sprintf(msgDMFmt, "sell"))
+		return
 	}
 	slug, ok := b.slugFromMessage(target)
 	if !ok {
@@ -62,7 +71,11 @@ func (b *Bot) slugFromMessage(msg *discordgo.Message) (string, bool) {
 }
 
 func (b *Bot) sellButton(ctx context.Context, ic *interaction, action string) {
-	if action == sellNo {
+	switch action {
+	case sellAsk:
+		b.offerSale(ctx, ic, ic.Message)
+		return
+	case sellNo:
 		b.updateMessage(ic, msgSellCancelled, nil, nil)
 		return
 	}
@@ -93,12 +106,13 @@ func (b *Bot) sellButton(ctx context.Context, ic *interaction, action string) {
 		return
 	}
 	b.updateMessage(ic, fmt.Sprintf(msgSoldFmt, res.Waifu.Name, res.Price, res.Balance), nil, nil)
-	b.removeFromPager(ctx, messageID, slug)
+	b.removeFromPager(ctx, channelID, messageID, slug)
 }
 
-func (b *Bot) removeFromPager(ctx context.Context, messageID, slug string) {
+func (b *Bot) removeFromPager(ctx context.Context, channelID, messageID, slug string) {
 	s, ok := b.sessions.Get(messageID)
 	if !ok || s.Kind != SessionPager {
+		b.stripSellButton(channelID, messageID)
 		return
 	}
 	kept := s.Pages[:0]
@@ -117,8 +131,13 @@ func (b *Bot) removeFromPager(ctx context.Context, messageID, slug string) {
 		return
 	}
 	content, embeds, components := b.renderPage(ctx, s, 0)
-	if len(s.Pages) == 1 {
-		components = nil
-	}
 	b.editChannelMessage(s.ChannelID, messageID, content, embeds, components)
+}
+
+func (b *Bot) stripSellButton(channelID, messageID string) {
+	msg, err := b.s.ChannelMessage(channelID, messageID)
+	if err != nil || len(msg.Components) == 0 {
+		return
+	}
+	b.editChannelMessage(channelID, messageID, strings.TrimSpace(msg.Content)+" (sold)", msg.Embeds, nil)
 }

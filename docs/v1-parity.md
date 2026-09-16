@@ -75,16 +75,23 @@ Deliberate departures from v1 are listed at the bottom with their reasons.
 
 ## Embed
 
+The v2 card is a deliberate redesign (owner request during live testing on 2026-09-16). It keeps every piece of v1 information but lays it out differently.
+
 | Behaviour | Proved by |
 |---|---|
-| Title starts with one `:star:` per star on its own line | `discord.TestWaifuEmbed_AllFields` |
-| `:underage: ` prefix on NSFW | `discord.TestWaifuEmbed_AllFields` |
-| `Name - OriginalName` when original name present | `discord.TestWaifuEmbed_AllFields` |
-| Title links to the MWL page; full-width image | `discord.TestWaifuEmbed_AllFields` |
-| Description spoilered and truncated to 256 characters with `...` | `discord.TestWaifuEmbed_AllFields`, `discord.TestWaifuEmbed_Sparse` |
-| Inline fields: Likes, Trash, Rank, Weight (kg and rounded lbs), Height (cm and floored ft/in), Bust, Hip, Waist, Origin (spoilered), Age (including 0), Blood Type, Series | `discord.TestWaifuEmbed_AllFields`, `discord.TestHeightAndWeightConversions` |
-| Non-inline `Appears In` joined by `, ` | `discord.TestWaifuEmbed_AllFields` |
-| Footer `rosiebot v<version> (<ms>ms)`, colour `#7752a0` | `discord.TestSeriesEmbedAndFooter`, `discord.TestWaifuEmbed_AllFields` |
+| Title is the name, prefixed with 🔞 when NSFW, linked to the MWL page | `discord.TestWaifuEmbed_FullCard` |
+| First appearance shown as the author line, linked to the series | `discord.TestWaifuEmbed_FullCard` |
+| Original and romaji names on an italic line under the title (deduplicated) | `discord.TestWaifuEmbed_FullCard`, `TestWaifuEmbed_SparseAndUnranked` |
+| Stars rendered as ★/☆ out of five with the rank position; unranked characters read `Unranked` | `discord.TestWaifuEmbed_FullCard`, `TestWaifuEmbed_SparseAndUnranked` |
+| Likes, trash and liked percentage on one line with thousands separators | `discord.TestWaifuEmbed_FullCard`, `TestThousands` |
+| Description spoilered and truncated to 256 characters with `...` | `discord.TestWaifuEmbed_FullCard` |
+| Vitals field: height (cm and ft/in), weight (kg and rounded lb), B·W·H | `discord.TestWaifuEmbed_FullCard`, `TestHeightAndWeightConversions` |
+| Details field: age (including 0), blood type, spoilered origin | `discord.TestWaifuEmbed_FullCard` |
+| Appears in: up to six series, then `+N more` | `discord.TestWaifuEmbed_AppearancesCapped` |
+| Card colour follows the star tier; unranked uses the brand colour `#7752a0` | `discord.TestWaifuEmbed_SparseAndUnranked`, `TestSeriesEmbedAndFooter` |
+| Footer `rosiebot v<version> · <ms>ms` | `discord.TestSeriesEmbedAndFooter` |
+| Full-width image | `discord.TestWaifuEmbed_FullCard` |
+| Owned cards viewed by their owner carry a 💰 Sell button in addition to the context menu | `discord.TestSell_ButtonOnOwnedCard`, `TestPagerComponents` |
 
 ## Generic error texts
 
@@ -109,7 +116,7 @@ Deliberate departures from v1 are listed at the bottom with their reasons.
 | `sortby:[+-]field` and `field:<op>value` search tokens apply to the fetched result set (up to 30 results), fields limited to likes, trash, total, name | The MWL search endpoint is term only, so sorting and filtering happen client-side over what it returns (`app.TestSearchService_SortAndFilterTokens`, `TestParseQuery`) |
 | `studio:` branch of series search dropped | Broken in v1 (crashed on no match) |
 | Numeric MWL id no longer shown in the embed title | The current MWL API does not expose it on character detail |
-| Embed padding fills inline fields to a multiple of three | v1 pushed `len % 3` blanks, which mis-padded; the intent was full rows |
+| Waifu card redesigned: grouped Vitals/Details fields, stats line, author line, tier colours | Owner found the v1 grid of twelve emoji fields hard to read |
 | Selling a waifu that is currently shown in a live pager re-renders that pager at the same index | New behaviour enabled by the context-menu design |
 | Target player row created on demand for trades | v1 failed the trade when the target had never used the bot |
 | MWL client: only `/meta/random` and `/meta/daily` go through the ogen-generated client; character detail, search, work characters and rankings are hand-rolled over the same transport | The checked-in spec declares nullable fields as non-null strings (`appearances[].studio`, `release_date`) so the generated decoders reject live payloads, and it declares no `page` parameters. See `internal/adapter/mwl/source.go` |

@@ -97,7 +97,7 @@ func (b *Bot) owned(ctx context.Context, ic *interaction, opts []*discordgo.Appl
 		b.editText(ic, mention(ic.userID())+" "+msgOwnsNothing)
 		return
 	}
-	b.openPager(ctx, ic, mention(ic.userID()), pagesFromOwned(items), b.cfg.Clock.Now().Sub(start))
+	b.openPager(ctx, ic, mention(ic.userID()), pagesFromOwned(items), key.UserID == ic.userID(), b.cfg.Clock.Now().Sub(start))
 }
 
 func (b *Bot) search(ctx context.Context, ic *interaction, opts []*discordgo.ApplicationCommandInteractionDataOption) {
@@ -118,7 +118,7 @@ func (b *Bot) search(ctx context.Context, ic *interaction, opts []*discordgo.App
 		b.failed(ic, "search", err)
 		return
 	}
-	b.openPager(ctx, ic, mention(ic.userID()), pagesFromSummaries(results), b.cfg.Clock.Now().Sub(start))
+	b.openPager(ctx, ic, mention(ic.userID()), pagesFromSummaries(results), false, b.cfg.Clock.Now().Sub(start))
 }
 
 func (b *Bot) random(ctx context.Context, ic *interaction) {
@@ -179,5 +179,5 @@ func (b *Bot) seriesSearch(ctx context.Context, ic *interaction, opts []*discord
 		return
 	}
 	content := fmt.Sprintf("%s %s", mention(ic.userID()), fmt.Sprintf(msgSeriesHeaderFmt, res.Series.Name))
-	b.openPager(ctx, ic, content, pagesFromSummaries(res.Waifus), b.cfg.Clock.Now().Sub(start))
+	b.openPager(ctx, ic, content, pagesFromSummaries(res.Waifus), false, b.cfg.Clock.Now().Sub(start))
 }
