@@ -36,12 +36,10 @@ func (s *SearchService) Waifus(ctx context.Context, query Query) ([]domain.Waifu
 		results []domain.WaifuSummary
 		err     error
 	)
+	query = query.WithDefaultSort(SortRank, false)
 	if query.Empty() {
 		if ranked := s.rankedSummaries(); len(ranked) > 0 && !query.WantsUnranked() {
 			results = ranked
-			if query.SortBy == SortNone {
-				query.SortBy = SortRank
-			}
 		} else {
 			results, err = s.collect(ctx, MaxListPages, func(page int) (SearchPage, error) { return s.source.ListCharacters(ctx, page) })
 			if err != nil {
@@ -197,9 +195,7 @@ func (s *SearchService) charactersOf(ctx context.Context, series domain.Series, 
 	if err != nil {
 		return SeriesResult{}, fmt.Errorf("characters of %q: %w", series.Slug, err)
 	}
-	if q.SortBy == SortNone {
-		q.SortBy, q.Descending = SortLikes, true
-	}
+	q = q.WithDefaultSort(SortRank, false)
 	if term := strings.ToLower(cleanTerm(q.Term)); term != "" {
 		kept := waifus[:0]
 		for _, w := range waifus {

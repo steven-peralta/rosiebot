@@ -144,10 +144,20 @@ func (q Query) Apply(items []domain.WaifuSummary, lookup RankLookup) []domain.Wa
 		if aok != bok {
 			return aok
 		}
+		if !aok && q.SortBy == SortRank {
+			return strings.ToLower(out[i].Name) < strings.ToLower(out[j].Name)
+		}
 		if q.Descending {
 			return b < a
 		}
 		return a < b
 	})
 	return out
+}
+
+func (q Query) WithDefaultSort(field SortField, descending bool) Query {
+	if q.SortBy == SortNone {
+		q.SortBy, q.Descending = field, descending
+	}
+	return q
 }

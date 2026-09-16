@@ -115,9 +115,9 @@ func (b *Bot) selectOptions(s *Session) []discordgo.SelectMenuOption {
 		return nil
 	}
 	ranking := b.svc.Ranking.Current()
-	limit := min(len(s.Pages), maxSuggestions)
-	options := make([]discordgo.SelectMenuOption, 0, limit)
-	for i := 0; i < limit; i++ {
+	start, end := selectWindow(s.Page, len(s.Pages), maxSuggestions)
+	options := make([]discordgo.SelectMenuOption, 0, end-start)
+	for i := start; i < end; i++ {
 		summary := s.Pages[i].summary
 		desc := fmt.Sprintf("❤️ %s · 🗑️ %s", thousands(summary.Likes), thousands(summary.Trash))
 		if r, ok := ranking.Lookup(summary.Slug); ok && r.Stars > 0 {
@@ -141,6 +141,16 @@ func (b *Bot) openPager(ctx context.Context, ic *interaction, content string, pa
 		return
 	}
 	b.sessions.Put(msg.ID, s, b.cfg.PagerTTL)
+}
+
+func selectWindow(page, total, size int) (int, int) {
+	if total <= size {
+		return 0, total
+	}
+	start := page - size/2
+	start = max(start, 0)
+	start = min(start, total-size)
+	return start, start + size
 }
 
 func (b *Bot) pagerSession(ic *interaction) (*Session, bool) {

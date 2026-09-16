@@ -34,6 +34,35 @@ func TestSearchService_EmptyTermBrowsesRankedSet(t *testing.T) {
 	f.source.AssertNotCalled(t, "SearchWaifus", mock.Anything, mock.Anything, mock.Anything)
 }
 
+func TestSearchService_DefaultSortRankThenName(t *testing.T) {
+	f := newFixture(t)
+	f.ranking.Set(rankingOf(10))
+	svc := app.NewSearchService(f.source, f.ranking)
+	items := []domain.WaifuSummary{summary("zed", 1, 0), summary("ranked-005", 1, 0), summary("amy", 1, 0), summary("ranked-001", 1, 0)}
+	f.source.EXPECT().SearchWaifus(mock.Anything, "x", 1).Return(app.SearchPage{Page: 1, LastPage: 1, Items: items}, nil).Once()
+	got, err := svc.Waifus(f.ctx, app.Query{Term: "x"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"ranked-001", "ranked-005", "amy", "zed"}
+	for i, w := range want {
+		if got[i].Slug != w {
+			t.Errorf("default order[%d] = %s, want %s", i, got[i].Slug, w)
+		}
+	}
+	f.ranking.Set(nil)
+	f.source.EXPECT().SearchWaifus(mock.Anything, "x", 1).Return(app.SearchPage{Page: 1, LastPage: 1, Items: items}, nil).Once()
+	got, err = svc.Waifus(f.ctx, app.Query{Term: "x"})
+	if err != nil || got[0].Slug != "amy" || got[3].Slug != "zed" {
+		t.Errorf("without a ranking the fallback is alphabetical: %v %v", got, err)
+	}
+	f.source.EXPECT().SearchWaifus(mock.Anything, "x", 1).Return(app.SearchPage{Page: 1, LastPage: 1, Items: items}, nil).Once()
+	got, err = svc.Waifus(f.ctx, app.Query{Term: "x", SortBy: app.SortLikes})
+	if err != nil || got[0].Slug != "zed" {
+		t.Errorf("explicit sort keeps the source order among ties: %v %v", got, err)
+	}
+}
+
 func TestSearchService_UnrankedBrowseUsesCatalog(t *testing.T) {
 	f := newFixture(t)
 	f.ranking.Set(rankingOf(50))
@@ -280,7 +309,7 @@ func TestSearchService_SeriesSortsCharactersByLikesAcrossPages(t *testing.T) {
 	if res.Series.Slug != "re-zero" {
 		t.Errorf("series = %+v", res.Series)
 	}
-	want := []string{"rem", "emilia", "ram"}
+	want := []string{"emilia", "ram", "rem"}
 	for i, w := range want {
 		if res.Waifus[i].Slug != w {
 			t.Errorf("waifus[%d] = %s, want %s", i, res.Waifus[i].Slug, w)
@@ -305,8 +334,8 @@ func TestSearchService_SeriesBySlugAndOptions(t *testing.T) {
 	f.source.EXPECT().WorkCharacters(mock.Anything, "re-zero", 1).Return(app.SearchPage{Page: 1, LastPage: 1, Items: []domain.WaifuSummary{summary("ram", 100, 0), summary("rem", 900, 50), summary("emilia", 300, 0)}}, nil).Twice()
 
 	res, err := svc.SeriesBySlug(f.ctx, "re-zero", app.Query{})
-	if err != nil || res.Series.Slug != "re-zero" || res.Waifus[0].Slug != "rem" || res.Waifus[2].Slug != "ram" {
-		t.Fatalf("by slug default order = %+v %v", res, err)
+	if err != nil || res.Series.Slug != "re-zero" || res.Waifus[0].Slug != "emilia" || res.Waifus[2].Slug != "rem" {
+		t.Fatalf("by slug default order (unranked -> alphabetical) = %+v %v", res, err)
 	}
 	res, err = svc.SeriesBySlug(f.ctx, "re-zero", app.Query{SortBy: app.SortName}.WithFilter(app.SortTrash, "=", 0))
 	if err != nil || len(res.Waifus) != 2 || res.Waifus[0].Slug != "emilia" {

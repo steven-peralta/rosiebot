@@ -79,7 +79,7 @@ func searchOptions() []*discordgo.ApplicationCommandOption {
 	return []*discordgo.ApplicationCommandOption{
 		{Type: discordgo.ApplicationCommandOptionString, Name: optQuery, Description: "Name to search for; leave empty with another option to browse", Autocomplete: true, MaxLength: 100},
 		{Type: discordgo.ApplicationCommandOptionString, Name: optSeries, Description: "Limit results to one series", Autocomplete: true, MaxLength: 100},
-		{Type: discordgo.ApplicationCommandOptionString, Name: optSort, Description: "Order of the results", Choices: choicesFor(searchSorts)},
+		{Type: discordgo.ApplicationCommandOptionString, Name: optSort, Description: "Order of the results (default: best rank first, then name)", Choices: choicesFor(searchSorts)},
 		{Type: discordgo.ApplicationCommandOptionInteger, Name: optMinStars, Description: "Only characters rated at least this many stars", Choices: starChoices()},
 		{Type: discordgo.ApplicationCommandOptionInteger, Name: optMinLikes, Description: "Only characters with at least this many likes", MinValue: &minZero},
 		{Type: discordgo.ApplicationCommandOptionInteger, Name: optMaxTrash, Description: "Only characters with at most this many trash votes", MinValue: &minZero},

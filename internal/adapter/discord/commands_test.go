@@ -2,6 +2,7 @@ package discord
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -503,6 +504,36 @@ func TestSearch_MinStarsAloneBrowsesRankedSet(t *testing.T) {
 		t.Errorf("min_stars alone = %q %q", editContent(e), (*e.Embeds)[0].Title)
 	}
 	f.source.AssertNotCalled(t, "ListCharacters", mock.Anything, mock.Anything)
+}
+
+func TestSelectWindow(t *testing.T) {
+	cases := []struct{ page, total, start, end int }{
+		{0, 10, 0, 10},
+		{0, 100, 0, 25},
+		{12, 100, 0, 25},
+		{13, 100, 1, 26},
+		{50, 100, 38, 63},
+		{99, 100, 75, 100},
+	}
+	for _, c := range cases {
+		if s, e := selectWindow(c.page, c.total, 25); s != c.start || e != c.end {
+			t.Errorf("selectWindow(%d,%d) = %d..%d, want %d..%d", c.page, c.total, s, e, c.start, c.end)
+		}
+	}
+	f := newFixture(t)
+	slugs := make([]string, 60)
+	for i := range slugs {
+		slugs[i] = fmt.Sprintf("w%02d", i)
+	}
+	f.give(aliceID, slugs...)
+	ic := f.slash(aliceID, commandWaifu, subOwned, nil)
+	f.run(ic)
+	msg := f.message("msg-" + ic.ID)
+	f.run(f.click(aliceID, msg, pagerPrefix+pagerLast))
+	menu := f.api.lastRespond().Data.Components[1].(discordgo.ActionsRow).Components[0].(discordgo.SelectMenu)
+	if len(menu.Options) != 25 || menu.Options[0].Label != "36. Name w35" || !menu.Options[24].Default {
+		t.Errorf("window on last page = first %q default-last %v", menu.Options[0].Label, menu.Options[24].Default)
+	}
 }
 
 func TestSearch_Autocomplete(t *testing.T) {
