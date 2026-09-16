@@ -37,7 +37,7 @@ func (s *SearchService) Waifus(ctx context.Context, query Query) ([]domain.Waifu
 		err     error
 	)
 	if query.Empty() {
-		if ranked := s.rankedSummaries(); len(ranked) > 0 {
+		if ranked := s.rankedSummaries(); len(ranked) > 0 && !query.WantsUnranked() {
 			results = ranked
 			if query.SortBy == SortNone {
 				query.SortBy = SortRank

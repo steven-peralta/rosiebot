@@ -477,6 +477,23 @@ func TestSearch_SoftOptionalQuery(t *testing.T) {
 	}
 }
 
+func TestSearch_RankedFalseBrowsesUnranked(t *testing.T) {
+	f := newFixture(t)
+	unranked := &discordgo.ApplicationCommandInteractionDataOption{Name: optRanked, Type: discordgo.ApplicationCommandOptionBoolean, Value: false}
+	f.source.EXPECT().ListCharacters(mock.Anything, 1).Return(app.SearchPage{Page: 1, LastPage: 1, Items: []domain.WaifuSummary{summary("ranked-000"), summary("plain")}}, nil).Once()
+	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, unranked))
+	e := f.api.lastEdit()
+	if editContent(e) != "<@alice>" || (*e.Embeds)[0].Title != "Name plain" {
+		t.Errorf("ranked:false = %q %q", editContent(e), (*e.Embeds)[0].Title)
+	}
+	items := []domain.WaifuSummary{summary("ranked-000"), summary("plain")}
+	f.source.EXPECT().SearchWaifus(mock.Anything, "p", 1).Return(app.SearchPage{Page: 1, LastPage: 1, Items: items}, nil).Once()
+	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optQuery, "p"), unranked))
+	if (*f.api.lastEdit().Embeds)[0].Title != "Name plain" {
+		t.Error("ranked:false with a query should drop ranked results")
+	}
+}
+
 func TestSearch_MinStarsAloneBrowsesRankedSet(t *testing.T) {
 	f := newFixture(t)
 	minStars := &discordgo.ApplicationCommandInteractionDataOption{Name: optMinStars, Type: discordgo.ApplicationCommandOptionInteger, Value: float64(4)}

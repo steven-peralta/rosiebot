@@ -34,6 +34,16 @@ func TestSearchService_EmptyTermBrowsesRankedSet(t *testing.T) {
 	f.source.AssertNotCalled(t, "SearchWaifus", mock.Anything, mock.Anything, mock.Anything)
 }
 
+func TestSearchService_UnrankedBrowseUsesCatalog(t *testing.T) {
+	f := newFixture(t)
+	f.ranking.Set(rankingOf(50))
+	f.source.EXPECT().ListCharacters(mock.Anything, 1).Return(app.SearchPage{Page: 1, LastPage: 1, Items: []domain.WaifuSummary{summary("ranked-001", 1, 0), summary("plain", 1, 0)}}, nil).Once()
+	got, err := app.NewSearchService(f.source, f.ranking).Waifus(f.ctx, app.Query{}.WithFilter(app.SortRank, app.OpAbsent, 0))
+	if err != nil || len(got) != 1 || got[0].Slug != "plain" {
+		t.Errorf("unranked browse = %v %v", got, err)
+	}
+}
+
 func TestSearchService_EmptyTermListsCatalog(t *testing.T) {
 	f := newFixture(t)
 	for page := 1; page <= app.MaxListPages; page++ {
@@ -124,6 +134,13 @@ func TestQuery_Apply(t *testing.T) {
 	}
 	if got := (app.Query{}).WithFilter(app.SortTotal, "=", 1).Apply(mixed, lookup); len(got) != 3 {
 		t.Errorf("equality filter = %v", got)
+	}
+	unranked := (app.Query{}).WithFilter(app.SortRank, app.OpAbsent, 0)
+	if got := unranked.Apply(mixed, lookup); len(got) != 1 || got[0].Slug != "nobody" || !unranked.WantsUnranked() {
+		t.Errorf("unranked filter = %v", got)
+	}
+	if (app.Query{}).WithFilter(app.SortRank, ">=", 1).WantsUnranked() {
+		t.Error("ranked filter must not report unranked")
 	}
 	names := []domain.WaifuSummary{{Name: "b"}, {Name: "A"}, {Name: "c"}}
 	if got := (app.Query{SortBy: app.SortName}).Apply(names, nil); got[0].Name != "A" || got[2].Name != "c" {

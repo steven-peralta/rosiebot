@@ -83,7 +83,7 @@ func searchOptions() []*discordgo.ApplicationCommandOption {
 		{Type: discordgo.ApplicationCommandOptionInteger, Name: optMinStars, Description: "Only characters rated at least this many stars", Choices: starChoices()},
 		{Type: discordgo.ApplicationCommandOptionInteger, Name: optMinLikes, Description: "Only characters with at least this many likes", MinValue: &minZero},
 		{Type: discordgo.ApplicationCommandOptionInteger, Name: optMaxTrash, Description: "Only characters with at most this many trash votes", MinValue: &minZero},
-		{Type: discordgo.ApplicationCommandOptionBoolean, Name: optRanked, Description: "Only characters that have a rank"},
+		{Type: discordgo.ApplicationCommandOptionBoolean, Name: optRanked, Description: "True: only ranked characters. False: only unranked ones"},
 	}
 }
 
@@ -116,15 +116,6 @@ func intOption(opts []*discordgo.ApplicationCommandInteractionDataOption, name s
 	}
 }
 
-func boolOption(opts []*discordgo.ApplicationCommandInteractionDataOption, name string) bool {
-	if o := option(opts, name); o != nil {
-		if v, ok := o.Value.(bool); ok {
-			return v
-		}
-	}
-	return false
-}
-
 func queryFromOptions(opts []*discordgo.ApplicationCommandInteractionDataOption) app.Query {
 	q := app.Query{Term: stringOption(opts, optQuery)}
 	if s, ok := findSort(searchSorts, stringOption(opts, optSort)); ok {
@@ -139,8 +130,14 @@ func queryFromOptions(opts []*discordgo.ApplicationCommandInteractionDataOption)
 	if n, ok := intOption(opts, optMaxTrash); ok {
 		q = q.WithFilter(app.SortTrash, "<=", n)
 	}
-	if boolOption(opts, optRanked) {
-		q = q.WithFilter(app.SortRank, ">=", 1)
+	if o := option(opts, optRanked); o != nil {
+		if v, ok := o.Value.(bool); ok {
+			if v {
+				q = q.WithFilter(app.SortRank, ">=", 1)
+			} else {
+				q = q.WithFilter(app.SortRank, app.OpAbsent, 0)
+			}
+		}
 	}
 	return q
 }

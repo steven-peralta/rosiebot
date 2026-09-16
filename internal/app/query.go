@@ -47,9 +47,20 @@ type Query struct {
 
 func (q Query) Empty() bool { return strings.TrimSpace(q.Term) == "" }
 
+const OpAbsent = "none"
+
 func (q Query) WithFilter(field SortField, op string, value int) Query {
 	q.Filters = append(q.Filters, Filter{Field: field, Op: op, Value: value})
 	return q
+}
+
+func (q Query) WantsUnranked() bool {
+	for _, f := range q.Filters {
+		if f.Field == SortRank && f.Op == OpAbsent {
+			return true
+		}
+	}
+	return false
 }
 
 func fieldValue(w domain.WaifuSummary, f SortField, lookup RankLookup) (int, bool) {
@@ -77,6 +88,9 @@ func fieldValue(w domain.WaifuSummary, f SortField, lookup RankLookup) (int, boo
 
 func (f Filter) matches(w domain.WaifuSummary, lookup RankLookup) bool {
 	v, ok := fieldValue(w, f.Field, lookup)
+	if f.Op == OpAbsent {
+		return !ok
+	}
 	if !ok {
 		return false
 	}
