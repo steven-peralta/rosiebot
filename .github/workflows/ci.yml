@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [v2, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check
+        env:
+          REQUIRE_DB: "1"
+          TESTCONTAINERS_RYUK_DISABLED: "true"
+        run: task check
+
+  docker:
+    needs: check
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    env:
+      IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/rosiebot
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push
+        run: |
+          VERSION="${GITHUB_REF_NAME}-${GITHUB_SHA::7}"
+          docker build --build-arg VERSION="$VERSION" -t "$IMAGE:$GITHUB_SHA" -t "$IMAGE:$GITHUB_REF_NAME" .
+          docker push "$IMAGE:$GITHUB_SHA"
+          docker push "$IMAGE:$GITHUB_REF_NAME"

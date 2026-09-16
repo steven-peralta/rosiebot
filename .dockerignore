@@ -1,0 +1,9 @@
+.git
+.github
+.task
+.idea
+bin
+coverage.out
+docs
+Taskfile.yml
+*.md

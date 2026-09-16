@@ -7,6 +7,8 @@ vars:
   MWL_SPEC: api/mwl/openapi.json
   MWL_GEN: internal/adapter/mwl/gen
   PG_DIR: internal/adapter/postgres
+  VERSION:
+    sh: git describe --tags --always --dirty 2>/dev/null || echo dev
   MIGRATIONS: '{{.PG_DIR}}/migrations'
   MIGRATE_BIN: bin/migrate
   MIGRATE_TAGS: pgx5
@@ -21,7 +23,7 @@ tasks:
   build:
     desc: Compile the bot binary
     cmds:
-      - go build -o {{.BIN}} {{.MAIN}}
+      - go build -ldflags "-X main.version={{.VERSION}}" -o {{.BIN}} {{.MAIN}}
     sources:
       - '**/*.go'
       - go.mod
@@ -57,6 +59,7 @@ tasks:
         -min internal/adapter/mwl=85
         -min internal/adapter/postgres=85
         -min internal/adapter/discord=80
+        -min internal/config=90
 
   lint:
     desc: Run golangci-lint

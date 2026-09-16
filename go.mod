@@ -13,6 +13,7 @@ tool (
 )
 
 require (
+	github.com/bwmarrin/discordgo v0.29.0
 	github.com/go-faster/errors v0.8.0
 	github.com/go-faster/jx v1.2.0
 	github.com/golang-migrate/migrate/v4 v4.20.1
@@ -112,7 +113,6 @@ require (
 	github.com/brunoga/deep v1.3.1 // indirect
 	github.com/butuzov/ireturn v0.4.1 // indirect
 	github.com/butuzov/mirror v1.3.3 // indirect
-	github.com/bwmarrin/discordgo v0.29.0 // indirect
 	github.com/catenacyber/perfsprint v0.10.1 // indirect
 	github.com/ccojocar/zxcvbn-go v1.0.4 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
