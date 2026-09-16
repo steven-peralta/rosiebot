@@ -89,7 +89,7 @@ The v2 card is a deliberate redesign (owner request during live testing on 2026-
 | Vitals field: height (cm and ft/in), weight (kg and rounded lb), B·W·H | `discord.TestWaifuEmbed_FullCard`, `TestHeightAndWeightConversions` |
 | Details field: age (including 0), blood type, spoilered origin | `discord.TestWaifuEmbed_FullCard` |
 | Appears in: up to six series, then `+N more` | `discord.TestWaifuEmbed_AppearancesCapped` |
-| Card colour follows the star tier; unranked uses the brand colour `#7752a0` | `discord.TestWaifuEmbed_SparseAndUnranked`, `TestSeriesEmbedAndFooter` |
+| Card colour follows the star tier; unranked cards have no accent colour | `discord.TestWaifuEmbed_SparseAndUnranked`, `TestSeriesEmbedAndFooter` |
 | Footer `rosiebot v<version> · <ms>ms` | `discord.TestSeriesEmbedAndFooter` |
 | Full-width image | `discord.TestWaifuEmbed_FullCard` |
 | Owned cards viewed by their owner carry a 💰 Sell button in addition to the context menu | `discord.TestSell_ButtonOnOwnedCard`, `TestPagerComponents` |

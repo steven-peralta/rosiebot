@@ -88,8 +88,11 @@ func TestWaifuEmbed_FullCard(t *testing.T) {
 func TestWaifuEmbed_SparseAndUnranked(t *testing.T) {
 	w := domain.Waifu{WaifuSummary: domain.WaifuSummary{Slug: "x", Name: "X", Likes: 1, Trash: 2}}
 	e := waifuEmbed(w, nil)
-	if e.Title != "X" || e.Author != nil || e.Image != nil || e.Color != brandingColor || len(e.Fields) != 0 {
+	if e.Title != "X" || e.Author != nil || e.Image != nil || e.Color != 0 || len(e.Fields) != 0 {
 		t.Errorf("sparse = %+v", e)
+	}
+	if zeroStars := waifuEmbed(w, &domain.RankedWaifu{Stars: 0}); zeroStars.Color != 0 {
+		t.Errorf("zero stars should have no accent colour: %x", zeroStars.Color)
 	}
 	if e.Description != "Unranked\n❤️ 1 · 🗑️ 2 · 33% liked" {
 		t.Errorf("sparse description = %q", e.Description)

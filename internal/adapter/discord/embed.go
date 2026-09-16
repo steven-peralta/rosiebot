@@ -96,7 +96,7 @@ func cardColor(ranked *domain.RankedWaifu) int {
 			return c
 		}
 	}
-	return brandingColor
+	return 0
 }
 
 func altNames(w domain.Waifu) string {
