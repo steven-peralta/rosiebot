@@ -40,6 +40,7 @@ const (
 	msgNotOwnedFmt       = "You don't own %s."
 	msgNotAWaifu         = "That message doesn't show a waifu."
 	msgSellCancelled     = "Sale cancelled."
+	msgRateLimited       = "MyWaifuList is rate limiting me right now. Try again in a minute."
 )
 
 func mention(id string) string {
@@ -151,6 +152,8 @@ func errorText(err error) string {
 		return "A trade needs at least one waifu on either side."
 	case errors.Is(err, domain.ErrTradeOverlap):
 		return "A waifu can't be on both sides of a trade."
+	case errors.Is(err, app.ErrRateLimited):
+		return msgRateLimited
 	case errors.Is(err, app.ErrNotFound):
 		return msgNoData
 	default:

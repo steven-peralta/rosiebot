@@ -29,7 +29,7 @@ const (
 
 var (
 	ErrUnauthorized  = errors.New("mwl: api key rejected")
-	ErrRateLimited   = errors.New("mwl: rate limited")
+	ErrRateLimited   = app.ErrRateLimited
 	defaultRetryWait = 5 * time.Second
 )
 

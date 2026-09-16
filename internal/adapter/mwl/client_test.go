@@ -326,16 +326,27 @@ func TestLimiter_BackgroundYieldsToForeground(t *testing.T) {
 	}
 
 	now = now.Add(30 * time.Second)
-	if got := l.Remaining(); got != 40 {
-		t.Errorf("remaining should refill with time: %d", got)
+	if got := l.Remaining(); got != 10 {
+		t.Errorf("remaining must not refill inside the server window: %d", got)
 	}
 	l.Penalize()
 	if got := l.Remaining(); got != 0 {
 		t.Errorf("penalized remaining = %d", got)
 	}
-	now = now.Add(2 * time.Minute)
+	now = now.Add(serverWindow)
 	if got := l.Remaining(); got != 60 {
-		t.Errorf("remaining should cap at the per-minute budget: %d", got)
+		t.Errorf("remaining should reset once the window has passed: %d", got)
+	}
+	reset := NewLimiter(60, 20)
+	reset.now = func() time.Time { return now }
+	reset.Penalize()
+	now = now.Add(serverWindow)
+	reset.sleep = func(context.Context, time.Duration) error {
+		t.Fatal("should not sleep after the window reset")
+		return nil
+	}
+	if err := reset.WaitBackground(ctx); err != nil {
+		t.Fatal(err)
 	}
 
 	fresh := NewLimiter(60, 20)

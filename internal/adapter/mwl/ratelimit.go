@@ -13,6 +13,7 @@ const (
 	DefaultHeadroom          = 20
 	DefaultBurst             = 5
 	backgroundPollInterval   = time.Second
+	serverWindow             = time.Minute
 )
 
 type Limiter struct {
@@ -51,7 +52,7 @@ func (l *Limiter) Wait(ctx context.Context) error {
 
 func (l *Limiter) WaitBackground(ctx context.Context) error {
 	for {
-		if l.rl.Tokens() > float64(l.headroom) || l.Remaining() > l.headroom && l.rl.Tokens() >= 1 {
+		if l.Remaining() > l.headroom && l.rl.Tokens() >= 1 {
 			return l.rl.Wait(ctx)
 		}
 		if err := l.sleep(ctx, backgroundPollInterval); err != nil {
@@ -74,9 +75,10 @@ func (l *Limiter) Penalize() {
 func (l *Limiter) Remaining() int {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	elapsed := l.now().Sub(l.observedAt)
-	refilled := int(elapsed.Seconds() * float64(l.perMinute) / 60)
-	return min(l.remaining+refilled, l.perMinute)
+	if l.now().Sub(l.observedAt) >= serverWindow {
+		return l.perMinute
+	}
+	return l.remaining
 }
 
 func sleepCtx(ctx context.Context, d time.Duration) error {

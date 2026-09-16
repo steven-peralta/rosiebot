@@ -15,6 +15,7 @@ var (
 	ErrRollExhausted     = errors.New("could not find a waifu you do not already own")
 	ErrTradeConflict     = errors.New("trade no longer valid")
 	ErrNoRanking         = errors.New("ranking not available yet")
+	ErrRateLimited       = errors.New("upstream rate limited")
 	ErrInsufficientCoins = domain.ErrInsufficientCoins
 )
 
