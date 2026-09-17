@@ -102,6 +102,11 @@ func (b *Bot) updateMessage(ic *interaction, content string, embeds []*discordgo
 	if components == nil {
 		components = []discordgo.MessageComponent{}
 	}
+	if oversized(content, embeds) {
+		b.log.Warn("response too large", "user", ic.userID(), "content_runes", runes(content), "embeds", len(embeds))
+		b.replyEphemeral(ic, msgResponseTooLarge)
+		return
+	}
 	err := b.s.InteractionRespond(ic.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseUpdateMessage,
 		Data: &discordgo.InteractionResponseData{Content: content, Embeds: embeds, Components: components},
@@ -116,6 +121,12 @@ func (b *Bot) edit(ic *interaction, content string, embeds []*discordgo.MessageE
 		embeds = []*discordgo.MessageEmbed{}
 	}
 	if components == nil {
+		components = []discordgo.MessageComponent{}
+	}
+	if oversized(content, embeds) {
+		b.log.Warn("response too large", "user", ic.userID(), "content_runes", runes(content), "embeds", len(embeds))
+		content = mention(ic.userID()) + " " + msgResponseTooLarge
+		embeds = []*discordgo.MessageEmbed{}
 		components = []discordgo.MessageComponent{}
 	}
 	msg, err := b.s.InteractionResponseEdit(ic.Interaction, &discordgo.WebhookEdit{Content: &content, Embeds: &embeds, Components: &components})
@@ -213,4 +224,5 @@ const (
 	msgAdminNoRanking   = "The ranking isn't loaded yet, so no banner can be picked. Try again in a minute."
 	msgAdminNoSeries    = "Couldn't find an eligible series this time. Try again."
 	msgNoRankingYet     = "The ranking isn't loaded yet. Try again in a minute."
+	msgResponseTooLarge = "Response too large!"
 )

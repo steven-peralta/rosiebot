@@ -371,13 +371,20 @@ func (b *Bot) sendBuilderOffer(ctx context.Context, ic *interaction, s *Session)
 		return
 	}
 
+	content := fmt.Sprintf(msgTradeOfferFmt, mention(s.TargetID), mention(s.SenderID))
+	offerEmbed := b.tradeEmbed(proposal.Give, proposal.Receive)
+	if oversized(content, []*discordgo.MessageEmbed{offerEmbed}) {
+		tb.notice = msgResponseTooLarge
+		c, embeds, components := b.renderBuilder(s)
+		b.updateMessage(ic, c, embeds, components)
+		return
+	}
 	b.updateMessage(ic, msgBuilderSent, nil, nil)
 	b.sessions.Delete(ic.Message.ID)
 
-	content := fmt.Sprintf(msgTradeOfferFmt, mention(s.TargetID), mention(s.SenderID))
 	msg, err := b.s.FollowupMessageCreate(ic.Interaction, true, &discordgo.WebhookParams{
 		Content:    content,
-		Embeds:     []*discordgo.MessageEmbed{b.tradeEmbed(proposal.Give, proposal.Receive)},
+		Embeds:     []*discordgo.MessageEmbed{offerEmbed},
 		Components: tradeComponents(),
 	})
 	if err != nil {

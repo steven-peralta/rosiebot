@@ -28,12 +28,12 @@ func TestHelp_AllCommands(t *testing.T) {
 		}
 		total := len(e.Title) + len(e.Description)
 		for _, fld := range e.Fields {
-			if len(fld.Value) > embedFieldLimit || len(fld.Name) > 256 || fld.Value == "" {
+			if len(fld.Value) > limitFieldValue || len(fld.Name) > limitFieldName || fld.Value == "" {
 				t.Errorf("%s help field %q is %d characters", name, fld.Name, len(fld.Value))
 			}
 			total += len(fld.Name) + len(fld.Value)
 		}
-		if total > 6000 {
+		if total > limitEmbedTotal || oversized("", []*discordgo.MessageEmbed{e}) {
 			t.Errorf("%s help embed totals %d characters", name, total)
 		}
 	}

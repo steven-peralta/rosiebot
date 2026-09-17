@@ -29,7 +29,7 @@ func TestBanner_CardShowsSeriesFeaturedAndCountdown(t *testing.T) {
 		t.Fatalf("fields = %+v", embed.Fields)
 	}
 	lines := strings.Split(embed.Fields[0].Value, "\n")
-	if len(lines) != 3 || lines[0] != ":star::star::star::star::star: [Ranked 000](https://www.mywaifulist.moe/waifu/ranked-000) · Rank #1" || lines[2] != ":star::star: [Ranked 050](https://www.mywaifulist.moe/waifu/ranked-050) · Rank #51" {
+	if len(lines) != 3 || lines[0] != ":star::star::star::star::star: Ranked 000 · Rank #1" || lines[2] != ":star::star: Ranked 050 · Rank #51" {
 		t.Errorf("featured lines = %q", lines)
 	}
 	menu := (*e.Components)[0].(discordgo.ActionsRow).Components[0].(discordgo.SelectMenu)

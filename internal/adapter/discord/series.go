@@ -27,11 +27,10 @@ type cardCharacter struct {
 }
 
 func cardLine(c cardCharacter) string {
-	link := "[" + c.summary.Name + "](" + waifuURL(c.summary.Slug) + ")"
 	if c.ranked != nil && c.ranked.Stars > 0 {
-		return fmt.Sprintf("%s %s · Rank #%s", strings.Repeat(":star:", c.ranked.Stars), link, thousands(c.ranked.Position))
+		return fmt.Sprintf("%s %s · Rank #%s", strings.Repeat(":star:", c.ranked.Stars), c.summary.Name, thousands(c.ranked.Position))
 	}
-	return link + " · unranked"
+	return c.summary.Name + " · unranked"
 }
 
 func viewMenuRow(chars []cardCharacter) discordgo.MessageComponent {
@@ -134,26 +133,14 @@ func cardCharacters(waifus []domain.WaifuSummary, lookup app.RankLookup) []cardC
 	return out
 }
 
-const (
-	embedFieldLimit = 1024
-	moreLineReserve = 16
-)
-
 func cardLines(chars []cardCharacter) string {
 	lines := make([]string, 0, min(len(chars), domain.BannerCardLimit)+1)
-	size := 0
-	shown := 0
-	for _, c := range chars {
-		line := cardLine(c)
-		if shown == domain.BannerCardLimit || size+len(line)+1 > embedFieldLimit-moreLineReserve {
+	for i, c := range chars {
+		if i == domain.BannerCardLimit {
+			lines = append(lines, fmt.Sprintf("+%d more", len(chars)-domain.BannerCardLimit))
 			break
 		}
-		lines = append(lines, line)
-		size += len(line) + 1
-		shown++
-	}
-	if extra := len(chars) - shown; extra > 0 {
-		lines = append(lines, fmt.Sprintf("+%d more", extra))
+		lines = append(lines, cardLine(c))
 	}
 	return strings.Join(lines, "\n")
 }
