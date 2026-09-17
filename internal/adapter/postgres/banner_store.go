@@ -105,7 +105,6 @@ func toBanner(row gen.Banner) (domain.Banner, error) {
 		out[i] = domain.RankedWaifu{
 			WaifuSummary: domain.WaifuSummary{Slug: c.Slug, UUID: c.UUID, Name: c.Name, OriginalName: c.OriginalName, RomajiName: c.RomajiName, PictureURL: c.PictureURL, Likes: c.Likes, Trash: c.Trash},
 			Position:     c.Position,
-			Score:        domain.Score(c.Likes, c.Trash),
 			Stars:        c.Stars,
 		}
 	}

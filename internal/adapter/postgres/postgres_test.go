@@ -492,7 +492,7 @@ func TestRankingStore_SaveLoadPrune(t *testing.T) {
 		t.Errorf("latest = len %d cutoff %d fetched %v", latest.Len(), latest.CutoffPage, latest.FetchedAt)
 	}
 	rows := latest.Rows()
-	if rows[0].Slug != "s000" || rows[0].Position != 1 || rows[0].Stars != 5 || rows[199].Stars != 1 || rows[0].Score != domain.Score(5000, 10) {
+	if rows[0].Slug != "s000" || rows[0].Position != 1 || rows[0].Stars != 5 || rows[199].Stars != 1 || rows[0].Score <= rows[1].Score {
 		t.Errorf("row 0 = %+v, row 199 stars = %d", rows[0], rows[199].Stars)
 	}
 	if row, ok := latest.Lookup("s150"); !ok || row.Position != 151 || row.UUID != "u" || row.OriginalName != "O" {
@@ -585,7 +585,7 @@ func TestBannerStore(t *testing.T) {
 	if !got.WeekStart.Equal(week) || got.Series != first.Series || len(got.Characters) != 2 {
 		t.Fatalf("round trip = %+v", got)
 	}
-	if got.Characters[0].Slug != "rem" || got.Characters[0].Position != 3 || got.Characters[0].Stars != 5 || got.Characters[0].OriginalName != "レム" || got.Characters[0].Score != domain.Score(5000, 100) {
+	if got.Characters[0].Slug != "rem" || got.Characters[0].Position != 3 || got.Characters[0].Stars != 5 || got.Characters[0].OriginalName != "レム" {
 		t.Errorf("character round trip = %+v", got.Characters[0])
 	}
 	second, err := bs.Put(ctx, domain.NewBanner(week, domain.Series{Slug: "other", Name: "Other"}, nil))

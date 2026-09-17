@@ -88,6 +88,7 @@ func run(ctx context.Context, dryRun bool) error {
 		Banner:    banner,
 		Ranking:   ranking,
 		Status:    ranking,
+		Refresher: ranking,
 	}
 
 	if dryRun {

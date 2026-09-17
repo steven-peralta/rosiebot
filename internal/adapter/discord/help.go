@@ -42,7 +42,7 @@ func waifuHelpEmbed() *discordgo.MessageEmbed {
 			helpField("favorites",
 				"Every waifu card and series card has a 🤍 Favorite button, which turns into 💔 Unfavorite once you have it. `/favs waifus` and `/favs series` list yours, or someone else's with the `user` option. You get a private DM when a favorite is on the banner or is the Waifu of the Day, and when someone else here rolls one; `/favs alerts off` stops them."),
 			helpField("stars and rank",
-				"Ratings come from `((likes+1)/(trash+1)) × (likes+trash)` over every character with more than 100 votes. The top 1% earn five stars, then 6%, 16% and 26% for four, three and two. Everyone else ranked has one star; characters under 100 votes are unranked and show no colour."),
+				"Every character with more than 100 votes on MyWaifuList is ranked once a day by how liked she is, weighted by how many votes she has. The like share is first blended with 100 votes at the site-wide average, so a character with a few hundred votes and one trash vote can't leapfrog one with ten thousand votes on a lucky ratio; the blended like-to-trash ratio is then multiplied by her total votes. The top 1% earn five stars, then 6%, 16% and 26% for four, three and two. Everyone else ranked has one star; characters under 100 votes are unranked and show no colour. Ranks refresh daily, so a card's stars can move."),
 		},
 	}
 }
@@ -73,8 +73,8 @@ func adminHelpEmbed() *discordgo.MessageEmbed {
 				"Give a character to a player or take one away. `add` autocompletes from the ranked set, `remove` from the player's collection. No coins change hands either way."),
 			helpField("banner reroll",
 				"Replace this week's banner with a different eligible series: at least five ranked characters and one with four or more stars, never the current or last week's series. Everyone's banner rolls switch immediately."),
-			helpField("ranking status",
-				"Show the current star ranking snapshot, when the next daily refresh is due, and live progress of a refresh that is running. On a fresh database the first walk starts at boot and takes about half an hour."),
+			helpField("ranking status · ranking refresh",
+				"`status` shows the current star ranking snapshot, when the next daily refresh is due, and live progress of a refresh that is running. `refresh` starts a walk right now instead of waiting for the daily one; stars, ranks and sell prices switch to the new snapshot the moment it completes. On a fresh database the first walk starts at boot and takes about half an hour."),
 		},
 	}
 }

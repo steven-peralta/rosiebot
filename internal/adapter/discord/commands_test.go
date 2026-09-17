@@ -53,7 +53,7 @@ func TestCommands_Registration(t *testing.T) {
 		t.Errorf("/wotd = %+v", cmds[7])
 	}
 	admin := cmds[8]
-	if admin.Name != commandAdmin || admin.DefaultMemberPermissions != nil || len(admin.Options) != 5 || admin.Options[2].Name != groupBanner || admin.Options[3].Name != groupRanking || admin.Options[4].Name != subHelp {
+	if admin.Name != commandAdmin || admin.DefaultMemberPermissions != nil || len(admin.Options) != 5 || admin.Options[2].Name != groupBanner || admin.Options[3].Name != groupRanking || len(admin.Options[3].Options) != 2 || admin.Options[4].Name != subHelp {
 		t.Errorf("admin command = %+v", admin)
 	}
 	if groups := admin.Options; groups[0].Name != groupCoins || len(groups[0].Options) != 3 || groups[1].Name != groupWaifu || len(groups[1].Options) != 2 || !groups[1].Options[0].Options[1].Autocomplete {

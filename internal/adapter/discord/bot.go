@@ -40,6 +40,7 @@ type Services struct {
 	Stats     *app.StatsService
 	Ranking   app.RankingProvider
 	Status    app.RankingStatusProvider
+	Refresher app.RankingRefresher
 }
 
 type Config struct {

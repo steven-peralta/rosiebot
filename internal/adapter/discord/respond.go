@@ -227,6 +227,8 @@ const (
 	msgResponseTooLarge = "Response too large!"
 
 	msgRankingStatusUnavailable = "Ranking status isn't available in this deployment."
+	msgRefreshStarted           = "Ranking refresh started. It walks MyWaifuList's popular pages at the background rate and usually takes about half an hour; watch it with /admin ranking status."
+	msgRefreshRunning           = "A ranking refresh is already running. Watch it with /admin ranking status."
 	msgNoOwner                  = "No bot owner is configured, so admin commands are disabled."
 	msgSellAllNone              = "You have no waifus at or below that rating."
 	msgSellAllConfirmFmt        = "Sell **%s** waifus (%s) for :coin: %s coins? This can't be undone."

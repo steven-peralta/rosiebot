@@ -81,6 +81,10 @@ type RankingStatusProvider interface {
 	Status() RankingStatus
 }
 
+type RankingRefresher interface {
+	Refresh(ctx context.Context) error
+}
+
 type rankingProgress struct {
 	startedAt   time.Time
 	page        int
@@ -106,6 +110,7 @@ type RankingService struct {
 var (
 	_ RankingProvider       = (*RankingService)(nil)
 	_ RankingStatusProvider = (*RankingService)(nil)
+	_ RankingRefresher      = (*RankingService)(nil)
 )
 
 func NewRankingService(store RankingStore, source WaifuSource, clock Clock, cfg RankingConfig, log *slog.Logger) *RankingService {

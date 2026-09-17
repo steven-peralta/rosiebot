@@ -94,6 +94,34 @@ func TestAdmin_RankingStatus(t *testing.T) {
 	if got := f.respondContent(); got != msgUnexpected {
 		t.Errorf("unknown ranking sub = %q", got)
 	}
+
+	f.status.st = app.RankingStatus{Loaded: true}
+	f.run(f.adminCmd(aliceID, groupRanking, adminRefresh, nil))
+	f.bot.WaitBackground()
+	if got := f.respondContent(); got != msgRefreshStarted || f.status.Refreshes() != 1 {
+		t.Errorf("refresh = %q, refreshes %d", got, f.status.Refreshes())
+	}
+	f.status.st = app.RankingStatus{Refreshing: true}
+	f.run(f.adminCmd(aliceID, groupRanking, adminRefresh, nil))
+	f.bot.WaitBackground()
+	if got := f.respondContent(); got != msgRefreshRunning || f.status.Refreshes() != 1 {
+		t.Errorf("refresh while running = %q, refreshes %d", got, f.status.Refreshes())
+	}
+	f.status.st = app.RankingStatus{}
+	f.status.refresh = app.ErrRefreshInProgress
+	f.run(f.adminCmd(aliceID, groupRanking, adminRefresh, nil))
+	f.bot.WaitBackground()
+	f.status.refresh = errors.New("down")
+	f.run(f.adminCmd(aliceID, groupRanking, adminRefresh, nil))
+	f.bot.WaitBackground()
+	if f.status.Refreshes() != 3 {
+		t.Errorf("refresh attempts = %d", f.status.Refreshes())
+	}
+	f.bot.svc.Refresher = nil
+	f.run(f.adminCmd(aliceID, groupRanking, adminRefresh, nil))
+	if got := f.respondContent(); got != msgRankingStatusUnavailable {
+		t.Errorf("no refresher = %q", got)
+	}
 	f.bot.svc.Status = nil
 	f.run(f.adminCmd(aliceID, groupRanking, adminStatus, nil))
 	if got := f.respondContent(); got != msgRankingStatusUnavailable {

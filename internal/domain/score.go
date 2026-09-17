@@ -2,6 +2,7 @@ package domain
 
 import (
 	"errors"
+	"math"
 	"sort"
 	"time"
 )
@@ -9,6 +10,7 @@ import (
 const (
 	DefaultMinVotes = 100
 	MaxStars        = 5
+	PriorVotes      = 100
 )
 
 var ErrRankingEmpty = errors.New("ranking has no entries")
@@ -17,8 +19,28 @@ type IntN interface {
 	IntN(n int) int
 }
 
-func Score(likes, trash int) float64 {
-	return (float64(likes) + 1) / (float64(trash) + 1) * float64(likes+trash)
+func LikeShare(rows []WaifuSummary) float64 {
+	likes, total := 0, 0
+	for _, r := range rows {
+		likes += r.Likes
+		total += r.Likes + r.Trash
+	}
+	if total == 0 {
+		return 0.5
+	}
+	return float64(likes) / float64(total)
+}
+
+func Score(likes, trash int, likeShare float64) float64 {
+	votes := float64(likes + trash)
+	if votes == 0 {
+		return 0
+	}
+	p := (float64(likes) + PriorVotes*likeShare) / (votes + PriorVotes)
+	if p >= 1 {
+		return math.Inf(1)
+	}
+	return p / (1 - p) * votes
 }
 
 func Stars(position, total int) int {
@@ -50,11 +72,13 @@ type RankedWaifu struct {
 type Ranking struct {
 	FetchedAt  time.Time
 	CutoffPage int
+	LikeShare  float64
 	rows       []RankedWaifu
 	bySlug     map[string]int
 }
 
 func BuildRanking(rows []WaifuSummary, minVotes int, fetchedAt time.Time, cutoffPage int) *Ranking {
+	share := LikeShare(rows)
 	seen := make(map[string]struct{}, len(rows))
 	ranked := make([]RankedWaifu, 0, len(rows))
 	for _, r := range rows {
@@ -65,7 +89,7 @@ func BuildRanking(rows []WaifuSummary, minVotes int, fetchedAt time.Time, cutoff
 			continue
 		}
 		seen[r.Slug] = struct{}{}
-		ranked = append(ranked, RankedWaifu{WaifuSummary: r, Score: Score(r.Likes, r.Trash)})
+		ranked = append(ranked, RankedWaifu{WaifuSummary: r, Score: Score(r.Likes, r.Trash, share)})
 	}
 	sort.SliceStable(ranked, func(i, j int) bool {
 		if ranked[i].Score != ranked[j].Score {
@@ -73,7 +97,9 @@ func BuildRanking(rows []WaifuSummary, minVotes int, fetchedAt time.Time, cutoff
 		}
 		return ranked[i].Slug < ranked[j].Slug
 	})
-	return RankingFromSorted(ranked, fetchedAt, cutoffPage)
+	ranking := RankingFromSorted(ranked, fetchedAt, cutoffPage)
+	ranking.LikeShare = share
+	return ranking
 }
 
 func RankingFromSorted(sorted []RankedWaifu, fetchedAt time.Time, cutoffPage int) *Ranking {

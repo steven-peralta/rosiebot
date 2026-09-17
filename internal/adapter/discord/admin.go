@@ -27,6 +27,7 @@ const (
 	adminRemove    = "remove"
 	adminReroll    = "reroll"
 	adminStatus    = "status"
+	adminRefresh   = "refresh"
 
 	optAmount = "amount"
 	optWaifu  = "waifu"
@@ -67,6 +68,7 @@ func adminCommand() *discordgo.ApplicationCommand {
 			}},
 			{Type: discordgo.ApplicationCommandOptionSubCommandGroup, Name: groupRanking, Description: "Inspect the star ranking", Options: []*discordgo.ApplicationCommandOption{
 				sub(adminStatus, "Show the ranking snapshot and refresh progress"),
+				sub(adminRefresh, "Walk MyWaifuList's rankings now instead of waiting for the daily refresh"),
 			}},
 			sub(subHelp, "Explain the admin tools"),
 		},
@@ -203,7 +205,12 @@ func (b *Bot) adminBanner(ctx context.Context, ic *interaction, sub string) {
 }
 
 func (b *Bot) adminRanking(ic *interaction, sub string) {
-	if sub != adminStatus {
+	switch sub {
+	case adminStatus:
+	case adminRefresh:
+		b.adminRankingRefresh(ic)
+		return
+	default:
 		b.log.Warn("unknown admin ranking subcommand", "sub", sub)
 		b.replyEphemeral(ic, msgUnexpected)
 		return
@@ -220,6 +227,28 @@ func (b *Bot) adminRanking(ic *interaction, sub string) {
 	if err != nil {
 		b.log.Error("ranking status reply failed", "err", err)
 	}
+}
+
+func (b *Bot) adminRankingRefresh(ic *interaction) {
+	if b.svc.Refresher == nil || b.svc.Status == nil {
+		b.replyEphemeral(ic, msgRankingStatusUnavailable)
+		return
+	}
+	if b.svc.Status.Status().Refreshing {
+		b.replyEphemeral(ic, msgRefreshRunning)
+		return
+	}
+	b.log.Info("admin ranking refresh", "actor", ic.userID(), "guild", ic.GuildID)
+	b.backgroundFor(rankingRefreshTimeout, func(ctx context.Context) {
+		err := b.svc.Refresher.Refresh(ctx)
+		switch {
+		case errors.Is(err, app.ErrRefreshInProgress):
+			b.log.Info("admin ranking refresh skipped, already running")
+		case err != nil:
+			b.log.Error("admin ranking refresh failed", "err", err)
+		}
+	})
+	b.replyEphemeral(ic, msgRefreshStarted)
 }
 
 func rankingStatusEmbed(st app.RankingStatus, now time.Time) *discordgo.MessageEmbed {

@@ -9,20 +9,55 @@ import (
 )
 
 func TestScore_Formula(t *testing.T) {
+	const share = 0.855
+	shrunk := func(likes, trash int) float64 {
+		votes := float64(likes + trash)
+		p := (float64(likes) + PriorVotes*share) / (votes + PriorVotes)
+		return p / (1 - p) * votes
+	}
 	cases := []struct {
 		likes, trash int
 		want         float64
 	}{
 		{likes: 0, trash: 0, want: 0},
-		{likes: 100, trash: 0, want: 101.0 / 1.0 * 100},
-		{likes: 99, trash: 1, want: 100.0 / 2.0 * 100},
-		{likes: 16199, trash: 3203, want: (16200.0 / 3204.0) * 19402},
+		{likes: 100, trash: 0, want: shrunk(100, 0)},
+		{likes: 99, trash: 1, want: shrunk(99, 1)},
+		{likes: 16199, trash: 3203, want: shrunk(16199, 3203)},
 	}
 	for _, c := range cases {
-		got := Score(c.likes, c.trash)
+		got := Score(c.likes, c.trash, share)
 		if math.Abs(got-c.want) > 1e-9 {
 			t.Errorf("Score(%d,%d) = %v, want %v", c.likes, c.trash, got, c.want)
 		}
+	}
+	if Score(9743, 3086, share) <= Score(305, 1, share) {
+		t.Error("a well-liked character with thousands of votes must outrank a 300-vote fluke")
+	}
+	if Score(9139, 747, share) <= Score(16199, 3203, share) {
+		t.Error("a cleaner ratio at high volume still beats a noisier one with more likes")
+	}
+	if Score(100, 0, share) <= Score(50, 0, share) {
+		t.Error("more likes at the same trash count must score higher")
+	}
+	if Score(1000, 10, share) <= Score(1000, 20, share) {
+		t.Error("more trash at the same likes must score lower")
+	}
+	if !math.IsInf(Score(10, 0, 1), 1) {
+		t.Error("a like share of 1 with no trash saturates")
+	}
+}
+
+func TestLikeShare(t *testing.T) {
+	if got := LikeShare(nil); got != 0.5 {
+		t.Errorf("empty share = %v", got)
+	}
+	rows := []WaifuSummary{{Likes: 90, Trash: 10}, {Likes: 80, Trash: 20}}
+	if got := LikeShare(rows); math.Abs(got-0.85) > 1e-9 {
+		t.Errorf("share = %v, want 0.85", got)
+	}
+	r := BuildRanking(rows, 50, time.Time{}, 1)
+	if math.Abs(r.LikeShare-0.85) > 1e-9 {
+		t.Errorf("ranking share = %v", r.LikeShare)
 	}
 }
 
@@ -104,7 +139,7 @@ func TestBuildRanking_FiltersUnderMinAndDedupes(t *testing.T) {
 	if _, ok := r.Lookup("exactly-100"); ok {
 		t.Error("row with exactly 100 votes must not be ranked")
 	}
-	if row, ok := r.Lookup("high"); !ok || row.Position != 1 || row.Score != Score(5000, 100) {
+	if row, ok := r.Lookup("high"); !ok || row.Position != 1 || row.Score != Score(5000, 100, r.LikeShare) {
 		t.Errorf("Lookup(high) = %+v, %v", row, ok)
 	}
 	if row, ok := r.Lookup("low"); !ok || row.Position != 3 || row.Stars != 1 {

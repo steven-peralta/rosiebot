@@ -21,9 +21,10 @@ const (
 	subFavAlerts = "alerts"
 	optState     = "state"
 
-	favPrefix           = "fav:"
-	mwlSeriesPathPrefix = "/series/"
-	alertTimeout        = 10 * time.Minute
+	favPrefix             = "fav:"
+	mwlSeriesPathPrefix   = "/series/"
+	alertTimeout          = 10 * time.Minute
+	rankingRefreshTimeout = 2 * time.Hour
 )
 
 func favButton(kind domain.FavoriteKind, favorited bool) discordgo.Button {
@@ -309,10 +310,14 @@ func (b *Bot) WireAlerts(roll *app.RollService, wotd *app.WotdService, banner *a
 }
 
 func (b *Bot) background(fn func(context.Context)) {
+	b.backgroundFor(alertTimeout, fn)
+}
+
+func (b *Bot) backgroundFor(timeout time.Duration, fn func(context.Context)) {
 	b.wg.Add(1)
 	go func() {
 		defer b.wg.Done()
-		ctx, cancel := context.WithTimeout(context.Background(), alertTimeout)
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 		fn(ctx)
 	}()

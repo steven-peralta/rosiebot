@@ -229,9 +229,31 @@ func editContent(e *discordgo.WebhookEdit) string {
 	return *e.Content
 }
 
-type fakeStatus struct{ st app.RankingStatus }
+type fakeStatus struct {
+	mu        sync.Mutex
+	st        app.RankingStatus
+	refreshes int
+	refresh   error
+}
 
-func (f *fakeStatus) Status() app.RankingStatus { return f.st }
+func (f *fakeStatus) Status() app.RankingStatus {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.st
+}
+
+func (f *fakeStatus) Refresh(context.Context) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.refreshes++
+	return f.refresh
+}
+
+func (f *fakeStatus) Refreshes() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.refreshes
+}
 
 type fakeClock struct{ now time.Time }
 
@@ -323,6 +345,7 @@ func newFixture(t *testing.T) *fixture {
 	api := newFakeAPI()
 	bot := New(api, svc, Config{AppID: "app", BotUserID: botID, Version: "test", Clock: clock, OwnerIDs: []string{aliceID}})
 	svc.Status = status
+	bot.svc.Refresher = status
 	bot.svc.Notify = app.NewNotificationService(favorites, alerts, bot, clock, func(id string) string {
 		if id == guildID {
 			return "Test Guild"
