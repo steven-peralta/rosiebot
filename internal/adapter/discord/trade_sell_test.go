@@ -505,13 +505,13 @@ func TestSell_ButtonOnOwnedCard(t *testing.T) {
 		t.Errorf("sold = %q", got)
 	}
 	me := f.api.lastMsgEdit()
-	if me == nil || me.ID != msgID || len(*me.Components) != 0 || !strings.HasSuffix(*me.Content, "(sold)") {
+	if me == nil || me.ID != msgID || hasSellButton(*me.Components) || !strings.HasSuffix(*me.Content, "(sold)") {
 		t.Errorf("card without a session should lose its sell button: %+v", me)
 	}
 
 	f.give(bobID, "x")
 	f.run(f.slash(aliceID, commandWaifu, subOwned, resolvedUsers(bobID), userOption(bobID)))
-	if len(*f.api.lastEdit().Components) != 0 {
+	if hasSellButton(*f.api.lastEdit().Components) {
 		t.Error("viewing someone else's collection must not offer a sell button")
 	}
 }

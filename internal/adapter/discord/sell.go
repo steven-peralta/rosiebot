@@ -253,10 +253,42 @@ func (b *Bot) removeFromPager(ctx context.Context, channelID, messageID, slug st
 	b.editChannelMessage(s.ChannelID, messageID, content, embeds, components)
 }
 
+func buttonID(c discordgo.MessageComponent) string {
+	switch btn := c.(type) {
+	case *discordgo.Button:
+		return btn.CustomID
+	case discordgo.Button:
+		return btn.CustomID
+	}
+	return ""
+}
+
 func (b *Bot) stripSellButton(channelID, messageID string) {
 	msg, err := b.s.ChannelMessage(channelID, messageID)
 	if err != nil || len(msg.Components) == 0 {
 		return
 	}
-	b.editChannelMessage(channelID, messageID, strings.TrimSpace(msg.Content)+" (sold)", msg.Embeds, nil)
+	kept := []discordgo.MessageComponent{}
+	for _, c := range msg.Components {
+		var inner []discordgo.MessageComponent
+		switch row := c.(type) {
+		case *discordgo.ActionsRow:
+			inner = row.Components
+		case discordgo.ActionsRow:
+			inner = row.Components
+		default:
+			continue
+		}
+		var buttons []discordgo.MessageComponent
+		for _, comp := range inner {
+			if buttonID(comp) == sellPrefix+sellAsk {
+				continue
+			}
+			buttons = append(buttons, comp)
+		}
+		if len(buttons) > 0 {
+			kept = append(kept, discordgo.ActionsRow{Components: buttons})
+		}
+	}
+	b.editChannelMessage(channelID, messageID, strings.TrimSpace(msg.Content)+" (sold)", msg.Embeds, kept)
 }

@@ -32,6 +32,7 @@ type Services struct {
 	Wotd      *app.WotdService
 	Banner    *app.BannerService
 	Admin     *app.AdminService
+	Favorites *app.FavoriteService
 	Ranking   app.RankingProvider
 	Status    app.RankingStatusProvider
 }
@@ -185,6 +186,17 @@ func (b *Bot) Commands() []*discordgo.ApplicationCommand {
 			Options:          seriesOptions(),
 		},
 		{
+			Name:             commandFavs,
+			Description:      "Your favorite waifus and series",
+			Contexts:         &guildOnly,
+			IntegrationTypes: &integrations,
+			Options: []*discordgo.ApplicationCommandOption{
+				sub(subFavWaifus, "List favorite waifus", userOpt("Whose favorites to show"),
+					&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optView, Description: "Compact list or one card per page", Choices: []*discordgo.ApplicationCommandOptionChoice{{Name: "Compact list", Value: viewCompact}, {Name: "Cards", Value: viewCards}}}),
+				sub(subFavSeries, "List favorite series", userOpt("Whose favorites to show")),
+			},
+		},
+		{
 			Name:             commandWotd,
 			Description:      "Show the waifu of the day",
 			Contexts:         &allContexts,
@@ -281,6 +293,13 @@ func (b *Bot) handleCommand(ctx context.Context, ic *interaction) {
 		}
 	case commandWotd:
 		b.today(ctx, ic)
+	case commandFavs:
+		switch sub {
+		case subFavWaifus, subFavSeries:
+			b.guildOnly(ctx, ic, commandFavs, func(ctx context.Context, ic *interaction) { b.favs(ctx, ic, sub, opts, data.Resolved) })
+		default:
+			b.log.Warn("unknown favs subcommand", "sub", sub)
+		}
 	default:
 		b.log.Warn("unknown command", "name", data.Name)
 	}
@@ -313,6 +332,8 @@ func (b *Bot) handleComponent(ctx context.Context, ic *interaction) {
 		b.seriesButton(ctx, ic, strings.TrimPrefix(id, seriesPrefix))
 	case id == viewWaifuMenu:
 		b.viewWaifu(ctx, ic)
+	case strings.HasPrefix(id, favPrefix):
+		b.favoriteButton(ctx, ic, strings.TrimPrefix(id, favPrefix))
 	default:
 		b.log.Warn("unknown component", "custom_id", id)
 	}

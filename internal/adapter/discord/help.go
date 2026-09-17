@@ -37,6 +37,8 @@ func waifuHelpEmbed() *discordgo.MessageEmbed {
 				"`today` (or `/wotd`) shows the Waifu of the Day, a ranked 1 to 4 star pick that changes at local midnight. `banner` shows this week's featured series with a Roll on banner button anyone can press; the banner rotates every Monday at 10:00 bot time. `random` shows any character."),
 			helpField("trade",
 				"`trade @user` opens a private builder: pick from both collections, filter by name, then Send. Adding `give` or `receive` lists sends the offer straight away. One side may be empty to make a gift. The other player can Accept, Counter with their own offer, or Decline; offers expire after ten minutes."),
+			helpField("favorites",
+				"Every waifu card and series card has a 🤍 Favorite button; press it again to remove. `/favs waifus` and `/favs series` list yours, or someone else's with the `user` option."),
 			helpField("stars and rank",
 				"Ratings come from `((likes+1)/(trash+1)) × (likes+trash)` over every character with more than 100 votes. The top 1% earn five stars, then 6%, 16% and 26% for four, three and two. Everyone else ranked has one star; characters under 100 votes are unranked and show no colour."),
 		},

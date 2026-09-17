@@ -615,6 +615,51 @@ func TestBannerStore(t *testing.T) {
 	}
 }
 
+func TestFavoriteStore(t *testing.T) {
+	alice, bob := keys(t)
+	ctx := context.Background()
+	fs := NewFavoriteStore(testPool)
+	at := time.Date(2026, 9, 16, 12, 0, 0, 0, time.UTC)
+
+	if got, err := fs.List(ctx, alice, domain.FavoriteWaifu); err != nil || len(got) != 0 {
+		t.Fatalf("empty list = %+v %v", got, err)
+	}
+	if added, err := fs.Add(ctx, alice, domain.Favorite{Kind: domain.FavoriteWaifu, Slug: "rem", Name: "Rem", URL: "U", PictureURL: "P", AddedAt: at.Add(time.Minute)}); err != nil || !added {
+		t.Fatalf("add = %v %v", added, err)
+	}
+	if added, err := fs.Add(ctx, alice, domain.Favorite{Kind: domain.FavoriteWaifu, Slug: "rem", Name: "Rem", AddedAt: at}); err != nil || added {
+		t.Errorf("duplicate add = %v %v", added, err)
+	}
+	if _, err := fs.Add(ctx, alice, domain.Favorite{Kind: domain.FavoriteWaifu, Slug: "ram", Name: "Ram", AddedAt: at}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fs.Add(ctx, alice, domain.Favorite{Kind: domain.FavoriteSeries, Slug: "re-zero", Name: "Re:Zero", AddedAt: at}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fs.Add(ctx, bob, domain.Favorite{Kind: domain.FavoriteWaifu, Slug: "rem", Name: "Rem", AddedAt: at}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := fs.List(ctx, alice, domain.FavoriteWaifu)
+	if err != nil || len(got) != 2 || got[0].Slug != "ram" || got[1].Slug != "rem" || got[1].URL != "U" || got[1].PictureURL != "P" || !got[1].AddedAt.Equal(at.Add(time.Minute)) {
+		t.Errorf("list = %+v %v", got, err)
+	}
+	if got, _ := fs.List(ctx, alice, domain.FavoriteSeries); len(got) != 1 || got[0].Kind != domain.FavoriteSeries {
+		t.Errorf("series list = %+v", got)
+	}
+	if removed, err := fs.Remove(ctx, alice, domain.FavoriteWaifu, "rem"); err != nil || !removed {
+		t.Errorf("remove = %v %v", removed, err)
+	}
+	if removed, _ := fs.Remove(ctx, alice, domain.FavoriteWaifu, "rem"); removed {
+		t.Error("second remove should report false")
+	}
+	if got, _ := fs.List(ctx, bob, domain.FavoriteWaifu); len(got) != 1 {
+		t.Errorf("bob's favorites should be untouched: %+v", got)
+	}
+	if _, err := fs.Add(ctx, alice, domain.Favorite{Kind: "studio", Slug: "x", Name: "x", AddedAt: at}); err == nil {
+		t.Error("the kind check constraint should reject unknown kinds")
+	}
+}
+
 func TestServices_RollRaceOnPostgres(t *testing.T) {
 	alice, _ := keys(t)
 	ctx := context.Background()

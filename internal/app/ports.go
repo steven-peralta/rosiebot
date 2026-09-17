@@ -74,6 +74,12 @@ type BannerStore interface {
 	Replace(ctx context.Context, b domain.Banner) error
 }
 
+type FavoriteStore interface {
+	Add(ctx context.Context, key domain.PlayerKey, fav domain.Favorite) (added bool, err error)
+	Remove(ctx context.Context, key domain.PlayerKey, kind domain.FavoriteKind, slug string) (removed bool, err error)
+	List(ctx context.Context, key domain.PlayerKey, kind domain.FavoriteKind) ([]domain.Favorite, error)
+}
+
 type Clock interface {
 	Now() time.Time
 }

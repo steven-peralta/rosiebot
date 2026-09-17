@@ -33,6 +33,17 @@ type DailyWaifu struct {
 	CreatedAt    time.Time
 }
 
+type Favorite struct {
+	GuildID    string
+	UserID     string
+	Kind       string
+	Slug       string
+	Name       string
+	Url        string
+	PictureUrl string
+	AddedAt    time.Time
+}
+
 type Inventory struct {
 	GuildID    string
 	UserID     string

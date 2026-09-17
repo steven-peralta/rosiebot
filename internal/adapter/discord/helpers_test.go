@@ -272,10 +272,12 @@ func newFixture(t *testing.T) *fixture {
 	daily := memory.NewDailyStore()
 	wotd := app.NewWotdService(daily, ranking, clock, rng, loc, nil)
 	status := &fakeStatus{}
+	favorites := memory.NewFavoriteStore()
 	banners := memory.NewBannerStore()
 	banner := app.NewBannerService(banners, ranking, source, clock, rng, loc, app.BannerConfig{}, nil)
 	svc := Services{
 		Admin:     app.NewAdminService(players, source, clock, nil),
+		Favorites: app.NewFavoriteService(favorites, clock),
 		Roll:      app.NewRollService(players, source, ranking, wotd, banner, clock, rng, 0, nil),
 		Daily:     app.NewDailyService(players, clock, rng, loc),
 		Coins:     app.NewCoinsService(players),

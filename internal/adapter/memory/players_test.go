@@ -301,3 +301,37 @@ func TestPlayerStore_SetAndAdjustCoins(t *testing.T) {
 		t.Errorf("coins after tx = %d", p.Coins)
 	}
 }
+
+func TestFavoriteStore(t *testing.T) {
+	ctx := context.Background()
+	s := NewFavoriteStore()
+	at := time.Date(2026, 9, 16, 12, 0, 0, 0, time.UTC)
+	if added, err := s.Add(ctx, alice, domain.Favorite{Kind: domain.FavoriteWaifu, Slug: "rem", Name: "Rem", AddedAt: at.Add(time.Minute)}); err != nil || !added {
+		t.Fatalf("add = %v %v", added, err)
+	}
+	if added, _ := s.Add(ctx, alice, domain.Favorite{Kind: domain.FavoriteWaifu, Slug: "rem"}); added {
+		t.Error("duplicate add should report false")
+	}
+	if _, err := s.Add(ctx, alice, domain.Favorite{Kind: domain.FavoriteWaifu, Slug: "ram", Name: "Ram", AddedAt: at}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Add(ctx, alice, domain.Favorite{Kind: domain.FavoriteSeries, Slug: "re-zero", Name: "Re:Zero", AddedAt: at}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.List(ctx, alice, domain.FavoriteWaifu)
+	if err != nil || len(got) != 2 || got[0].Slug != "ram" || got[1].Slug != "rem" {
+		t.Errorf("list should be in insertion order: %+v %v", got, err)
+	}
+	if removed, _ := s.Remove(ctx, alice, domain.FavoriteWaifu, "rem"); !removed {
+		t.Error("remove should report true")
+	}
+	if removed, _ := s.Remove(ctx, alice, domain.FavoriteWaifu, "rem"); removed {
+		t.Error("second remove should report false")
+	}
+	if got, _ := s.List(ctx, alice, domain.FavoriteSeries); len(got) != 1 || got[0].Name != "Re:Zero" {
+		t.Errorf("series list = %+v", got)
+	}
+	if got, _ := s.List(ctx, bob, domain.FavoriteWaifu); len(got) != 0 {
+		t.Errorf("other player = %+v", got)
+	}
+}

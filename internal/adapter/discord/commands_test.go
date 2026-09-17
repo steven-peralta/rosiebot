@@ -18,7 +18,7 @@ import (
 func TestCommands_Registration(t *testing.T) {
 	f := newFixture(t)
 	cmds := f.bot.Commands()
-	if len(cmds) != 7 {
+	if len(cmds) != 8 {
 		t.Fatalf("commands = %d", len(cmds))
 	}
 	names := map[string][]string{}
@@ -43,18 +43,21 @@ func TestCommands_Registration(t *testing.T) {
 	if cmds[3].Name != commandSAlias || len(cmds[3].Options) != 2 || cmds[3].Options[0].Name != subSearch {
 		t.Errorf("/s alias = %+v", cmds[3])
 	}
-	if cmds[4].Name != commandWotd || len(cmds[4].Options) != 0 {
-		t.Errorf("/wotd = %+v", cmds[4])
+	if cmds[4].Name != commandFavs || len(cmds[4].Options) != 2 || cmds[4].Options[0].Name != subFavWaifus || cmds[4].Options[1].Name != subFavSeries {
+		t.Errorf("/favs = %+v", cmds[4])
 	}
-	admin := cmds[5]
+	if cmds[5].Name != commandWotd || len(cmds[5].Options) != 0 {
+		t.Errorf("/wotd = %+v", cmds[5])
+	}
+	admin := cmds[6]
 	if admin.Name != commandAdmin || admin.DefaultMemberPermissions != nil || len(admin.Options) != 5 || admin.Options[2].Name != groupBanner || admin.Options[3].Name != groupRanking || admin.Options[4].Name != subHelp {
 		t.Errorf("admin command = %+v", admin)
 	}
 	if groups := admin.Options; groups[0].Name != groupCoins || len(groups[0].Options) != 3 || groups[1].Name != groupWaifu || len(groups[1].Options) != 2 || !groups[1].Options[0].Options[1].Autocomplete {
 		t.Errorf("admin groups = %+v", groups)
 	}
-	if cmds[6].Type != discordgo.MessageApplicationCommand || cmds[6].Name != commandSell {
-		t.Errorf("context command = %+v", cmds[6])
+	if cmds[7].Type != discordgo.MessageApplicationCommand || cmds[7].Name != commandSell {
+		t.Errorf("context command = %+v", cmds[7])
 	}
 	if err := f.bot.Register(guildID); err != nil {
 		t.Fatal(err)
@@ -174,8 +177,8 @@ func TestRoll_AgainButton(t *testing.T) {
 	if button.CustomID != rollPrefix+rollAgain+":"+aliceID || button.Label != "Roll again · 200 coins" {
 		t.Fatalf("roll again button = %+v", button)
 	}
-	if len(row) != 2 || row[1].(discordgo.Button).CustomID != sellPrefix+sellAsk {
-		t.Fatalf("rolled card should carry a Sell button: %+v", row)
+	if len(row) != 3 || row[1].(discordgo.Button).CustomID != sellPrefix+sellAsk || row[2].(discordgo.Button).CustomID != favPrefix+"waifu" {
+		t.Fatalf("rolled card should carry Sell and Favorite buttons: %+v", row)
 	}
 	msg := f.message("msg-" + ic.ID)
 

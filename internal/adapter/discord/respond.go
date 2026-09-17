@@ -233,4 +233,7 @@ const (
 	msgSellAllDoneFmt           = "Sold %s waifus for :coin: %s coins. You now have %s coins."
 	msgSellAllViewing           = "These are the waifus that would be sold:"
 	msgRollBalanceFmt           = "Balance: :coin: %s coins"
+	msgFavAddedFmt              = "Added **%s** to your favorites."
+	msgFavRemovedFmt            = "Removed **%s** from your favorites."
+	msgFavNoneFmt               = "%s favorites don't have any %s yet."
 )

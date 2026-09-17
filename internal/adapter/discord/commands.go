@@ -328,7 +328,7 @@ func (b *Bot) random(ctx context.Context, ic *interaction) {
 		b.failed(ic, "random", err)
 		return
 	}
-	b.edit(ic, "", []*discordgo.MessageEmbed{b.waifuEmbed(w, b.cfg.Clock.Now().Sub(start))}, nil)
+	b.edit(ic, "", []*discordgo.MessageEmbed{b.waifuEmbed(w, b.cfg.Clock.Now().Sub(start))}, []discordgo.MessageComponent{cardActions(false)})
 }
 
 func (b *Bot) today(ctx context.Context, ic *interaction) {
@@ -351,10 +351,10 @@ func (b *Bot) today(ctx context.Context, ic *interaction) {
 		}
 		e := summaryEmbed(res.Waifu, ranked)
 		e.Footer = b.footer(b.cfg.Clock.Now().Sub(start))
-		b.edit(ic, content, []*discordgo.MessageEmbed{e}, nil)
+		b.edit(ic, content, []*discordgo.MessageEmbed{e}, []discordgo.MessageComponent{cardActions(false)})
 		return
 	}
-	b.edit(ic, content, []*discordgo.MessageEmbed{b.waifuEmbed(detail, b.cfg.Clock.Now().Sub(start))}, nil)
+	b.edit(ic, content, []*discordgo.MessageEmbed{b.waifuEmbed(detail, b.cfg.Clock.Now().Sub(start))}, []discordgo.MessageComponent{cardActions(false)})
 }
 
 func (b *Bot) seriesAutocomplete(ctx context.Context, ic *interaction, opts []*discordgo.ApplicationCommandInteractionDataOption) {

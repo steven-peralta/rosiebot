@@ -58,6 +58,7 @@ func viewMenuRow(chars []cardCharacter) discordgo.MessageComponent {
 func seriesCardComponents(slug string) []discordgo.MessageComponent {
 	return []discordgo.MessageComponent{discordgo.ActionsRow{Components: []discordgo.MessageComponent{
 		discordgo.Button{Style: discordgo.SecondaryButton, CustomID: seriesPrefix + seriesBrowse + ":" + slug, Emoji: &discordgo.ComponentEmoji{Name: "📖"}, Label: "Browse characters"},
+		favButton(domain.FavoriteSeries),
 	}}}
 }
 
@@ -105,7 +106,7 @@ func (b *Bot) seriesSearch(ctx context.Context, ic *interaction, opts []*discord
 	chars := cardCharacters(res.Waifus, app.LookupFrom(b.svc.Ranking))
 	e := seriesCardEmbed(res.Series, chars)
 	e.Footer = b.footer(b.cfg.Clock.Now().Sub(start))
-	var components []discordgo.MessageComponent
+	components := []discordgo.MessageComponent{discordgo.ActionsRow{Components: []discordgo.MessageComponent{favButton(domain.FavoriteSeries)}}}
 	if len(chars) > 0 {
 		components = seriesCardComponents(res.Series.Slug)
 	}

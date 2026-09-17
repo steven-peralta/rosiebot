@@ -47,7 +47,7 @@ func againComponents(res app.RollResult, userID string) []discordgo.MessageCompo
 		rows = bannerAgainComponents(userID)
 	}
 	row := rows[0].(discordgo.ActionsRow)
-	row.Components = append(row.Components, sellAskButton())
+	row.Components = append(row.Components, sellAskButton(), favButton(domain.FavoriteWaifu))
 	return []discordgo.MessageComponent{row}
 }
 

@@ -44,8 +44,11 @@ func TestSeriesSearch_Card(t *testing.T) {
 	if strings.Join(lines, "|") != strings.Join(want, "|") {
 		t.Errorf("lines = %q", lines)
 	}
-	if len(*e.Components) != 1 {
-		t.Errorf("series card should only carry the browse button, got %d rows", len(*e.Components))
+	if len(*e.Components) != 1 || len((*e.Components)[0].(discordgo.ActionsRow).Components) != 2 {
+		t.Errorf("series card should carry browse and favorite buttons in one row, got %+v", *e.Components)
+	}
+	if fav := (*e.Components)[0].(discordgo.ActionsRow).Components[1].(discordgo.Button); fav.CustomID != favPrefix+"series" {
+		t.Errorf("series favorite button = %+v", fav)
 	}
 	button := (*e.Components)[0].(discordgo.ActionsRow).Components[0].(discordgo.Button)
 	if button.CustomID != seriesPrefix+seriesBrowse+":re-zero" || button.Label != "Browse characters" {
@@ -110,8 +113,8 @@ func TestSeriesSearch_DirectSlugNotFoundAndErrors(t *testing.T) {
 	f.source.EXPECT().WorkCharacters(mock.Anything, "re-zero", 1).Return(app.SearchPage{Page: 1, LastPage: 1}, nil).Once()
 	f.run(f.dm(aliceID, commandSeries, subSearch, strOpt(optQuery, slugChoicePrefix+"re-zero")))
 	e := f.api.lastEdit()
-	if editContent(e) != "<@alice> "+msgSeriesFound || (*e.Embeds)[0].Title != "Re:Zero" || len((*e.Embeds)[0].Fields) != 0 || hasComponents(*e.Components) {
-		t.Errorf("empty series card = %q %+v", editContent(e), (*e.Embeds)[0])
+	if editContent(e) != "<@alice> "+msgSeriesFound || (*e.Embeds)[0].Title != "Re:Zero" || len((*e.Embeds)[0].Fields) != 0 || len(*e.Components) != 1 || len((*e.Components)[0].(discordgo.ActionsRow).Components) != 1 {
+		t.Errorf("empty series card = %q %+v %+v", editContent(e), (*e.Embeds)[0], *e.Components)
 	}
 
 	f.source.EXPECT().SearchWorks(mock.Anything, "nothing").Return(nil, nil).Once()

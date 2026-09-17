@@ -29,6 +29,7 @@ const (
 type compactGroup struct {
 	first int
 	items []cardCharacter
+	lines []string
 	title string
 }
 

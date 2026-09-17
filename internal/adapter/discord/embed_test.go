@@ -250,7 +250,7 @@ func TestErrorText_V1Strings(t *testing.T) {
 
 func TestPagerComponents(t *testing.T) {
 	rows := pagerComponents(0, 3, false)
-	if len(rows) != 1 {
+	if len(rows) != 2 {
 		t.Fatalf("rows = %d", len(rows))
 	}
 	row := rows[0].(discordgo.ActionsRow)
@@ -263,11 +263,11 @@ func TestPagerComponents(t *testing.T) {
 	if !row.Components[3].(discordgo.Button).Disabled || row.Components[0].(discordgo.Button).Disabled {
 		t.Error("last page should disable forward buttons only")
 	}
-	if len(pagerComponents(0, 1, false)) != 0 {
-		t.Error("single page without sell has no rows")
+	if rows := pagerComponents(0, 1, false); len(rows) != 1 || len(rows[0].(discordgo.ActionsRow).Components) != 1 || rows[0].(discordgo.ActionsRow).Components[0].(discordgo.Button).CustomID != favPrefix+"waifu" {
+		t.Errorf("single page without sell should only carry the Favorite button: %+v", rows)
 	}
 	rows = pagerComponents(0, 1, true)
-	if len(rows) != 1 || rows[0].(discordgo.ActionsRow).Components[0].(discordgo.Button).CustomID != sellPrefix+sellAsk {
+	if len(rows) != 1 || rows[0].(discordgo.ActionsRow).Components[0].(discordgo.Button).CustomID != sellPrefix+sellAsk || rows[0].(discordgo.ActionsRow).Components[1].(discordgo.Button).CustomID != favPrefix+"waifu" {
 		t.Errorf("single sellable page = %+v", rows)
 	}
 	if len(pagerComponents(1, 3, true)) != 2 {

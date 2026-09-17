@@ -165,6 +165,10 @@ func (s *SearchService) Series(ctx context.Context, term string, q Query) (Serie
 	return s.charactersOf(ctx, works[0], q)
 }
 
+func (s *SearchService) SeriesDetail(ctx context.Context, slug string) (domain.Series, error) {
+	return s.source.Work(ctx, slug)
+}
+
 func (s *SearchService) SeriesBySlug(ctx context.Context, slug string, q Query) (SeriesResult, error) {
 	series, err := s.source.Work(ctx, slug)
 	if err != nil {

@@ -27,10 +27,10 @@ const (
 )
 
 func pagerComponents(page, total int, sellable bool) []discordgo.MessageComponent {
-	return pagerRows(page, total, sellable, nil)
+	return append(pagerRows(page, total, nil), cardActions(sellable))
 }
 
-func pagerRows(page, total int, sellable bool, options []discordgo.SelectMenuOption) []discordgo.MessageComponent {
+func pagerRows(page, total int, options []discordgo.SelectMenuOption) []discordgo.MessageComponent {
 	var rows []discordgo.MessageComponent
 	if total > 1 {
 		btn := func(id, emoji string, disabled bool) discordgo.Button {
@@ -51,9 +51,6 @@ func pagerRows(page, total int, sellable bool, options []discordgo.SelectMenuOpt
 				Options:     options,
 			}}})
 		}
-	}
-	if sellable {
-		rows = append(rows, discordgo.ActionsRow{Components: []discordgo.MessageComponent{sellAskButton()}})
 	}
 	return rows
 }
@@ -92,7 +89,7 @@ func (b *Bot) renderPage(ctx context.Context, s *Session, elapsed time.Duration)
 		if len(s.Pages) > 1 {
 			content = strings.TrimRight(content, "\n") + fmt.Sprintf("\nPage %d out of %d", s.Page+1, len(s.Pages))
 		}
-		return content, []*discordgo.MessageEmbed{embed}, append(pagerRows(s.Page, len(s.Pages), false, b.selectOptions(s)), s.Extra...)
+		return content, []*discordgo.MessageEmbed{embed}, append(pagerRows(s.Page, len(s.Pages), b.selectOptions(s)), s.Extra...)
 	}
 	if ref.detail == nil {
 		w, err := b.svc.Search.Detail(ctx, ref.summary.Slug)
@@ -117,7 +114,8 @@ func (b *Bot) renderPage(ctx context.Context, s *Session, elapsed time.Duration)
 	if len(s.Pages) > 1 {
 		content = strings.TrimRight(content, "\n") + fmt.Sprintf("\nPage %d out of %d", s.Page+1, len(s.Pages))
 	}
-	return content, []*discordgo.MessageEmbed{embed}, append(pagerRows(s.Page, len(s.Pages), s.Sellable, b.selectOptions(s)), s.Extra...)
+	rows := append(pagerRows(s.Page, len(s.Pages), b.selectOptions(s)), cardActions(s.Sellable))
+	return content, []*discordgo.MessageEmbed{embed}, append(rows, s.Extra...)
 }
 
 func (b *Bot) selectOptions(s *Session) []discordgo.SelectMenuOption {
@@ -129,8 +127,12 @@ func (b *Bot) selectOptions(s *Session) []discordgo.SelectMenuOption {
 	options := make([]discordgo.SelectMenuOption, 0, end-start)
 	for i := start; i < end; i++ {
 		if g := s.Pages[i].group; g != nil {
+			count := len(g.items)
+			if g.lines != nil {
+				count = len(g.lines)
+			}
 			options = append(options, discordgo.SelectMenuOption{
-				Label:   fmt.Sprintf("Page %d · %d to %d", i+1, g.first+1, g.first+len(g.items)),
+				Label:   fmt.Sprintf("Page %d · %d to %d", i+1, g.first+1, g.first+count),
 				Value:   strconv.Itoa(i),
 				Default: i == s.Page,
 			})
@@ -324,6 +326,19 @@ func pagesCompactTitled(items []domain.OwnedWaifu, lookup app.RankLookup, title 
 	for i, o := range items {
 		summaries[i] = domain.WaifuSummary{Slug: o.Slug, UUID: o.UUID, Name: o.Name, PictureURL: o.PictureURL, Likes: o.Likes, Trash: o.Trash}
 	}
+	return pagesCompactFromSummaries(summaries, lookup, title)
+}
+
+func pagesFromLines(lines []string, title string) []pageRef {
+	pages := make([]pageRef, 0, (len(lines)+compactPageSize-1)/compactPageSize)
+	for start := 0; start < len(lines); start += compactPageSize {
+		end := min(start+compactPageSize, len(lines))
+		pages = append(pages, pageRef{group: &compactGroup{first: start, lines: lines[start:end], title: title}})
+	}
+	return pages
+}
+
+func pagesCompactFromSummaries(summaries []domain.WaifuSummary, lookup app.RankLookup, title string) []pageRef {
 	chars := cardCharacters(summaries, lookup)
 	pages := make([]pageRef, 0, (len(chars)+compactPageSize-1)/compactPageSize)
 	for start := 0; start < len(chars); start += compactPageSize {
@@ -334,9 +349,12 @@ func pagesCompactTitled(items []domain.OwnedWaifu, lookup app.RankLookup, title 
 }
 
 func compactEmbed(g *compactGroup) *discordgo.MessageEmbed {
-	lines := make([]string, len(g.items))
-	for i, c := range g.items {
-		lines[i] = fmt.Sprintf("%d. %s", g.first+i+1, cardLine(c))
+	lines := g.lines
+	if lines == nil {
+		lines = make([]string, len(g.items))
+		for i, c := range g.items {
+			lines[i] = fmt.Sprintf("%d. %s", g.first+i+1, cardLine(c))
+		}
 	}
 	title := g.title
 	if title == "" {
