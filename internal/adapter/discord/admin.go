@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 
@@ -14,9 +15,10 @@ import (
 const (
 	commandAdmin = "admin"
 
-	groupCoins  = "coins"
-	groupWaifu  = "waifu"
-	groupBanner = "banner"
+	groupCoins   = "coins"
+	groupWaifu   = "waifu"
+	groupBanner  = "banner"
+	groupRanking = "ranking"
 
 	adminSet       = "set"
 	adminIncrement = "increment"
@@ -24,6 +26,7 @@ const (
 	adminAdd       = "add"
 	adminRemove    = "remove"
 	adminReroll    = "reroll"
+	adminStatus    = "status"
 
 	optAmount = "amount"
 	optWaifu  = "waifu"
@@ -63,6 +66,9 @@ func adminCommand() *discordgo.ApplicationCommand {
 			}},
 			{Type: discordgo.ApplicationCommandOptionSubCommandGroup, Name: groupBanner, Description: "Manage this week's banner", Options: []*discordgo.ApplicationCommandOption{
 				sub(adminReroll, "Pick a different series for this week's banner"),
+			}},
+			{Type: discordgo.ApplicationCommandOptionSubCommandGroup, Name: groupRanking, Description: "Inspect the star ranking", Options: []*discordgo.ApplicationCommandOption{
+				sub(adminStatus, "Show the ranking snapshot and refresh progress"),
 			}},
 			sub(subHelp, "Explain the admin tools"),
 		},
@@ -105,6 +111,10 @@ func (b *Bot) admin(ctx context.Context, ic *interaction, data discordgo.Applica
 	}
 	if group == groupBanner {
 		b.adminBanner(ctx, ic, sub)
+		return
+	}
+	if group == groupRanking {
+		b.adminRanking(ic, sub)
 		return
 	}
 	target := resolvedUser(opts, data.Resolved, optUser)
@@ -181,6 +191,76 @@ func (b *Bot) adminBanner(ctx context.Context, ic *interaction, sub string) {
 	e := bannerEmbed(bn)
 	e.Footer = b.footer(b.cfg.Clock.Now().Sub(start))
 	b.edit(ic, fmt.Sprintf(msgAdminRerolledFmt, bn.Series.Name), []*discordgo.MessageEmbed{e}, nil)
+}
+
+func (b *Bot) adminRanking(ic *interaction, sub string) {
+	if sub != adminStatus {
+		b.log.Warn("unknown admin ranking subcommand", "sub", sub)
+		b.replyEphemeral(ic, msgUnexpected)
+		return
+	}
+	if b.svc.Status == nil {
+		b.replyEphemeral(ic, msgRankingStatusUnavailable)
+		return
+	}
+	e := rankingStatusEmbed(b.svc.Status.Status(), b.cfg.Clock.Now())
+	err := b.s.InteractionRespond(ic.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{Embeds: []*discordgo.MessageEmbed{e}, Flags: discordgo.MessageFlagsEphemeral},
+	})
+	if err != nil {
+		b.log.Error("ranking status reply failed", "err", err)
+	}
+}
+
+func rankingStatusEmbed(st app.RankingStatus, now time.Time) *discordgo.MessageEmbed {
+	e := &discordgo.MessageEmbed{Title: "Ranking status", Color: brandingColor}
+	snapshot := "No snapshot yet. Stars and critical rolls use the live popular pages until the first walk finishes."
+	if st.Loaded {
+		snapshot = fmt.Sprintf("%s ranked characters, fetched %s ago (cutoff page %d).", thousands(st.Rows), humanDuration(now.Sub(st.FetchedAt)), st.CutoffPage)
+	}
+	e.Fields = append(e.Fields, helpField("Snapshot", snapshot))
+
+	refresh := "Idle."
+	if st.Refreshing {
+		elapsed := now.Sub(st.StartedAt)
+		refresh = fmt.Sprintf("Running for %s: page %d", humanDuration(elapsed), st.Page)
+		if st.LastPage > 0 {
+			refresh += fmt.Sprintf(" of %d", st.LastPage)
+		}
+		refresh += fmt.Sprintf(", %s rows collected so far.", thousands(st.Collected))
+		if st.Page > 0 && st.LastPage > st.Page && elapsed > 0 {
+			remaining := time.Duration(float64(elapsed) / float64(st.Page) * float64(st.LastPage-st.Page))
+			refresh += fmt.Sprintf(" Roughly %s to go if it runs to the last page; it usually stops earlier at the 100-vote cutoff.", humanDuration(remaining))
+		}
+	} else if !st.NextRefresh.IsZero() {
+		if wait := st.NextRefresh.Sub(now); wait > 0 {
+			refresh = fmt.Sprintf("Idle. Next refresh in %s.", humanDuration(wait))
+		} else {
+			refresh = "Due now; it starts as soon as the scheduler wakes."
+		}
+	}
+	e.Fields = append(e.Fields, helpField("Refresh", refresh))
+	if st.LastError != "" {
+		e.Fields = append(e.Fields, helpField("Last error", fmt.Sprintf("%s (%s ago)", truncate(st.LastError, 900), humanDuration(now.Sub(st.LastErrorAt)))))
+	}
+	return e
+}
+
+func humanDuration(d time.Duration) string {
+	if d < 0 {
+		d = -d
+	}
+	switch {
+	case d < time.Minute:
+		return fmt.Sprintf("%ds", int(d.Seconds()))
+	case d < time.Hour:
+		return fmt.Sprintf("%dm", int(d.Minutes()))
+	case d < 48*time.Hour:
+		return fmt.Sprintf("%dh %dm", int(d.Hours()), int(d.Minutes())%60)
+	default:
+		return fmt.Sprintf("%dd %dh", int(d.Hours())/24, int(d.Hours())%24)
+	}
 }
 
 func waifuInput(raw string) string {

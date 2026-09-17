@@ -325,3 +325,41 @@ func TestRankingService_RealSleepHonoursCancellation(t *testing.T) {
 		t.Errorf("Run should return when the sleep is interrupted: %v", err)
 	}
 }
+
+func TestRankingService_StatusTracksProgress(t *testing.T) {
+	f := newRankingFixture(t, app.RankingConfig{PageRetries: 1})
+	before := f.svc.Status()
+	if before.Loaded || before.Refreshing || before.Rows != 0 || !before.NextRefresh.Equal(f.clock.now) {
+		t.Errorf("status before anything = %+v", before)
+	}
+
+	var mid app.RankingStatus
+	f.source.EXPECT().PopularPage(mock.Anything, 1).Return(page(1, 3, 900, 800), nil).Once()
+	f.source.EXPECT().PopularPage(mock.Anything, 2).RunAndReturn(func(context.Context, int) (app.PopularPage, error) {
+		mid = f.svc.Status()
+		return page(2, 3, 300, 200), nil
+	}).Once()
+	f.source.EXPECT().PopularPage(mock.Anything, 3).Return(page(3, 3, 150, 120), nil).Once()
+	if err := f.svc.Refresh(f.ctx); err != nil {
+		t.Fatal(err)
+	}
+	if !mid.Refreshing || mid.Page != 1 || mid.LastPage != 3 || mid.Collected != 2 || !mid.StartedAt.Equal(f.clock.now) {
+		t.Errorf("status mid-walk = %+v", mid)
+	}
+	after := f.svc.Status()
+	if after.Refreshing || !after.Loaded || after.Rows != 6 || after.CutoffPage != 3 || after.Page != 3 || after.Collected != 6 || after.LastError != "" {
+		t.Errorf("status after refresh = %+v", after)
+	}
+	if !after.NextRefresh.Equal(f.clock.now.Add(24 * time.Hour)) {
+		t.Errorf("next refresh = %v", after.NextRefresh)
+	}
+
+	f.source.EXPECT().PopularPage(mock.Anything, 1).Return(app.PopularPage{}, errors.New("down")).Once()
+	if err := f.svc.Refresh(f.ctx); err == nil {
+		t.Fatal("expected failure")
+	}
+	failed := f.svc.Status()
+	if failed.LastError == "" || !failed.LastErrorAt.Equal(f.clock.now) || !failed.Loaded || failed.Rows != 6 {
+		t.Errorf("status after failure = %+v", failed)
+	}
+}

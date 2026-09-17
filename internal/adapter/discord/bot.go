@@ -33,6 +33,7 @@ type Services struct {
 	Banner    *app.BannerService
 	Admin     *app.AdminService
 	Ranking   app.RankingProvider
+	Status    app.RankingStatusProvider
 }
 
 type Config struct {

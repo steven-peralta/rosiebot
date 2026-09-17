@@ -69,6 +69,8 @@ func adminHelpEmbed() *discordgo.MessageEmbed {
 				"Give a character to a player or take one away. `add` autocompletes from the ranked set, `remove` from the player's collection. No coins change hands either way."),
 			helpField("banner reroll",
 				"Replace this week's banner with a different eligible series: at least five ranked characters and one with four or more stars, never the current or last week's series. Everyone's banner rolls switch immediately."),
+			helpField("ranking status",
+				"Show the current star ranking snapshot, when the next daily refresh is due, and live progress of a refresh that is running. On a fresh database the first walk starts at boot and takes about half an hour."),
 		},
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -61,6 +62,34 @@ func (c RankingConfig) withDefaults() RankingConfig {
 	return c
 }
 
+type RankingStatus struct {
+	Loaded      bool
+	Rows        int
+	FetchedAt   time.Time
+	CutoffPage  int
+	NextRefresh time.Time
+	Refreshing  bool
+	StartedAt   time.Time
+	Page        int
+	LastPage    int
+	Collected   int
+	LastError   string
+	LastErrorAt time.Time
+}
+
+type RankingStatusProvider interface {
+	Status() RankingStatus
+}
+
+type rankingProgress struct {
+	startedAt   time.Time
+	page        int
+	lastPage    int
+	collected   int
+	lastError   string
+	lastErrorAt time.Time
+}
+
 type RankingService struct {
 	store      RankingStore
 	source     WaifuSource
@@ -70,9 +99,14 @@ type RankingService struct {
 	sleep      func(context.Context, time.Duration) error
 	current    atomic.Pointer[domain.Ranking]
 	refreshing atomic.Bool
+	mu         sync.Mutex
+	progress   rankingProgress
 }
 
-var _ RankingProvider = (*RankingService)(nil)
+var (
+	_ RankingProvider       = (*RankingService)(nil)
+	_ RankingStatusProvider = (*RankingService)(nil)
+)
 
 func NewRankingService(store RankingStore, source WaifuSource, clock Clock, cfg RankingConfig, log *slog.Logger) *RankingService {
 	if log == nil {
@@ -83,6 +117,35 @@ func NewRankingService(store RankingStore, source WaifuSource, clock Clock, cfg 
 
 func (s *RankingService) Current() *domain.Ranking {
 	return s.current.Load()
+}
+
+func (s *RankingService) Status() RankingStatus {
+	s.mu.Lock()
+	p := s.progress
+	s.mu.Unlock()
+	st := RankingStatus{
+		NextRefresh: s.NextRefresh(),
+		Refreshing:  s.refreshing.Load(),
+		StartedAt:   p.startedAt,
+		Page:        p.page,
+		LastPage:    p.lastPage,
+		Collected:   p.collected,
+		LastError:   p.lastError,
+		LastErrorAt: p.lastErrorAt,
+	}
+	if r := s.Current(); r != nil {
+		st.Loaded = true
+		st.Rows = r.Len()
+		st.FetchedAt = r.FetchedAt
+		st.CutoffPage = r.CutoffPage
+	}
+	return st
+}
+
+func (s *RankingService) setProgress(fn func(*rankingProgress)) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	fn(&s.progress)
 }
 
 func (s *RankingService) NextRefresh() time.Time {
@@ -113,15 +176,21 @@ func (s *RankingService) Refresh(ctx context.Context) error {
 	defer s.refreshing.Store(false)
 
 	started := s.clock.Now()
+	s.setProgress(func(p *rankingProgress) {
+		*p = rankingProgress{startedAt: started, lastError: p.lastError, lastErrorAt: p.lastErrorAt}
+	})
 	rows, cutoff, err := s.walk(ctx)
 	if err != nil {
+		s.setProgress(func(p *rankingProgress) { p.lastError = err.Error(); p.lastErrorAt = s.clock.Now() })
 		return err
 	}
 	ranking := domain.BuildRanking(rows, s.cfg.MinVotes, started, cutoff)
 	if err := s.store.Save(ctx, ranking); err != nil {
+		s.setProgress(func(p *rankingProgress) { p.lastError = err.Error(); p.lastErrorAt = s.clock.Now() })
 		return fmt.Errorf("save ranking: %w", err)
 	}
 	s.current.Store(ranking)
+	s.setProgress(func(p *rankingProgress) { p.lastError = ""; p.lastErrorAt = time.Time{} })
 	s.log.Info("ranking refreshed", "rows", ranking.Len(), "cutoff_page", cutoff, "took", s.clock.Now().Sub(started))
 	return nil
 }
@@ -142,6 +211,7 @@ func (s *RankingService) walk(ctx context.Context) ([]domain.WaifuSummary, int, 
 		if pp.LastPage > 0 {
 			lastPage = pp.LastPage
 		}
+		s.setProgress(func(p *rankingProgress) { p.page, p.lastPage, p.collected = page, lastPage, len(rows) })
 		if len(pp.Rows) == 0 || minTotal(pp.Rows) <= s.cfg.MinVotes || (lastPage > 0 && page >= lastPage) {
 			return rows, page, nil
 		}

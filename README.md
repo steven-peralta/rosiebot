@@ -25,13 +25,14 @@ A Discord waifu gacha bot backed by [MyWaifuList](https://mywaifulist.moe). Roll
 | `/admin coins set\|increment\|decrement <user> <amount>` | Server administrators only: set, add to, or take from a player's balance. Replies privately. |
 | `/admin waifu add\|remove <user> <waifu>` | Server administrators only: give a waifu to a player or take one away, with autocomplete. No coins change hands. |
 | `/admin banner reroll` | Server administrators only: replace this week's banner with a different eligible series, never the current or last week's one. |
+| `/admin ranking status` | Server administrators only: show the star ranking snapshot, when the next refresh is due, and the live progress of a running refresh. |
 | **Sell Waifu** (message context menu) | Right-click any bot message showing a waifu you own to sell it. Unranked waifus pay 100 coins; ranked ones pay 150, 200, 300, 500 or 1000 for one to five stars. |
 
 Character details and search pages are cached in Postgres and refreshed lazily: a stale entry is served immediately while one background request refreshes it, so nothing depends on a scheduled job. Random rolls and the waifu of the day always go to the live API, so newly submitted characters appear as soon as MyWaifuList lists them.
 
 Every Monday at 10:00 bot time a new banner series is picked at random from series with at least five ranked characters and at least one 4-star, never the same series two weeks in a row. The pick is persisted, so restarts keep it.
 
-Star ratings come from the owner's formula, `((likes+1)/(trash+1)) * (likes+trash)`, computed over every character with more than 100 votes and refreshed in-process once a day.
+Star ratings come from the owner's formula, `((likes+1)/(trash+1)) * (likes+trash)`, computed over every character with more than 100 votes and refreshed in-process once a day. On a fresh database the first walk starts as soon as the bot boots and takes roughly half an hour at the background request rate; `/admin ranking status` shows its progress.
 
 ## Configuration
 

@@ -225,4 +225,6 @@ const (
 	msgAdminNoSeries    = "Couldn't find an eligible series this time. Try again."
 	msgNoRankingYet     = "The ranking isn't loaded yet. Try again in a minute."
 	msgResponseTooLarge = "Response too large!"
+
+	msgRankingStatusUnavailable = "Ranking status isn't available in this deployment."
 )

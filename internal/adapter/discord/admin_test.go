@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/stretchr/testify/mock"
@@ -52,6 +53,55 @@ func TestHelp_AllCommands(t *testing.T) {
 	}
 	if got := waifuHelpEmbed().Fields[0].Name; !strings.Contains(got, "200") {
 		t.Errorf("roll cost missing from help: %q", got)
+	}
+}
+
+func TestAdmin_RankingStatus(t *testing.T) {
+	f := newFixture(t)
+	now := f.clock.now
+	status := func() *discordgo.MessageEmbed {
+		t.Helper()
+		f.api.reset()
+		f.run(f.adminCmd(aliceID, groupRanking, adminStatus, nil))
+		r := f.api.lastRespond()
+		if r == nil || r.Data == nil || r.Data.Flags&discordgo.MessageFlagsEphemeral == 0 || len(r.Data.Embeds) != 1 {
+			t.Fatalf("status reply = %+v", r)
+		}
+		return r.Data.Embeds[0]
+	}
+
+	f.status.st = app.RankingStatus{NextRefresh: now}
+	e := status()
+	if !strings.HasPrefix(e.Fields[0].Value, "No snapshot yet") || e.Fields[1].Value != "Due now; it starts as soon as the scheduler wakes." {
+		t.Errorf("fresh status = %+v", e.Fields)
+	}
+
+	f.status.st = app.RankingStatus{Loaded: true, Rows: 7208, FetchedAt: now.Add(-3 * time.Hour), CutoffPage: 1001, NextRefresh: now.Add(21 * time.Hour)}
+	e = status()
+	if e.Fields[0].Value != "7,208 ranked characters, fetched 3h 0m ago (cutoff page 1001)." || e.Fields[1].Value != "Idle. Next refresh in 21h 0m." || len(e.Fields) != 2 {
+		t.Errorf("idle status = %+v", e.Fields)
+	}
+
+	f.status.st = app.RankingStatus{Refreshing: true, StartedAt: now.Add(-10 * time.Minute), Page: 400, LastPage: 5000, Collected: 4000, LastError: "ranking page 12 failed", LastErrorAt: now.Add(-2 * 24 * time.Hour)}
+	e = status()
+	if !strings.HasPrefix(e.Fields[1].Value, "Running for 10m: page 400 of 5000, 4,000 rows collected so far. Roughly 1h 55m to go") {
+		t.Errorf("running status = %q", e.Fields[1].Value)
+	}
+	if len(e.Fields) != 3 || e.Fields[2].Name != "Last error" || !strings.Contains(e.Fields[2].Value, "2d 0h ago") {
+		t.Errorf("error field = %+v", e.Fields)
+	}
+
+	f.run(f.adminCmd(aliceID, groupRanking, "nope", nil))
+	if got := f.respondContent(); got != msgUnexpected {
+		t.Errorf("unknown ranking sub = %q", got)
+	}
+	f.bot.svc.Status = nil
+	f.run(f.adminCmd(aliceID, groupRanking, adminStatus, nil))
+	if got := f.respondContent(); got != msgRankingStatusUnavailable {
+		t.Errorf("no provider = %q", got)
+	}
+	if humanDuration(-90*time.Second) != "1m" || humanDuration(5*time.Second) != "5s" {
+		t.Error("humanDuration edge cases")
 	}
 }
 

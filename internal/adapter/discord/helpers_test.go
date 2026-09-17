@@ -201,6 +201,10 @@ func editContent(e *discordgo.WebhookEdit) string {
 	return *e.Content
 }
 
+type fakeStatus struct{ st app.RankingStatus }
+
+func (f *fakeStatus) Status() app.RankingStatus { return f.st }
+
 type fakeClock struct{ now time.Time }
 
 func (c *fakeClock) Now() time.Time { return c.now }
@@ -231,6 +235,7 @@ type fixture struct {
 	daily   *memory.DailyStore
 	banners *memory.BannerStore
 	loc     *time.Location
+	status  *fakeStatus
 	seq     int
 }
 
@@ -266,6 +271,7 @@ func newFixture(t *testing.T) *fixture {
 	ranking := memory.NewRankingHolder(rankingOf(200))
 	daily := memory.NewDailyStore()
 	wotd := app.NewWotdService(daily, ranking, clock, rng, loc, nil)
+	status := &fakeStatus{}
 	banners := memory.NewBannerStore()
 	banner := app.NewBannerService(banners, ranking, source, clock, rng, loc, app.BannerConfig{}, nil)
 	svc := Services{
@@ -279,10 +285,12 @@ func newFixture(t *testing.T) *fixture {
 		Wotd:      wotd,
 		Banner:    banner,
 		Ranking:   ranking,
+		Status:    status,
 	}
 	api := newFakeAPI()
 	bot := New(api, svc, Config{AppID: "app", BotUserID: botID, Version: "test", Clock: clock})
-	return &fixture{t: t, api: api, bot: bot, clock: clock, rng: rng, players: players, source: source, ranking: ranking, daily: daily, banners: banners, loc: loc}
+	svc.Status = status
+	return &fixture{t: t, api: api, bot: bot, clock: clock, rng: rng, players: players, source: source, ranking: ranking, daily: daily, banners: banners, loc: loc, status: status}
 }
 
 func (f *fixture) script(vals ...int) { f.rng.vals = append(f.rng.vals, vals...) }
