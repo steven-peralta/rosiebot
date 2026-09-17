@@ -446,7 +446,7 @@ func TestOwned_CompactView(t *testing.T) {
 	}
 	embed := (*e.Embeds)[0]
 	lines := strings.Split(embed.Description, "\n")
-	if embed.Title != "Collection" || len(lines) != 20 || lines[0] != "1. :star::star::star::star::star: Name ranked-000 · Rank #1" || lines[1] != "2. :star: Name ranked-100 · Rank #101" || lines[2] != "3. Name plain-00 · unranked" || embed.Footer == nil {
+	if embed.Title != "Collection" || len(lines) != 20 || lines[0] != "1. ★★★★★ Name ranked-000 · Rank #1" || lines[1] != "2. ★☆☆☆☆ Name ranked-100 · Rank #101" || lines[2] != "3. ☆☆☆☆☆ Name plain-00 · unranked" || embed.Footer == nil {
 		t.Errorf("compact page = %+v", embed)
 	}
 	rows := *e.Components

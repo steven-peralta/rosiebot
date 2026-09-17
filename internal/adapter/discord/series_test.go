@@ -36,10 +36,10 @@ func TestSeriesSearch_Card(t *testing.T) {
 	}
 	lines := strings.Split(embed.Fields[0].Value, "\n")
 	want := []string{
-		":star::star::star::star::star: Name ranked-000 · Rank #1",
-		":star::star: Name ranked-050 · Rank #51",
-		"Name ram · unranked",
-		"Name rem · unranked",
+		"★★★★★ Name ranked-000 · Rank #1",
+		"★★☆☆☆ Name ranked-050 · Rank #51",
+		"☆☆☆☆☆ Name ram · unranked",
+		"☆☆☆☆☆ Name rem · unranked",
 	}
 	if strings.Join(lines, "|") != strings.Join(want, "|") {
 		t.Errorf("lines = %q", lines)
@@ -143,6 +143,15 @@ func TestSeriesSearch_Autocomplete(t *testing.T) {
 	ic = f.slash(aliceID, commandSeries, "nope", nil, focused)
 	ic.Type = discordgo.InteractionApplicationCommandAutocomplete
 	f.run(ic)
+}
+
+func TestStarBar(t *testing.T) {
+	cases := map[int]string{0: "☆☆☆☆☆", 1: "★☆☆☆☆", 3: "★★★☆☆", 5: "★★★★★", 9: "★★★★★", -1: "☆☆☆☆☆"}
+	for stars, want := range cases {
+		if got := starBar(stars); got != want {
+			t.Errorf("starBar(%d) = %q, want %q", stars, got, want)
+		}
+	}
 }
 
 func TestSeriesCardEmbed_CapsList(t *testing.T) {

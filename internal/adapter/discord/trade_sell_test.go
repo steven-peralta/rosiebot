@@ -272,7 +272,7 @@ func TestSellAll_Flow(t *testing.T) {
 	}
 	embed := (*e.Embeds)[0]
 	lines := strings.Split(embed.Description, "\n")
-	if embed.Title != "Waifus to sell" || len(lines) != 4 || lines[0] != "1. :star::star: Name ranked-040 · Rank #41" || lines[3] != "4. Name plain-b · unranked" {
+	if embed.Title != "Waifus to sell" || len(lines) != 4 || lines[0] != "1. ★★☆☆☆ Name ranked-040 · Rank #41" || lines[3] != "4. ☆☆☆☆☆ Name plain-b · unranked" {
 		t.Errorf("confirm list = %+v", embed)
 	}
 	rows := *e.Components

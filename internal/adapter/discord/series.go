@@ -26,11 +26,16 @@ type cardCharacter struct {
 	ranked  *domain.RankedWaifu
 }
 
+func starBar(stars int) string {
+	stars = max(0, min(stars, domain.MaxStars))
+	return strings.Repeat("★", stars) + strings.Repeat("☆", domain.MaxStars-stars)
+}
+
 func cardLine(c cardCharacter) string {
 	if c.ranked != nil && c.ranked.Stars > 0 {
-		return fmt.Sprintf("%s %s · Rank #%s", strings.Repeat(":star:", c.ranked.Stars), c.summary.Name, thousands(c.ranked.Position))
+		return fmt.Sprintf("%s %s · Rank #%s", starBar(c.ranked.Stars), c.summary.Name, thousands(c.ranked.Position))
 	}
-	return c.summary.Name + " · unranked"
+	return starBar(0) + " " + c.summary.Name + " · unranked"
 }
 
 func viewMenuRow(chars []cardCharacter) discordgo.MessageComponent {
