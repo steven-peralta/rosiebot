@@ -1,0 +1,135 @@
+package discord
+
+import (
+	"errors"
+	"testing"
+
+	"github.com/bwmarrin/discordgo"
+	"github.com/stretchr/testify/mock"
+
+	"github.com/steven-peralta/rosiebot/internal/app"
+	"github.com/steven-peralta/rosiebot/internal/domain"
+)
+
+func TestAdmin_Coins(t *testing.T) {
+	f := newFixture(t)
+	ic := f.adminCmd(aliceID, groupCoins, adminSet, resolvedUsers(bobID), userOption(bobID), intOpt(optAmount, 1000))
+	f.run(ic)
+	if r := f.api.calls[0].resp; r.Type != discordgo.InteractionResponseDeferredChannelMessageWithSource || r.Data == nil || r.Data.Flags&discordgo.MessageFlagsEphemeral == 0 {
+		t.Errorf("admin replies should be deferred ephemeral, got %+v", r)
+	}
+	if got := editContent(f.api.lastEdit()); got != "Set <@bob>'s balance to :coin: 1000 coins." || f.coins(bobID) != 1000 {
+		t.Errorf("set = %q coins=%d", got, f.coins(bobID))
+	}
+	f.run(f.adminCmd(aliceID, groupCoins, adminIncrement, resolvedUsers(bobID), userOption(bobID), intOpt(optAmount, 250)))
+	if got := editContent(f.api.lastEdit()); got != "Added :coin: 250 coins to <@bob>. New balance: 1250 coins." {
+		t.Errorf("increment = %q", got)
+	}
+	f.run(f.adminCmd(aliceID, groupCoins, adminDecrement, resolvedUsers(bobID), userOption(bobID), intOpt(optAmount, 1250)))
+	if got := editContent(f.api.lastEdit()); got != "Removed :coin: 1250 coins from <@bob>. New balance: 0 coins." {
+		t.Errorf("decrement = %q", got)
+	}
+	f.run(f.adminCmd(aliceID, groupCoins, adminDecrement, resolvedUsers(bobID), userOption(bobID), intOpt(optAmount, 1)))
+	if got := editContent(f.api.lastEdit()); got != "<@bob> doesn't have that many coins." || f.coins(bobID) != 0 {
+		t.Errorf("decrement below zero = %q coins=%d", got, f.coins(bobID))
+	}
+	f.run(f.adminCmd(aliceID, groupCoins, adminSet, resolvedUsers(bobID), userOption(bobID), intOpt(optAmount, -5)))
+	if got := editContent(f.api.lastEdit()); got != msgUnexpected {
+		t.Errorf("negative set = %q", got)
+	}
+}
+
+func TestAdmin_Waifus(t *testing.T) {
+	f := newFixture(t)
+	f.run(f.adminCmd(aliceID, groupWaifu, adminAdd, resolvedUsers(bobID), userOption(bobID), strOpt(optWaifu, slugChoicePrefix+"rem")))
+	if got := editContent(f.api.lastEdit()); got != "Gave Name rem to <@bob>." || !f.owns(bobID, "rem") || f.coins(bobID) != domain.StartingCoins {
+		t.Errorf("add = %q owns=%v coins=%d", got, f.owns(bobID, "rem"), f.coins(bobID))
+	}
+	f.run(f.adminCmd(aliceID, groupWaifu, adminAdd, resolvedUsers(bobID), userOption(bobID), strOpt(optWaifu, "rem")))
+	if got := editContent(f.api.lastEdit()); got != "<@bob> already owns that waifu." {
+		t.Errorf("duplicate add = %q", got)
+	}
+	f.source.ExpectedCalls = nil
+	f.source.EXPECT().Get(mock.Anything, "ghost").Return(domain.Waifu{}, app.ErrNotFound).Once()
+	f.run(f.adminCmd(aliceID, groupWaifu, adminAdd, resolvedUsers(bobID), userOption(bobID), strOpt(optWaifu, "ghost")))
+	if got := editContent(f.api.lastEdit()); got != msgWaifuNotFound {
+		t.Errorf("unknown waifu = %q", got)
+	}
+	f.source.EXPECT().Get(mock.Anything, "down").Return(domain.Waifu{}, errors.New("boom")).Once()
+	f.run(f.adminCmd(aliceID, groupWaifu, adminAdd, resolvedUsers(bobID), userOption(bobID), strOpt(optWaifu, "down")))
+	if got := editContent(f.api.lastEdit()); got != msgUnexpected {
+		t.Errorf("source failure = %q", got)
+	}
+
+	f.run(f.adminCmd(aliceID, groupWaifu, adminRemove, resolvedUsers(bobID), userOption(bobID), strOpt(optWaifu, "rem")))
+	if got := editContent(f.api.lastEdit()); got != "Took Name rem from <@bob>." || f.owns(bobID, "rem") || f.coins(bobID) != domain.StartingCoins {
+		t.Errorf("remove = %q owns=%v coins=%d", got, f.owns(bobID, "rem"), f.coins(bobID))
+	}
+	f.run(f.adminCmd(aliceID, groupWaifu, adminRemove, resolvedUsers(bobID), userOption(bobID), strOpt(optWaifu, "rem")))
+	if got := editContent(f.api.lastEdit()); got != "<@bob> doesn't own that waifu." {
+		t.Errorf("remove again = %q", got)
+	}
+}
+
+func TestAdmin_GuardsAndAutocomplete(t *testing.T) {
+	f := newFixture(t)
+	f.give(aliceID)
+	plain := f.adminCmd(bobID, groupCoins, adminSet, resolvedUsers(aliceID), userOption(aliceID), intOpt(optAmount, 1))
+	plain.Member.Permissions = 0
+	f.run(plain)
+	if got := f.respondContent(); got != msgAdminOnly {
+		t.Errorf("non-admin = %q", got)
+	}
+	if f.coins(aliceID) != domain.StartingCoins {
+		t.Error("non-admin must not change coins")
+	}
+
+	dm := f.adminCmd(aliceID, groupCoins, adminSet, resolvedUsers(bobID), userOption(bobID), intOpt(optAmount, 1))
+	dm.GuildID = ""
+	f.run(dm)
+	if got := f.respondContent(); got != "The admin command cannot be invoked from the direct messages of the bot." {
+		t.Errorf("dm = %q", got)
+	}
+
+	f.run(f.adminCmd(aliceID, groupCoins, adminSet, nil, intOpt(optAmount, 1)))
+	if got := f.respondContent(); got != msgUserNotFound {
+		t.Errorf("missing user = %q", got)
+	}
+	f.run(f.adminCmd(aliceID, "nope", "what", resolvedUsers(bobID), userOption(bobID)))
+	if got := editContent(f.api.lastEdit()); got != msgUnexpected {
+		t.Errorf("unknown subcommand = %q", got)
+	}
+	bare := f.slash(aliceID, commandAdmin, "", nil)
+	bare.Member.Permissions = discordgo.PermissionAdministrator
+	f.run(bare)
+
+	f.give(bobID, "rem", "ram")
+	focused := strOpt(optWaifu, "ranked-00")
+	focused.Focused = true
+	ic := f.adminCmd(aliceID, groupWaifu, adminAdd, resolvedUsers(bobID), userOption(bobID), focused)
+	ic.Type = discordgo.InteractionApplicationCommandAutocomplete
+	f.run(ic)
+	if r := f.api.lastRespond(); r.Type != discordgo.InteractionApplicationCommandAutocompleteResult || len(r.Data.Choices) != 10 || r.Data.Choices[0].Value != slugChoicePrefix+"ranked-000" {
+		t.Errorf("add autocomplete = %+v", r)
+	}
+	focused = strOpt(optWaifu, "Name r")
+	focused.Focused = true
+	ic = f.adminCmd(aliceID, groupWaifu, adminRemove, resolvedUsers(bobID), userOption(bobID), focused)
+	ic.Type = discordgo.InteractionApplicationCommandAutocomplete
+	f.run(ic)
+	if r := f.api.lastRespond(); len(r.Data.Choices) != 2 || r.Data.Choices[0].Value != "rem" {
+		t.Errorf("remove autocomplete = %+v", r)
+	}
+	ic = f.adminCmd(aliceID, groupWaifu, adminRemove, nil, focused)
+	ic.Type = discordgo.InteractionApplicationCommandAutocomplete
+	f.run(ic)
+	if r := f.api.lastRespond(); len(r.Data.Choices) != 0 {
+		t.Errorf("remove autocomplete without a user = %+v", r)
+	}
+	ic = f.adminCmd(aliceID, groupCoins, adminSet, resolvedUsers(bobID), userOption(bobID), focused)
+	ic.Type = discordgo.InteractionApplicationCommandAutocomplete
+	f.run(ic)
+	if r := f.api.lastRespond(); len(r.Data.Choices) != 0 {
+		t.Errorf("coins autocomplete = %+v", r)
+	}
+}

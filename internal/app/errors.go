@@ -19,6 +19,7 @@ var (
 	ErrNoEligibleSeries  = errors.New("no eligible banner series found")
 	ErrRateLimited       = errors.New("upstream rate limited")
 	ErrInsufficientCoins = domain.ErrInsufficientCoins
+	ErrNegativeAmount    = domain.ErrNegativeAmount
 )
 
 type DailyAlreadyClaimedError struct {

@@ -20,6 +20,8 @@ A Discord waifu gacha bot backed by [MyWaifuList](https://mywaifulist.moe). Roll
 | `/w …` | Shorthand for every `/waifu` subcommand. |
 | `/series search <query>` | Show a series card: cover, description, and its characters ranked first with stars, each linked to MyWaifuList. A select menu opens any listed character's card privately, and Browse characters opens the usual one-per-page pager. Autocompletes series names. |
 | `/s …` | Shorthand for `/series`. |
+| `/admin coins set\|increment\|decrement <user> <amount>` | Server administrators only: set, add to, or take from a player's balance. Replies privately. |
+| `/admin waifu add\|remove <user> <waifu>` | Server administrators only: give a waifu to a player or take one away, with autocomplete. No coins change hands. |
 | **Sell Waifu** (message context menu) | Right-click any bot message showing a waifu you own to sell it for 100 coins. |
 
 Character details and search pages are cached in Postgres and refreshed lazily: a stale entry is served immediately while one background request refreshes it, so nothing depends on a scheduled job. Random rolls and the waifu of the day always go to the live API, so newly submitted characters appear as soon as MyWaifuList lists them.

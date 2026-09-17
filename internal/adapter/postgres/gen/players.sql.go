@@ -10,6 +10,32 @@ import (
 	"time"
 )
 
+const adjustCoins = `-- name: AdjustCoins :one
+UPDATE players
+SET coins = coins + $1, updated_at = $2
+WHERE guild_id = $3 AND user_id = $4 AND coins + $1 >= 0
+RETURNING coins
+`
+
+type AdjustCoinsParams struct {
+	Delta   int64
+	Now     time.Time
+	GuildID string
+	UserID  string
+}
+
+func (q *Queries) AdjustCoins(ctx context.Context, arg AdjustCoinsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, adjustCoins,
+		arg.Delta,
+		arg.Now,
+		arg.GuildID,
+		arg.UserID,
+	)
+	var coins int64
+	err := row.Scan(&coins)
+	return coins, err
+}
+
 const claimDaily = `-- name: ClaimDaily :one
 UPDATE players
 SET coins = coins + $1, daily_claimed_at = $2, updated_at = $2
@@ -159,4 +185,30 @@ func (q *Queries) LockPlayers(ctx context.Context, arg LockPlayersParams) ([]Pla
 		return nil, err
 	}
 	return items, nil
+}
+
+const setCoins = `-- name: SetCoins :one
+UPDATE players
+SET coins = $1, updated_at = $2
+WHERE guild_id = $3 AND user_id = $4
+RETURNING coins
+`
+
+type SetCoinsParams struct {
+	Coins   int64
+	Now     time.Time
+	GuildID string
+	UserID  string
+}
+
+func (q *Queries) SetCoins(ctx context.Context, arg SetCoinsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, setCoins,
+		arg.Coins,
+		arg.Now,
+		arg.GuildID,
+		arg.UserID,
+	)
+	var coins int64
+	err := row.Scan(&coins)
+	return coins, err
 }

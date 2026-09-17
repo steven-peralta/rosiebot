@@ -17,7 +17,7 @@ import (
 func TestCommands_Registration(t *testing.T) {
 	f := newFixture(t)
 	cmds := f.bot.Commands()
-	if len(cmds) != 5 {
+	if len(cmds) != 6 {
 		t.Fatalf("commands = %d", len(cmds))
 	}
 	names := map[string][]string{}
@@ -42,8 +42,15 @@ func TestCommands_Registration(t *testing.T) {
 	if cmds[3].Name != commandSAlias || len(cmds[3].Options) != 1 || cmds[3].Options[0].Name != subSearch {
 		t.Errorf("/s alias = %+v", cmds[3])
 	}
-	if cmds[4].Type != discordgo.MessageApplicationCommand || cmds[4].Name != commandSell {
-		t.Errorf("context command = %+v", cmds[4])
+	admin := cmds[4]
+	if admin.Name != commandAdmin || admin.DefaultMemberPermissions == nil || *admin.DefaultMemberPermissions != discordgo.PermissionAdministrator || len(admin.Options) != 2 {
+		t.Errorf("admin command = %+v", admin)
+	}
+	if groups := admin.Options; groups[0].Name != groupCoins || len(groups[0].Options) != 3 || groups[1].Name != groupWaifu || len(groups[1].Options) != 2 || !groups[1].Options[0].Options[1].Autocomplete {
+		t.Errorf("admin groups = %+v", groups)
+	}
+	if cmds[5].Type != discordgo.MessageApplicationCommand || cmds[5].Name != commandSell {
+		t.Errorf("context command = %+v", cmds[5])
 	}
 	if err := f.bot.Register(guildID); err != nil {
 		t.Fatal(err)

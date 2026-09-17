@@ -265,6 +265,7 @@ func newFixture(t *testing.T) *fixture {
 	banners := memory.NewBannerStore()
 	banner := app.NewBannerService(banners, ranking, source, clock, rng, loc, app.BannerConfig{}, nil)
 	svc := Services{
+		Admin:     app.NewAdminService(players, source, clock, nil),
 		Roll:      app.NewRollService(players, source, ranking, wotd, banner, clock, rng, 0, nil),
 		Daily:     app.NewDailyService(players, clock, rng, loc),
 		Coins:     app.NewCoinsService(players),
@@ -370,6 +371,19 @@ func (f *fixture) slash(userID, command, sub string, resolved *discordgo.Applica
 	return &discordgo.InteractionCreate{Interaction: &discordgo.Interaction{
 		ID: f.nextID(), Type: discordgo.InteractionApplicationCommand, GuildID: guildID, ChannelID: channelID, Member: member(userID), Data: data,
 	}}
+}
+
+func (f *fixture) adminCmd(userID, group, sub string, resolved *discordgo.ApplicationCommandInteractionDataResolved, opts ...*discordgo.ApplicationCommandInteractionDataOption) *discordgo.InteractionCreate {
+	ic := f.slash(userID, commandAdmin, sub, resolved, opts...)
+	data := ic.Data.(discordgo.ApplicationCommandInteractionData)
+	data.Options = []*discordgo.ApplicationCommandInteractionDataOption{{Name: group, Type: discordgo.ApplicationCommandOptionSubCommandGroup, Options: data.Options}}
+	ic.Data = data
+	ic.Member.Permissions = discordgo.PermissionAdministrator
+	return ic
+}
+
+func intOpt(name string, value int) *discordgo.ApplicationCommandInteractionDataOption {
+	return &discordgo.ApplicationCommandInteractionDataOption{Name: name, Type: discordgo.ApplicationCommandOptionInteger, Value: float64(value)}
 }
 
 func (f *fixture) dm(userID, command, sub string, opts ...*discordgo.ApplicationCommandInteractionDataOption) *discordgo.InteractionCreate {

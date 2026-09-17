@@ -107,6 +107,7 @@ The v2 card is a deliberate redesign (owner request during live testing on 2026-
 | `User was not found. (Are you sure you @'d them correctly?)` | `discord.TestTrade_ViolationTexts` |
 | `The <name> command cannot be invoked from the direct messages of the bot.` | `discord.TestDMGating_PerSubcommand` |
 | `/series search` (alias `/s`) shows a series card (cover, description, characters ranked first with stars and linked to MyWaifuList, a select menu that opens a character's card as an ephemeral reply, and a Browse characters button opening the v1-style pager) instead of paging straight into characters; the banner card gets the same links and menu; the `series` option on `/waifu search` and `/waifu list` still pages characters with filters | Owner liked the banner card and asked for the same on series (`discord.TestSeriesSearch_Card`, `discord.TestSeriesSearch_DirectSlugNotFoundAndErrors`, `discord.TestSeriesSearch_Autocomplete`, `discord.TestSeriesCardEmbed_CapsList`) |
+| `/admin coins set/increment/decrement` and `/admin waifu add/remove`: administrator-only (Discord default member permission plus a server-side check), guild-only, ephemeral replies, balances never go below zero, grants and revokes move no coins, every action is logged with the acting admin | New v2 feature requested by the owner (`app.TestAdminService_Coins`, `app.TestAdminService_GrantAndRevoke`, `discord.TestAdmin_Coins`, `discord.TestAdmin_Waifus`, `discord.TestAdmin_GuardsAndAutocomplete`, `postgres.TestRepo_EnsureAndGetPlayer`) |
 
 ## Deliberate departures from v1
 
@@ -148,5 +149,6 @@ The v2 card is a deliberate redesign (owner request during live testing on 2026-
 - [ ] `/waifu trade` accept, decline, gift, and a conflict after the counterparty sells
 - [ ] `/waifu trade @user` with no lists: builder paging on a collection over 25, filter modal, Cancel, Send, then Counter from the other account
 - [ ] Sell Waifu on an owned page, a roll result, a non-owned search result, and a non-bot message
+- [ ] `/admin` is hidden from non-administrators; coins set/increment/decrement and waifu add/remove as an admin, then check `/waifu coins` and `/waifu owned` for the target
 - [ ] DM gating for roll, daily, coins, owned, trade; search, random, today, series work in DMs
 - [ ] Ranking load log line with row count and cutoff page

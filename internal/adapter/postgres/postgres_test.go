@@ -153,6 +153,25 @@ func TestRepo_EnsureAndGetPlayer(t *testing.T) {
 	if err != nil || got.Coins != 150 {
 		t.Errorf("GetPlayer = %+v %v", got, err)
 	}
+	if bal, err := s.SetCoins(ctx, alice, 900); err != nil || bal != 900 {
+		t.Errorf("SetCoins = %d %v", bal, err)
+	}
+	if bal, ok, err := s.AdjustCoins(ctx, alice, -900); err != nil || !ok || bal != 0 {
+		t.Errorf("AdjustCoins to zero = %d %v %v", bal, ok, err)
+	}
+	if _, ok, err := s.AdjustCoins(ctx, alice, -1); err != nil || ok {
+		t.Errorf("AdjustCoins below zero should not apply: ok=%v err=%v", ok, err)
+	}
+	if bal, ok, err := s.AdjustCoins(ctx, alice, 30); err != nil || !ok || bal != 30 {
+		t.Errorf("AdjustCoins up = %d %v %v", bal, ok, err)
+	}
+	unknown := domain.PlayerKey{GuildID: alice.GuildID, UserID: "nobody"}
+	if _, err := s.SetCoins(ctx, unknown, 1); !errors.Is(err, app.ErrNotFound) {
+		t.Errorf("SetCoins on unknown = %v", err)
+	}
+	if _, ok, err := s.AdjustCoins(ctx, unknown, 1); err != nil || ok {
+		t.Errorf("AdjustCoins on unknown = ok %v err %v", ok, err)
+	}
 }
 
 func TestRepo_DebitCoins_ConcurrentDoubleSpend(t *testing.T) {

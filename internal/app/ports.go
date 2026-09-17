@@ -36,6 +36,8 @@ type PlayerRepo interface {
 	GetPlayer(ctx context.Context, key domain.PlayerKey) (domain.Player, error)
 	LockPlayers(ctx context.Context, keys ...domain.PlayerKey) ([]domain.Player, error)
 	DebitCoins(ctx context.Context, key domain.PlayerKey, amount int64) (balance int64, ok bool, err error)
+	SetCoins(ctx context.Context, key domain.PlayerKey, coins int64) (balance int64, err error)
+	AdjustCoins(ctx context.Context, key domain.PlayerKey, delta int64) (balance int64, ok bool, err error)
 	ClaimDaily(ctx context.Context, key domain.PlayerKey, amount int64, windowStart, now time.Time) (balance int64, ok bool, err error)
 	AddOwned(ctx context.Context, key domain.PlayerKey, w domain.OwnedWaifu) (inserted bool, err error)
 	GetOwned(ctx context.Context, key domain.PlayerKey, slug string) (domain.OwnedWaifu, error)

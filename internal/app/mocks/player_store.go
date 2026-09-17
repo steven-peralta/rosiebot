@@ -121,6 +121,84 @@ func (_c *PlayerStore_AddOwned_Call) RunAndReturn(run func(ctx context.Context, 
 	return _c
 }
 
+// AdjustCoins provides a mock function for the type PlayerStore
+func (_mock *PlayerStore) AdjustCoins(ctx context.Context, key domain.PlayerKey, delta int64) (int64, bool, error) {
+	ret := _mock.Called(ctx, key, delta)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AdjustCoins")
+	}
+
+	var r0 int64
+	var r1 bool
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.PlayerKey, int64) (int64, bool, error)); ok {
+		return returnFunc(ctx, key, delta)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.PlayerKey, int64) int64); ok {
+		r0 = returnFunc(ctx, key, delta)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, domain.PlayerKey, int64) bool); ok {
+		r1 = returnFunc(ctx, key, delta)
+	} else {
+		r1 = ret.Get(1).(bool)
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, domain.PlayerKey, int64) error); ok {
+		r2 = returnFunc(ctx, key, delta)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// PlayerStore_AdjustCoins_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AdjustCoins'
+type PlayerStore_AdjustCoins_Call struct {
+	*mock.Call
+}
+
+// AdjustCoins is a helper method to define mock.On call
+//   - ctx context.Context
+//   - key domain.PlayerKey
+//   - delta int64
+func (_e *PlayerStore_Expecter) AdjustCoins(ctx any, key any, delta any) *PlayerStore_AdjustCoins_Call {
+	return &PlayerStore_AdjustCoins_Call{Call: _e.mock.On("AdjustCoins", ctx, key, delta)}
+}
+
+func (_c *PlayerStore_AdjustCoins_Call) Run(run func(ctx context.Context, key domain.PlayerKey, delta int64)) *PlayerStore_AdjustCoins_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 domain.PlayerKey
+		if args[1] != nil {
+			arg1 = args[1].(domain.PlayerKey)
+		}
+		var arg2 int64
+		if args[2] != nil {
+			arg2 = args[2].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *PlayerStore_AdjustCoins_Call) Return(balance int64, ok bool, err error) *PlayerStore_AdjustCoins_Call {
+	_c.Call.Return(balance, ok, err)
+	return _c
+}
+
+func (_c *PlayerStore_AdjustCoins_Call) RunAndReturn(run func(ctx context.Context, key domain.PlayerKey, delta int64) (int64, bool, error)) *PlayerStore_AdjustCoins_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ClaimDaily provides a mock function for the type PlayerStore
 func (_mock *PlayerStore) ClaimDaily(ctx context.Context, key domain.PlayerKey, amount int64, windowStart time.Time, now time.Time) (int64, bool, error) {
 	ret := _mock.Called(ctx, key, amount, windowStart, now)
@@ -870,6 +948,78 @@ func (_c *PlayerStore_SellOwned_Call) Return(balance int64, ok bool, err error) 
 }
 
 func (_c *PlayerStore_SellOwned_Call) RunAndReturn(run func(ctx context.Context, key domain.PlayerKey, slug string, price int64) (int64, bool, error)) *PlayerStore_SellOwned_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SetCoins provides a mock function for the type PlayerStore
+func (_mock *PlayerStore) SetCoins(ctx context.Context, key domain.PlayerKey, coins int64) (int64, error) {
+	ret := _mock.Called(ctx, key, coins)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetCoins")
+	}
+
+	var r0 int64
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.PlayerKey, int64) (int64, error)); ok {
+		return returnFunc(ctx, key, coins)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.PlayerKey, int64) int64); ok {
+		r0 = returnFunc(ctx, key, coins)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, domain.PlayerKey, int64) error); ok {
+		r1 = returnFunc(ctx, key, coins)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// PlayerStore_SetCoins_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetCoins'
+type PlayerStore_SetCoins_Call struct {
+	*mock.Call
+}
+
+// SetCoins is a helper method to define mock.On call
+//   - ctx context.Context
+//   - key domain.PlayerKey
+//   - coins int64
+func (_e *PlayerStore_Expecter) SetCoins(ctx any, key any, coins any) *PlayerStore_SetCoins_Call {
+	return &PlayerStore_SetCoins_Call{Call: _e.mock.On("SetCoins", ctx, key, coins)}
+}
+
+func (_c *PlayerStore_SetCoins_Call) Run(run func(ctx context.Context, key domain.PlayerKey, coins int64)) *PlayerStore_SetCoins_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 domain.PlayerKey
+		if args[1] != nil {
+			arg1 = args[1].(domain.PlayerKey)
+		}
+		var arg2 int64
+		if args[2] != nil {
+			arg2 = args[2].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *PlayerStore_SetCoins_Call) Return(balance int64, err error) *PlayerStore_SetCoins_Call {
+	_c.Call.Return(balance, err)
+	return _c
+}
+
+func (_c *PlayerStore_SetCoins_Call) RunAndReturn(run func(ctx context.Context, key domain.PlayerKey, coins int64) (int64, error)) *PlayerStore_SetCoins_Call {
 	_c.Call.Return(run)
 	return _c
 }

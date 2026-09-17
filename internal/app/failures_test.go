@@ -49,6 +49,27 @@ func (f failStore) GetOwned(ctx context.Context, key domain.PlayerKey, slug stri
 	return f.PlayerStore.GetOwned(ctx, key, slug)
 }
 
+func (f failStore) SetCoins(ctx context.Context, key domain.PlayerKey, coins int64) (int64, error) {
+	if f.failing("SetCoins") {
+		return 0, errStore
+	}
+	return f.PlayerStore.SetCoins(ctx, key, coins)
+}
+
+func (f failStore) AdjustCoins(ctx context.Context, key domain.PlayerKey, delta int64) (int64, bool, error) {
+	if f.failing("AdjustCoins") {
+		return 0, false, errStore
+	}
+	return f.PlayerStore.AdjustCoins(ctx, key, delta)
+}
+
+func (f failStore) AddOwned(ctx context.Context, key domain.PlayerKey, w domain.OwnedWaifu) (bool, error) {
+	if f.failing("AddOwned") {
+		return false, errStore
+	}
+	return f.PlayerStore.AddOwned(ctx, key, w)
+}
+
 func (f failStore) SellOwned(ctx context.Context, key domain.PlayerKey, slug string, price int64) (int64, bool, error) {
 	if f.failing("SellOwned") {
 		return 0, false, errStore

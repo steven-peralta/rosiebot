@@ -86,6 +86,18 @@ func (s *PlayerStore) DebitCoins(ctx context.Context, key domain.PlayerKey, amou
 	return s.debitCoinsLocked(key, amount)
 }
 
+func (s *PlayerStore) SetCoins(ctx context.Context, key domain.PlayerKey, coins int64) (int64, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.setCoinsLocked(key, coins)
+}
+
+func (s *PlayerStore) AdjustCoins(ctx context.Context, key domain.PlayerKey, delta int64) (int64, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.adjustCoinsLocked(key, delta)
+}
+
 func (s *PlayerStore) ClaimDaily(ctx context.Context, key domain.PlayerKey, amount int64, windowStart, now time.Time) (int64, bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -171,6 +183,28 @@ func (s *PlayerStore) debitCoinsLocked(key domain.PlayerKey, amount int64) (int6
 		return 0, false, nil
 	}
 	p.Coins -= amount
+	p.UpdatedAt = s.clock.Now()
+	s.players[key] = p
+	return p.Coins, true, nil
+}
+
+func (s *PlayerStore) setCoinsLocked(key domain.PlayerKey, coins int64) (int64, error) {
+	p, ok := s.players[key]
+	if !ok {
+		return 0, app.ErrNotFound
+	}
+	p.Coins = coins
+	p.UpdatedAt = s.clock.Now()
+	s.players[key] = p
+	return p.Coins, nil
+}
+
+func (s *PlayerStore) adjustCoinsLocked(key domain.PlayerKey, delta int64) (int64, bool, error) {
+	p, ok := s.players[key]
+	if !ok || p.Coins+delta < 0 {
+		return 0, false, nil
+	}
+	p.Coins += delta
 	p.UpdatedAt = s.clock.Now()
 	s.players[key] = p
 	return p.Coins, true, nil
@@ -305,6 +339,14 @@ func (t txRepo) LockPlayers(_ context.Context, keys ...domain.PlayerKey) ([]doma
 
 func (t txRepo) DebitCoins(_ context.Context, key domain.PlayerKey, amount int64) (int64, bool, error) {
 	return t.s.debitCoinsLocked(key, amount)
+}
+
+func (t txRepo) SetCoins(_ context.Context, key domain.PlayerKey, coins int64) (int64, error) {
+	return t.s.setCoinsLocked(key, coins)
+}
+
+func (t txRepo) AdjustCoins(_ context.Context, key domain.PlayerKey, delta int64) (int64, bool, error) {
+	return t.s.adjustCoinsLocked(key, delta)
 }
 
 func (t txRepo) ClaimDaily(_ context.Context, key domain.PlayerKey, amount int64, windowStart, now time.Time) (int64, bool, error) {

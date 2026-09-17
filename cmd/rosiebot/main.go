@@ -74,6 +74,7 @@ func run(ctx context.Context, dryRun bool) error {
 	wotd := app.NewWotdService(postgres.NewDailyStore(pool), ranking, source, clock, rng, cfg.Timezone)
 	banner := app.NewBannerService(postgres.NewBannerStore(pool), ranking, source, clock, rng, cfg.Timezone, app.BannerConfig{}, logger)
 	services := discord.Services{
+		Admin:     app.NewAdminService(players, source, clock, logger),
 		Roll:      app.NewRollService(players, source, ranking, wotd, banner, clock, rng, cfg.RankingMinVotes, logger),
 		Daily:     app.NewDailyService(players, clock, rng, cfg.Timezone),
 		Coins:     app.NewCoinsService(players),

@@ -31,6 +31,7 @@ type Services struct {
 	Trade     *app.TradeService
 	Wotd      *app.WotdService
 	Banner    *app.BannerService
+	Admin     *app.AdminService
 	Ranking   app.RankingProvider
 }
 
@@ -170,6 +171,7 @@ func (b *Bot) Commands() []*discordgo.ApplicationCommand {
 			IntegrationTypes: &integrations,
 			Options:          seriesOptions(),
 		},
+		adminCommand(),
 		{
 			Type:             discordgo.MessageApplicationCommand,
 			Name:             commandSell,
@@ -211,6 +213,10 @@ func (b *Bot) handleCommand(ctx context.Context, ic *interaction) {
 		if data.Name == commandSell {
 			b.sellContext(ctx, ic, data)
 		}
+		return
+	}
+	if data.Name == commandAdmin {
+		b.admin(ctx, ic, data)
 		return
 	}
 	sub, opts := subcommand(data)
@@ -296,6 +302,10 @@ func (b *Bot) handleModal(ctx context.Context, ic *interaction) {
 
 func (b *Bot) handleAutocomplete(ctx context.Context, ic *interaction) {
 	data := ic.ApplicationCommandData()
+	if data.Name == commandAdmin {
+		b.adminAutocomplete(ctx, ic, data)
+		return
+	}
 	sub, opts := subcommand(data)
 	if data.Name == commandSeries || data.Name == commandSAlias {
 		if sub == subSearch {

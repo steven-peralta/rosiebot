@@ -20,6 +20,18 @@ SET coins = coins - @amount, updated_at = @now
 WHERE guild_id = @guild_id AND user_id = @user_id AND coins >= @amount
 RETURNING coins;
 
+-- name: SetCoins :one
+UPDATE players
+SET coins = @coins, updated_at = @now
+WHERE guild_id = @guild_id AND user_id = @user_id
+RETURNING coins;
+
+-- name: AdjustCoins :one
+UPDATE players
+SET coins = coins + @delta, updated_at = @now
+WHERE guild_id = @guild_id AND user_id = @user_id AND coins + @delta >= 0
+RETURNING coins;
+
 -- name: ClaimDaily :one
 UPDATE players
 SET coins = coins + @amount, daily_claimed_at = @now, updated_at = @now

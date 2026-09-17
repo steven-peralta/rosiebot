@@ -166,6 +166,38 @@ func (r repo) GetOwned(ctx context.Context, key domain.PlayerKey, slug string) (
 	return toOwned(row), nil
 }
 
+func (r repo) SetCoins(ctx context.Context, key domain.PlayerKey, coins int64) (int64, error) {
+	balance, err := r.q.SetCoins(ctx, gen.SetCoinsParams{
+		Coins:   coins,
+		Now:     r.clock.Now(),
+		GuildID: key.GuildID,
+		UserID:  key.UserID,
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return 0, app.ErrNotFound
+	}
+	if err != nil {
+		return 0, fmt.Errorf("postgres: set coins: %w", err)
+	}
+	return balance, nil
+}
+
+func (r repo) AdjustCoins(ctx context.Context, key domain.PlayerKey, delta int64) (int64, bool, error) {
+	balance, err := r.q.AdjustCoins(ctx, gen.AdjustCoinsParams{
+		Delta:   delta,
+		Now:     r.clock.Now(),
+		GuildID: key.GuildID,
+		UserID:  key.UserID,
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return 0, false, nil
+	}
+	if err != nil {
+		return 0, false, fmt.Errorf("postgres: adjust coins: %w", err)
+	}
+	return balance, true, nil
+}
+
 func (r repo) SellOwned(ctx context.Context, key domain.PlayerKey, slug string, price int64) (int64, bool, error) {
 	balance, err := r.q.SellOwned(ctx, gen.SellOwnedParams{
 		Price:   price,

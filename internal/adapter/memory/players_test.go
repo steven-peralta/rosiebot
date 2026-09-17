@@ -102,6 +102,12 @@ func TestPlayerStore_UnknownPlayerBehaviour(t *testing.T) {
 	if _, ok, _ := s.ClaimDaily(ctx, alice, 1, time.Time{}, time.Time{}); ok {
 		t.Error("claim of unknown player should not succeed")
 	}
+	if _, err := s.SetCoins(ctx, alice, 5); !errors.Is(err, app.ErrNotFound) {
+		t.Errorf("SetCoins = %v", err)
+	}
+	if _, ok, _ := s.AdjustCoins(ctx, alice, 5); ok {
+		t.Error("adjust of unknown player should not succeed")
+	}
 	if _, err := s.AddOwned(ctx, alice, owned("x", time.Time{})); !errors.Is(err, app.ErrNotFound) {
 		t.Errorf("AddOwned = %v", err)
 	}
@@ -236,5 +242,38 @@ func TestBannerStore(t *testing.T) {
 	got, err := s.Get(ctx, week.In(time.FixedZone("x", -5*3600)))
 	if err != nil || got.Series.Slug != "first" {
 		t.Errorf("same instant in another zone = %+v %v", got, err)
+	}
+}
+
+func TestPlayerStore_SetAndAdjustCoins(t *testing.T) {
+	ctx := context.Background()
+	s := NewPlayerStore(nil)
+	if _, err := s.EnsurePlayer(ctx, alice); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := s.SetCoins(ctx, alice, 50); err != nil || got != 50 {
+		t.Errorf("SetCoins = %d %v", got, err)
+	}
+	if got, ok, err := s.AdjustCoins(ctx, alice, -50); err != nil || !ok || got != 0 {
+		t.Errorf("AdjustCoins to zero = %d %v %v", got, ok, err)
+	}
+	if _, ok, _ := s.AdjustCoins(ctx, alice, -1); ok {
+		t.Error("adjust below zero should fail")
+	}
+	err := s.WithinTx(ctx, func(r app.PlayerRepo) error {
+		if _, err := r.SetCoins(ctx, alice, 10); err != nil {
+			return err
+		}
+		_, ok, err := r.AdjustCoins(ctx, alice, 5)
+		if err != nil || !ok {
+			return errors.New("adjust in tx failed")
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p, _ := s.GetPlayer(ctx, alice); p.Coins != 15 {
+		t.Errorf("coins after tx = %d", p.Coins)
 	}
 }
