@@ -16,6 +16,7 @@ type BannerConfig struct {
 	MinRanked     int
 	MinStars      int
 	RetryInterval time.Duration
+	RankingWait   time.Duration
 }
 
 func DefaultBannerConfig() BannerConfig {
@@ -25,6 +26,7 @@ func DefaultBannerConfig() BannerConfig {
 		MinRanked:     domain.BannerMinRanked,
 		MinStars:      domain.BannerMinStars,
 		RetryInterval: 10 * time.Minute,
+		RankingWait:   30 * time.Second,
 	}
 }
 
@@ -44,6 +46,9 @@ func (c BannerConfig) withDefaults() BannerConfig {
 	}
 	if c.RetryInterval <= 0 {
 		c.RetryInterval = d.RetryInterval
+	}
+	if c.RankingWait <= 0 {
+		c.RankingWait = d.RankingWait
 	}
 	return c
 }
@@ -117,7 +122,11 @@ func (s *BannerService) Run(ctx context.Context) error {
 			if ctx.Err() != nil {
 				return ctx.Err()
 			}
-			wait := min(s.cfg.RetryInterval, domain.BannerRefreshIn(s.clock.Now(), s.loc))
+			retry := s.cfg.RetryInterval
+			if errors.Is(err, ErrNoRanking) {
+				retry = s.cfg.RankingWait
+			}
+			wait := min(retry, domain.BannerRefreshIn(s.clock.Now(), s.loc))
 			s.log.Warn("banner refresh failed", "err", err, "retry_in", wait)
 			if err := s.sleep(ctx, wait); err != nil {
 				return err

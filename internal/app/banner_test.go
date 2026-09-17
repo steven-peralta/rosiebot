@@ -332,16 +332,23 @@ func TestBannerService_RunEnsuresThenSleepsUntilBoundary(t *testing.T) {
 
 func TestBannerService_RunRetriesAfterFailureCappedAtBoundary(t *testing.T) {
 	cases := map[string]struct {
-		retry time.Duration
-		want  time.Duration
+		cfg     app.BannerConfig
+		ranking bool
+		want    time.Duration
 	}{
-		"retry interval": {retry: 10 * time.Minute, want: 10 * time.Minute},
-		"boundary caps":  {retry: 400 * time.Hour, want: weekAtFixture},
+		"waiting for ranking": {cfg: app.BannerConfig{}, want: 30 * time.Second},
+		"pick failed":         {cfg: app.BannerConfig{MaxAttempts: 1}, ranking: true, want: 10 * time.Minute},
+		"boundary caps":       {cfg: app.BannerConfig{RankingWait: 400 * time.Hour}, want: weekAtFixture},
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
 			f := newFixture(t)
-			svc := f.bannerWith(app.BannerConfig{RetryInterval: c.retry})
+			if c.ranking {
+				f.ranking.Set(rankingOf(200))
+				f.script(0)
+				f.source.EXPECT().Get(mock.Anything, "ranked-000").Return(domain.Waifu{}, errors.New("down")).Once()
+			}
+			svc := f.bannerWith(c.cfg)
 			ctx, cancel := context.WithCancel(f.ctx)
 			var sleeps []time.Duration
 			svc.SetSleepForTest(func(_ context.Context, d time.Duration) error {
@@ -382,7 +389,7 @@ func TestBannerService_RunReturnsWhenCancelled(t *testing.T) {
 
 func TestBannerConfig_Defaults(t *testing.T) {
 	d := app.DefaultBannerConfig()
-	if d.MaxAttempts != 12 || d.MaxPages != 30 || d.MinRanked != domain.BannerMinRanked || d.MinStars != domain.BannerMinStars || d.RetryInterval != 10*time.Minute {
+	if d.MaxAttempts != 12 || d.MaxPages != 30 || d.MinRanked != domain.BannerMinRanked || d.MinStars != domain.BannerMinStars || d.RetryInterval != 10*time.Minute || d.RankingWait != 30*time.Second {
 		t.Errorf("defaults = %+v", d)
 	}
 }
