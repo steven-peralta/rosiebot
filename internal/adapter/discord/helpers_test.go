@@ -273,7 +273,7 @@ func newFixture(t *testing.T) *fixture {
 		Roll:      app.NewRollService(players, source, ranking, wotd, banner, clock, rng, 0, nil),
 		Daily:     app.NewDailyService(players, clock, rng, loc),
 		Coins:     app.NewCoinsService(players),
-		Inventory: app.NewInventoryService(players),
+		Inventory: app.NewInventoryService(players, ranking),
 		Search:    app.NewSearchService(source, ranking),
 		Trade:     app.NewTradeService(players),
 		Wotd:      wotd,

@@ -50,13 +50,10 @@ func viewMenuRow(chars []cardCharacter) discordgo.MessageComponent {
 	}}}
 }
 
-func seriesCardComponents(slug string, chars []cardCharacter) []discordgo.MessageComponent {
-	return []discordgo.MessageComponent{
-		viewMenuRow(chars),
-		discordgo.ActionsRow{Components: []discordgo.MessageComponent{
-			discordgo.Button{Style: discordgo.SecondaryButton, CustomID: seriesPrefix + seriesBrowse + ":" + slug, Emoji: &discordgo.ComponentEmoji{Name: "📖"}, Label: "Browse characters"},
-		}},
-	}
+func seriesCardComponents(slug string) []discordgo.MessageComponent {
+	return []discordgo.MessageComponent{discordgo.ActionsRow{Components: []discordgo.MessageComponent{
+		discordgo.Button{Style: discordgo.SecondaryButton, CustomID: seriesPrefix + seriesBrowse + ":" + slug, Emoji: &discordgo.ComponentEmoji{Name: "📖"}, Label: "Browse characters"},
+	}}}
 }
 
 func (b *Bot) viewWaifu(ctx context.Context, ic *interaction) {
@@ -105,7 +102,7 @@ func (b *Bot) seriesSearch(ctx context.Context, ic *interaction, opts []*discord
 	e.Footer = b.footer(b.cfg.Clock.Now().Sub(start))
 	var components []discordgo.MessageComponent
 	if len(chars) > 0 {
-		components = seriesCardComponents(res.Series.Slug, chars)
+		components = seriesCardComponents(res.Series.Slug)
 	}
 	b.edit(ic, mention(ic.userID())+" "+msgSeriesFound, []*discordgo.MessageEmbed{e}, components)
 }

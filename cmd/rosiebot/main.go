@@ -78,7 +78,7 @@ func run(ctx context.Context, dryRun bool) error {
 		Roll:      app.NewRollService(players, source, ranking, wotd, banner, clock, rng, cfg.RankingMinVotes, logger),
 		Daily:     app.NewDailyService(players, clock, rng, cfg.Timezone),
 		Coins:     app.NewCoinsService(players),
-		Inventory: app.NewInventoryService(players),
+		Inventory: app.NewInventoryService(players, ranking),
 		Search:    app.NewSearchService(source, ranking),
 		Trade:     app.NewTradeService(players),
 		Wotd:      wotd,

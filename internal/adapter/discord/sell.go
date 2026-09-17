@@ -56,11 +56,8 @@ func (b *Bot) offerSale(ctx context.Context, ic *interaction, target *discordgo.
 		b.replyEphemeral(ic, fmt.Sprintf(msgNotOwnedFmt, slug))
 		return
 	}
-	b.replyEphemeralComponents(ic, fmt.Sprintf(msgSellConfirmFmt, owned.Name, b.sellPrice()), sellConfirmComponents(target.ChannelID, target.ID))
-}
-
-func (b *Bot) sellPrice() int64 {
-	return 100
+	price, _ := b.svc.Inventory.Price(slug)
+	b.replyEphemeralComponents(ic, fmt.Sprintf(msgSellConfirmFmt, owned.Name, price), sellConfirmComponents(target.ChannelID, target.ID))
 }
 
 func (b *Bot) slugFromMessage(msg *discordgo.Message) (string, bool) {

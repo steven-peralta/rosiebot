@@ -52,3 +52,12 @@ func (p *Player) Credit(amount int64) error {
 	p.Coins += amount
 	return nil
 }
+
+var sellPrices = [MaxStars + 1]int64{SellPrice, 150, 200, 300, 500, 1000}
+
+func SellPriceFor(stars int) int64 {
+	if stars < 0 || stars > MaxStars {
+		return SellPrice
+	}
+	return sellPrices[stars]
+}

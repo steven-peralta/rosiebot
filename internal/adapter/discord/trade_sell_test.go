@@ -1,6 +1,7 @@
 package discord
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -227,6 +228,33 @@ func (f *fixture) waifuMessage(id, slug string) *discordgo.Message {
 	f.api.messages[id] = msg
 	f.api.mu.Unlock()
 	return msg
+}
+
+func TestSell_RankedPrice(t *testing.T) {
+	f := newFixture(t)
+	f.give(aliceID, "ranked-000", "ranked-100", "plain")
+	cases := []struct {
+		slug  string
+		price int64
+	}{{"ranked-000", 1000}, {"ranked-100", 150}, {"plain", 100}}
+	balance := int64(domain.StartingCoins)
+	for i, c := range cases {
+		msg := f.waifuMessage(fmt.Sprintf("s%d", i), c.slug)
+		f.run(f.contextMenu(aliceID, msg))
+		r := f.api.lastRespond()
+		if want := fmt.Sprintf("Are you sure you want to sell your Name %s for %d coins?", c.slug, c.price); r.Data.Content != want {
+			t.Errorf("confirm = %q, want %q", r.Data.Content, want)
+		}
+		okID := r.Data.Components[0].(discordgo.ActionsRow).Components[0].(discordgo.Button).CustomID
+		f.run(f.click(aliceID, nil, okID))
+		balance += c.price
+		if want := fmt.Sprintf("Sold Name %s for %d coins. You now have %d coins.", c.slug, c.price, balance); f.api.lastRespond().Data.Content != want {
+			t.Errorf("sold = %q, want %q", f.api.lastRespond().Data.Content, want)
+		}
+	}
+	if f.coins(aliceID) != balance {
+		t.Errorf("coins = %d, want %d", f.coins(aliceID), balance)
+	}
 }
 
 func TestSell_ContextMenuFlow(t *testing.T) {

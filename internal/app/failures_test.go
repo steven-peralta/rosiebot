@@ -220,27 +220,27 @@ func TestStoreFailures_CoinsAndInventory(t *testing.T) {
 	_, err := app.NewCoinsService(f.failing("EnsurePlayer")).Balance(f.ctx, alice)
 	expectStoreErr(t, err)
 
-	inv := app.NewInventoryService(f.failing("EnsurePlayer"))
+	inv := app.NewInventoryService(f.failing("EnsurePlayer"), f.ranking)
 	_, err = inv.List(f.ctx, alice)
 	expectStoreErr(t, err)
 
-	inv = app.NewInventoryService(f.failing("ListOwned"))
+	inv = app.NewInventoryService(f.failing("ListOwned"), f.ranking)
 	_, err = inv.List(f.ctx, alice)
 	expectStoreErr(t, err)
 	_, err = inv.Suggest(f.ctx, alice, "", 5)
 	expectStoreErr(t, err)
 
-	inv = app.NewInventoryService(f.failing("GetOwned"))
+	inv = app.NewInventoryService(f.failing("GetOwned"), f.ranking)
 	_, _, err = inv.Owns(f.ctx, alice, "rem")
 	expectStoreErr(t, err)
 	_, err = inv.Sell(f.ctx, alice, "rem")
 	expectStoreErr(t, err)
 
-	inv = app.NewInventoryService(f.failing("SellOwned"))
+	inv = app.NewInventoryService(f.failing("SellOwned"), f.ranking)
 	_, err = inv.Sell(f.ctx, alice, "rem")
 	expectStoreErr(t, err)
 
-	inv = app.NewInventoryService(f.failing("SellOwnedNotOK"))
+	inv = app.NewInventoryService(f.failing("SellOwnedNotOK"), f.ranking)
 	if _, err := inv.Sell(f.ctx, alice, "rem"); !errors.Is(err, app.ErrNotOwned) {
 		t.Errorf("sell race err = %v, want ErrNotOwned", err)
 	}

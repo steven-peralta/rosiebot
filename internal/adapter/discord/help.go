@@ -29,7 +29,8 @@ func waifuHelpEmbed() *discordgo.MessageEmbed {
 			helpField("daily · "+fmt.Sprint(domain.DailyCoins)+" coins",
 				"Claim once per day. The day resets at 10:00 bot time. A d100 of **1** pays five times, **2 to 21** pays double."),
 			helpField("coins · owned · sell",
-				fmt.Sprintf("`coins` shows a balance. `owned` pages through a collection with a sort option; your own cards carry a Sell button. Selling pays %d coins. You can also right-click any bot message that shows a waifu you own and pick **Sell Waifu**.", domain.SellPrice)),
+				fmt.Sprintf("`coins` shows a balance. `owned` pages through a collection with a sort option; your own cards carry a Sell button. Selling pays %d coins for an unranked waifu and more for stars: %d / %d / %d / %d / %d for one to five. You can also right-click any bot message that shows a waifu you own and pick **Sell Waifu**.",
+					domain.SellPrice, domain.SellPriceFor(1), domain.SellPriceFor(2), domain.SellPriceFor(3), domain.SellPriceFor(4), domain.SellPriceFor(5))),
 			helpField("search · list",
 				"`search` finds characters by name with autocomplete. `list` browses without a name. Both accept `series`, `sort`, `min_stars`, `min_likes`, `max_trash` and `ranked` filters, default to best rank first, and page one card at a time with a jump menu."),
 			helpField("today · banner · random",
@@ -49,7 +50,7 @@ func seriesHelpEmbed() *discordgo.MessageEmbed {
 		Description: "Look up an anime, game, or other series. `/s` is a shorthand.",
 		Fields: []*discordgo.MessageEmbedField{
 			helpField("search <query>",
-				"Autocompletes series names. The card shows the cover, description, and the series' characters ranked first with their stars and rank, each linked to MyWaifuList. Use the select menu to open any listed character's card privately, or **Browse characters** to page through them one at a time."),
+				"Autocompletes series names. The card shows the cover, description, and the series' characters ranked first with their stars and rank, each linked to MyWaifuList. Press **Browse characters** to page through them one at a time."),
 			helpField("filtered browsing",
 				"To sort or filter a series' characters, use `/waifu list series:<name>` with the usual `sort`, `min_stars`, `min_likes`, `max_trash` and `ranked` options."),
 		},

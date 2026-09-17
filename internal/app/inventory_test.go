@@ -21,7 +21,7 @@ func TestCoinsService_BalanceCreatesPlayer(t *testing.T) {
 
 func TestInventoryService_ListOrderAndEmpty(t *testing.T) {
 	f := newFixture(t)
-	svc := app.NewInventoryService(f.players)
+	svc := app.NewInventoryService(f.players, f.ranking)
 
 	empty, err := svc.List(f.ctx, alice)
 	if err != nil {
@@ -43,7 +43,7 @@ func TestInventoryService_ListOrderAndEmpty(t *testing.T) {
 
 func TestInventoryService_Sell(t *testing.T) {
 	f := newFixture(t)
-	svc := app.NewInventoryService(f.players)
+	svc := app.NewInventoryService(f.players, f.ranking)
 	f.give(alice, "rem")
 
 	res, err := svc.Sell(f.ctx, alice, "rem")
@@ -60,6 +60,24 @@ func TestInventoryService_Sell(t *testing.T) {
 	if _, err := svc.Sell(f.ctx, alice, "rem"); !errors.Is(err, app.ErrNotOwned) {
 		t.Errorf("second sale err = %v, want ErrNotOwned", err)
 	}
+
+	f.ranking.Set(rankingOf(200))
+	f.give(alice, "ranked-000", "ranked-100")
+	before := f.coins(alice)
+	top, err := svc.Sell(f.ctx, alice, "ranked-000")
+	if err != nil || top.Stars != 5 || top.Price != 1000 || top.Balance != before+1000 {
+		t.Errorf("selling a 5-star = %+v %v", top, err)
+	}
+	low, err := svc.Sell(f.ctx, alice, "ranked-100")
+	if err != nil || low.Stars != 1 || low.Price != 150 || low.Balance != before+1150 {
+		t.Errorf("selling a 1-star = %+v %v", low, err)
+	}
+	if price, stars := svc.Price("ghost"); price != domain.SellPrice || stars != 0 {
+		t.Errorf("unranked quote = %d %d", price, stars)
+	}
+	if price, _ := app.NewInventoryService(f.players, nil).Price("ranked-000"); price != domain.SellPrice {
+		t.Errorf("without a ranking provider the base price applies, got %d", price)
+	}
 	if _, err := svc.Sell(f.ctx, bob, "rem"); !errors.Is(err, app.ErrNotOwned) {
 		t.Errorf("sale by non-owner err = %v, want ErrNotOwned", err)
 	}
@@ -67,7 +85,7 @@ func TestInventoryService_Sell(t *testing.T) {
 
 func TestInventoryService_OwnsAndSuggest(t *testing.T) {
 	f := newFixture(t)
-	svc := app.NewInventoryService(f.players)
+	svc := app.NewInventoryService(f.players, f.ranking)
 	f.give(alice, "rem", "ram", "emilia")
 
 	if _, ok, err := svc.Owns(f.ctx, alice, "ram"); err != nil || !ok {

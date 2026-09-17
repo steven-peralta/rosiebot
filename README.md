@@ -20,12 +20,12 @@ A Discord waifu gacha bot backed by [MyWaifuList](https://mywaifulist.moe). Roll
 | `/waifu trade <user> [give] [receive]` | Offer a trade or a gift. With no `give` or `receive`, a private trade builder opens: pick from both collections with paged menus, filter by name, then Send. The other side can Accept, Counter (opens the builder prefilled with the reversed offer), or Decline. |
 | `/w …` | Shorthand for every `/waifu` subcommand. |
 | `/waifu help`, `/series help`, `/admin help` | Private explainer of each command's mechanics: odds, costs, filters, trading, stars, and the admin tools. |
-| `/series search <query>` | Show a series card: cover, description, and its characters ranked first with stars. A select menu opens any listed character's card privately, and Browse characters opens the usual one-per-page pager. Autocompletes series names. |
+| `/series search <query>` | Show a series card: cover, description, and its characters ranked first with stars, and a Browse characters button that opens the usual one-per-page pager. Autocompletes series names. |
 | `/s …` | Shorthand for `/series`. |
 | `/admin coins set\|increment\|decrement <user> <amount>` | Server administrators only: set, add to, or take from a player's balance. Replies privately. |
 | `/admin waifu add\|remove <user> <waifu>` | Server administrators only: give a waifu to a player or take one away, with autocomplete. No coins change hands. |
 | `/admin banner reroll` | Server administrators only: replace this week's banner with a different eligible series, never the current or last week's one. |
-| **Sell Waifu** (message context menu) | Right-click any bot message showing a waifu you own to sell it for 100 coins. |
+| **Sell Waifu** (message context menu) | Right-click any bot message showing a waifu you own to sell it. Unranked waifus pay 100 coins; ranked ones pay 150, 200, 300, 500 or 1000 for one to five stars. |
 
 Character details and search pages are cached in Postgres and refreshed lazily: a stale entry is served immediately while one background request refreshes it, so nothing depends on a scheduled job. Random rolls and the waifu of the day always go to the live API, so newly submitted characters appear as soon as MyWaifuList lists them.
 

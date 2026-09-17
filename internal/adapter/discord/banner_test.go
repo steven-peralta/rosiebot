@@ -33,7 +33,7 @@ func TestBanner_CardShowsSeriesFeaturedAndCountdown(t *testing.T) {
 		t.Errorf("featured lines = %q", lines)
 	}
 	menu := (*e.Components)[0].(discordgo.ActionsRow).Components[0].(discordgo.SelectMenu)
-	if menu.CustomID != viewWaifuMenu || len(menu.Options) != 3 || menu.Options[0].Value != "ranked-000" || menu.Options[0].Description != "⭐⭐⭐⭐⭐ · rank #1" {
+	if menu.CustomID != viewWaifuMenu || menu.Placeholder != viewPlaceholder || len(menu.Options) != 3 || menu.Options[0].Value != "ranked-000" || menu.Options[0].Description != "⭐⭐⭐⭐⭐ · rank #1" {
 		t.Errorf("view menu = %+v", menu)
 	}
 	button := (*e.Components)[1].(discordgo.ActionsRow).Components[0].(discordgo.Button)

@@ -44,11 +44,10 @@ func TestSeriesSearch_Card(t *testing.T) {
 	if strings.Join(lines, "|") != strings.Join(want, "|") {
 		t.Errorf("lines = %q", lines)
 	}
-	menu := (*e.Components)[0].(discordgo.ActionsRow).Components[0].(discordgo.SelectMenu)
-	if menu.CustomID != viewWaifuMenu || menu.Placeholder != viewPlaceholder || len(menu.Options) != 4 || menu.Options[2].Value != "ram" || menu.Options[2].Description != "unranked" {
-		t.Errorf("view menu = %+v", menu)
+	if len(*e.Components) != 1 {
+		t.Errorf("series card should only carry the browse button, got %d rows", len(*e.Components))
 	}
-	button := (*e.Components)[1].(discordgo.ActionsRow).Components[0].(discordgo.Button)
+	button := (*e.Components)[0].(discordgo.ActionsRow).Components[0].(discordgo.Button)
 	if button.CustomID != seriesPrefix+seriesBrowse+":re-zero" || button.Label != "Browse characters" {
 		t.Errorf("button = %+v", button)
 	}

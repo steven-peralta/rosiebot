@@ -101,3 +101,20 @@ func TestConstants_MatchV1(t *testing.T) {
 		t.Errorf("reroll cap = %d, want 5", MaxRerollAttempts)
 	}
 }
+
+func TestSellPriceFor_ScalesWithStars(t *testing.T) {
+	want := map[int]int64{0: 100, 1: 150, 2: 200, 3: 300, 4: 500, 5: 1000}
+	for stars, price := range want {
+		if got := SellPriceFor(stars); got != price {
+			t.Errorf("SellPriceFor(%d) = %d, want %d", stars, got, price)
+		}
+	}
+	if SellPriceFor(-1) != SellPrice || SellPriceFor(9) != SellPrice {
+		t.Error("out-of-range stars should fall back to the base price")
+	}
+	for stars := 1; stars <= MaxStars; stars++ {
+		if SellPriceFor(stars) <= SellPriceFor(stars-1) {
+			t.Errorf("price must grow with stars: %d star = %d, %d star = %d", stars-1, SellPriceFor(stars-1), stars, SellPriceFor(stars))
+		}
+	}
+}

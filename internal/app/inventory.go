@@ -11,15 +11,27 @@ import (
 type SellResult struct {
 	Waifu   domain.OwnedWaifu
 	Price   int64
+	Stars   int
 	Balance int64
 }
 
 type InventoryService struct {
 	players PlayerStore
+	ranking RankingProvider
 }
 
-func NewInventoryService(players PlayerStore) *InventoryService {
-	return &InventoryService{players: players}
+func NewInventoryService(players PlayerStore, ranking RankingProvider) *InventoryService {
+	return &InventoryService{players: players, ranking: ranking}
+}
+
+func (s *InventoryService) Price(slug string) (int64, int) {
+	stars := 0
+	if s.ranking != nil {
+		if r, ok := s.ranking.Current().Lookup(slug); ok {
+			stars = r.Stars
+		}
+	}
+	return domain.SellPriceFor(stars), stars
 }
 
 func (s *InventoryService) List(ctx context.Context, key domain.PlayerKey) ([]domain.OwnedWaifu, error) {
@@ -60,12 +72,13 @@ func (s *InventoryService) Sell(ctx context.Context, key domain.PlayerKey, slug 
 	if err != nil {
 		return SellResult{}, fmt.Errorf("get owned: %w", err)
 	}
-	balance, ok, err := s.players.SellOwned(ctx, key, slug, domain.SellPrice)
+	price, stars := s.Price(slug)
+	balance, ok, err := s.players.SellOwned(ctx, key, slug, price)
 	if err != nil {
 		return SellResult{}, fmt.Errorf("sell: %w", err)
 	}
 	if !ok {
 		return SellResult{}, ErrNotOwned
 	}
-	return SellResult{Waifu: owned, Price: domain.SellPrice, Balance: balance}, nil
+	return SellResult{Waifu: owned, Price: price, Stars: stars, Balance: balance}, nil
 }
