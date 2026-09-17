@@ -64,7 +64,7 @@ func TestWaifuEmbed_FullCard(t *testing.T) {
 	if lines[2] != "❤️ 16,199 · 🗑️ 3,203 · 83% liked" {
 		t.Errorf("votes line = %q", lines[2])
 	}
-	if lines[3] != "" || !strings.HasPrefix(lines[4], "||aaaa") || !strings.HasSuffix(lines[4], "...||") || len([]rune(lines[4])) != 256+3+4 {
+	if lines[3] != "" || !strings.HasPrefix(lines[4], "aaaa") || strings.Contains(lines[4], "||") || !strings.HasSuffix(lines[4], "...") || len([]rune(lines[4])) != 256+3 {
 		t.Errorf("description = %q", lines[4])
 	}
 
@@ -73,7 +73,7 @@ func TestWaifuEmbed_FullCard(t *testing.T) {
 		t.Errorf("vitals = %+v", vitals)
 	}
 	details := field(e, "Details")
-	if details == nil || !details.Inline || details.Value != "Age 0\nBlood type A\nOrigin ||Lugnica||" {
+	if details == nil || !details.Inline || details.Value != "Age 0\nBlood type A\nOrigin Lugnica" {
 		t.Errorf("details = %+v", details)
 	}
 	appears := field(e, "Appears in")
@@ -115,7 +115,7 @@ func TestWaifuEmbed_SparseAndUnranked(t *testing.T) {
 		t.Errorf("two-star colour = %x", partial.Color)
 	}
 	brief := waifuEmbed(domain.Waifu{WaifuSummary: domain.WaifuSummary{Name: "B"}, Description: "  brief  "}, nil)
-	if !strings.HasSuffix(brief.Description, "\n\n||brief||") {
+	if !strings.HasSuffix(brief.Description, "\n\nbrief") {
 		t.Errorf("brief description = %q", brief.Description)
 	}
 }

@@ -87,9 +87,9 @@ The v2 card is a deliberate redesign (owner request during live testing on 2026-
 | Original and romaji names on an italic line under the title (deduplicated) | `discord.TestWaifuEmbed_FullCard`, `TestWaifuEmbed_SparseAndUnranked` |
 | One `:star:` emoji per star on its own line above the name (as in v1); rank position on the stats line; unranked characters read `Unranked` | `discord.TestWaifuEmbed_FullCard`, `TestWaifuEmbed_SparseAndUnranked` |
 | Likes, trash and liked percentage on one line with thousands separators | `discord.TestWaifuEmbed_FullCard`, `TestThousands` |
-| Description spoilered and truncated to 256 characters with `...` | `discord.TestWaifuEmbed_FullCard` |
+| Description truncated to 256 characters with `...` (v1 also spoilered it; see departures) | `discord.TestWaifuEmbed_FullCard` |
 | Vitals field: height (cm and ft/in), weight (kg and rounded lb), B·W·H | `discord.TestWaifuEmbed_FullCard`, `TestHeightAndWeightConversions` |
-| Details field: age (including 0), blood type, spoilered origin | `discord.TestWaifuEmbed_FullCard` |
+| Details field: age (including 0), blood type, origin (v1 spoilered the origin; see departures) | `discord.TestWaifuEmbed_FullCard` |
 | Appears in: up to six series, then `+N more` | `discord.TestWaifuEmbed_AppearancesCapped` |
 | Card colour follows the star tier; unranked cards have no accent colour | `discord.TestWaifuEmbed_SparseAndUnranked`, `TestSeriesEmbedAndFooter` |
 | Footer `rosiebot v<version> · <ms>ms` | `discord.TestSeriesEmbedAndFooter` |
@@ -112,6 +112,7 @@ The v2 card is a deliberate redesign (owner request during live testing on 2026-
 | Sell price scales with the waifu's current star rating: 100 unranked, then 150 / 200 / 300 / 500 / 1000 for one to five stars; the confirmation shows the exact price and the rating is read from the live ranking at sale time | Owner decision (`domain.TestSellPriceFor_ScalesWithStars`, `app.TestInventoryService_Sell`, `discord.TestSell_RankedPrice`) |
 | `/waifu sellall <max_stars>` sells everything at or below a rating (unranked always included) in one transaction after an ephemeral confirmation that shows the compact list of what would go (paged), a View characters button opening the card pager, the count per tier and the payout (`discord.TestSellAll_PagedConfirmation`); `/waifu owned view:compact` lists twenty per page with stars and rank and a header with the collection's sell value; coin amounts everywhere use thousands separators | Owner request (`app.TestInventoryService_QuoteAndSellBelow`, `discord.TestSellAll_Flow`, `discord.TestOwned_CompactView`, `discord.TestAdmin_Coins`) |
 | Rolled cards carry a Sell button next to Roll again and the reply shows the remaining balance under the v1 text | Owner request (`discord.TestRoll_SellButtonOnRolledCard`, `discord.TestRoll_Texts`, `discord.TestRoll_AgainButton`) |
+| The character description and origin are shown in the clear instead of behind spoilers | Owner decision (`discord.TestWaifuEmbed_FullCard`, `discord.TestWaifuEmbed_SparseAndUnranked`) |
 
 ## Deliberate departures from v1
 

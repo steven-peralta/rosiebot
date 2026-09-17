@@ -77,7 +77,7 @@ func waifuEmbed(w domain.Waifu, ranked *domain.RankedWaifu) *discordgo.MessageEm
 	}
 	lines = append(lines, statsLine(w, ranked))
 	if w.Description != "" {
-		lines = append(lines, "", "||"+truncate(strings.TrimSpace(w.Description), descriptionLimit)+"||")
+		lines = append(lines, "", truncate(strings.TrimSpace(w.Description), descriptionLimit))
 	}
 	e.Description = strings.Join(lines, "\n")
 
@@ -158,7 +158,7 @@ func detailLines(w domain.Waifu) []string {
 		lines = append(lines, "Blood type "+w.BloodType)
 	}
 	if w.Origin != "" {
-		lines = append(lines, "Origin ||"+w.Origin+"||")
+		lines = append(lines, "Origin "+w.Origin)
 	}
 	return lines
 }
