@@ -574,8 +574,8 @@ func TestSearch_TypedOptions(t *testing.T) {
 
 	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optQuery, slugChoicePrefix+"rem")))
 	e := f.api.lastEdit()
-	if (*e.Embeds)[0].Title != "Name rem" || hasComponents(*e.Components) {
-		t.Errorf("direct slug should open one card: %+v", e)
+	if (*e.Embeds)[0].Title != "Name rem" || len(*e.Components) != 1 || favLabel(*e.Components) != "Favorite" {
+		t.Errorf("direct slug should open one card with only the favorite button: %+v", e)
 	}
 	f.source.ExpectedCalls = nil
 	f.source.EXPECT().Get(mock.Anything, "ghost").Return(domain.Waifu{}, app.ErrNotFound).Once()

@@ -254,6 +254,25 @@ func favLabel(rows []discordgo.MessageComponent) string {
 	return ""
 }
 
+func TestFavorites_SearchPickCarriesTheButton(t *testing.T) {
+	f := newFixture(t)
+	ic := f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optQuery, slugChoicePrefix+"rem"))
+	f.run(ic)
+	e := f.api.lastEdit()
+	if (*e.Embeds)[0].Title != "Name rem" || favLabel(*e.Components) != "Favorite" {
+		t.Errorf("search pick = %q components=%+v", (*e.Embeds)[0].Title, *e.Components)
+	}
+	f.run(f.click(aliceID, f.message("msg-"+ic.ID), favPrefix+"waifu"))
+	f.run(f.slash(aliceID, commandWaifu, subSearch, nil, strOpt(optQuery, slugChoicePrefix+"rem")))
+	if got := favLabel(*f.api.lastEdit().Components); got != "Unfavorite" {
+		t.Errorf("search pick after favoriting = %q", got)
+	}
+	f.run(f.dm(aliceID, commandWaifu, subSearch, strOpt(optQuery, slugChoicePrefix+"rem")))
+	if got := favLabel(*f.api.lastEdit().Components); got != "Favorite" {
+		t.Errorf("search pick in a DM = %q", got)
+	}
+}
+
 func TestFavorites_ButtonReflectsViewerState(t *testing.T) {
 	f := newFixture(t)
 	f.run(f.click(aliceID, f.waifuMessage("c1", "rem"), favPrefix+"waifu"))

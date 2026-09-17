@@ -248,7 +248,7 @@ func (b *Bot) search(ctx context.Context, ic *interaction, opts []*discordgo.App
 			b.editText(ic, fmt.Sprintf("%s %s", mention(ic.userID()), fmt.Sprintf(msgPickFilteredFmt, w.Name, b.ratingSummary(w))))
 			return
 		}
-		b.edit(ic, mention(ic.userID()), []*discordgo.MessageEmbed{b.waifuEmbed(w, b.cfg.Clock.Now().Sub(start))}, nil)
+		b.edit(ic, mention(ic.userID()), []*discordgo.MessageEmbed{b.waifuEmbed(w, b.cfg.Clock.Now().Sub(start))}, []discordgo.MessageComponent{cardActions(false, b.favorited(ctx, ic.key(), domain.FavoriteWaifu, w.Slug))})
 		return
 	}
 	b.runSearch(ctx, ic, query, start)
