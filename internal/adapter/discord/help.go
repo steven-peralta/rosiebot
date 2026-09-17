@@ -40,7 +40,7 @@ func waifuHelpEmbed() *discordgo.MessageEmbed {
 			helpField("history · profile · leaderboard",
 				"`history` shows your last ten rolls. `/profile` sums up coins, collection value, rating breakdown, rarest pull and your server rank. `/leaderboard` ranks the server by collection value, coins, collection size, or 4-star and 5-star count."),
 			helpField("favorites",
-				"Every waifu card and series card has a 🤍 Favorite button; press it again to remove. `/favs waifus` and `/favs series` list yours, or someone else's with the `user` option. You get a private DM when a favorite is on the banner or is the Waifu of the Day, and when someone else here rolls one; `/favs alerts off` stops them."),
+				"Every waifu card and series card has a 🤍 Favorite button, which turns into 💔 Unfavorite once you have it. `/favs waifus` and `/favs series` list yours, or someone else's with the `user` option. You get a private DM when a favorite is on the banner or is the Waifu of the Day, and when someone else here rolls one; `/favs alerts off` stops them."),
 			helpField("stars and rank",
 				"Ratings come from `((likes+1)/(trash+1)) × (likes+trash)` over every character with more than 100 votes. The top 1% earn five stars, then 6%, 16% and 26% for four, three and two. Everyone else ranked has one star; characters under 100 votes are unranked and show no colour."),
 		},

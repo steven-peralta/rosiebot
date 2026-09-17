@@ -35,7 +35,7 @@ func (b *Bot) roll(ctx context.Context, ic *interaction, opts []*discordgo.Appli
 		return
 	}
 	content, embed := b.rollResult(ic.userID(), res, b.cfg.Clock.Now().Sub(start))
-	b.edit(ic, content, []*discordgo.MessageEmbed{embed}, againComponents(res, ic.userID()))
+	b.edit(ic, content, []*discordgo.MessageEmbed{embed}, againComponents(res, ic.userID(), b.favorited(ctx, ic.key(), domain.FavoriteWaifu, res.Waifu.Slug)))
 }
 
 func onBanner(opts []*discordgo.ApplicationCommandInteractionDataOption) bool {
@@ -93,7 +93,7 @@ func (b *Bot) rollAgain(ctx context.Context, ic *interaction, action string) {
 		return
 	}
 	content, embed := b.rollResult(ic.userID(), res, b.cfg.Clock.Now().Sub(start))
-	b.edit(ic, content, []*discordgo.MessageEmbed{embed}, againComponents(res, ic.userID()))
+	b.edit(ic, content, []*discordgo.MessageEmbed{embed}, againComponents(res, ic.userID(), b.favorited(ctx, ic.key(), domain.FavoriteWaifu, res.Waifu.Slug)))
 }
 
 func (b *Bot) daily(ctx context.Context, ic *interaction) {
@@ -357,7 +357,7 @@ func (b *Bot) random(ctx context.Context, ic *interaction) {
 		b.failed(ic, "random", err)
 		return
 	}
-	b.edit(ic, "", []*discordgo.MessageEmbed{b.waifuEmbed(w, b.cfg.Clock.Now().Sub(start))}, []discordgo.MessageComponent{cardActions(false)})
+	b.edit(ic, "", []*discordgo.MessageEmbed{b.waifuEmbed(w, b.cfg.Clock.Now().Sub(start))}, []discordgo.MessageComponent{cardActions(false, b.favorited(ctx, ic.key(), domain.FavoriteWaifu, w.Slug))})
 }
 
 func (b *Bot) today(ctx context.Context, ic *interaction) {
@@ -380,10 +380,10 @@ func (b *Bot) today(ctx context.Context, ic *interaction) {
 		}
 		e := summaryEmbed(res.Waifu, ranked)
 		e.Footer = b.footer(b.cfg.Clock.Now().Sub(start))
-		b.edit(ic, content, []*discordgo.MessageEmbed{e}, []discordgo.MessageComponent{cardActions(false)})
+		b.edit(ic, content, []*discordgo.MessageEmbed{e}, []discordgo.MessageComponent{cardActions(false, b.favorited(ctx, ic.key(), domain.FavoriteWaifu, res.Waifu.Slug))})
 		return
 	}
-	b.edit(ic, content, []*discordgo.MessageEmbed{b.waifuEmbed(detail, b.cfg.Clock.Now().Sub(start))}, []discordgo.MessageComponent{cardActions(false)})
+	b.edit(ic, content, []*discordgo.MessageEmbed{b.waifuEmbed(detail, b.cfg.Clock.Now().Sub(start))}, []discordgo.MessageComponent{cardActions(false, b.favorited(ctx, ic.key(), domain.FavoriteWaifu, detail.Slug))})
 }
 
 func (b *Bot) seriesAutocomplete(ctx context.Context, ic *interaction, opts []*discordgo.ApplicationCommandInteractionDataOption) {

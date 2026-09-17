@@ -47,7 +47,7 @@ func TestSeriesSearch_Card(t *testing.T) {
 	if len(*e.Components) != 1 || len((*e.Components)[0].(discordgo.ActionsRow).Components) != 2 {
 		t.Errorf("series card should carry browse and favorite buttons in one row, got %+v", *e.Components)
 	}
-	if fav := (*e.Components)[0].(discordgo.ActionsRow).Components[1].(discordgo.Button); fav.CustomID != favPrefix+"series" {
+	if fav := (*e.Components)[0].(discordgo.ActionsRow).Components[1].(discordgo.Button); fav.CustomID != favPrefix+"series" || fav.Label != "Favorite" {
 		t.Errorf("series favorite button = %+v", fav)
 	}
 	button := (*e.Components)[0].(discordgo.ActionsRow).Components[0].(discordgo.Button)

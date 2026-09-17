@@ -41,13 +41,13 @@ func bannerAgainComponents(userID string) []discordgo.MessageComponent {
 	}}}
 }
 
-func againComponents(res app.RollResult, userID string) []discordgo.MessageComponent {
+func againComponents(res app.RollResult, userID string, favorited bool) []discordgo.MessageComponent {
 	rows := rollAgainComponents(userID)
 	if res.Banner {
 		rows = bannerAgainComponents(userID)
 	}
 	row := rows[0].(discordgo.ActionsRow)
-	row.Components = append(row.Components, sellAskButton(), favButton(domain.FavoriteWaifu))
+	row.Components = append(row.Components, sellAskButton(), favButton(domain.FavoriteWaifu, favorited))
 	return []discordgo.MessageComponent{row}
 }
 
@@ -90,7 +90,7 @@ func (b *Bot) bannerButton(ctx context.Context, ic *interaction, action string) 
 		return
 	}
 	content, embed := b.rollResult(ic.userID(), res, b.cfg.Clock.Now().Sub(start))
-	b.edit(ic, content, []*discordgo.MessageEmbed{embed}, againComponents(res, ic.userID()))
+	b.edit(ic, content, []*discordgo.MessageEmbed{embed}, againComponents(res, ic.userID(), b.favorited(ctx, ic.key(), domain.FavoriteWaifu, res.Waifu.Slug)))
 }
 
 func bannerEmbed(bn domain.Banner) *discordgo.MessageEmbed {

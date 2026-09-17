@@ -27,7 +27,7 @@ const (
 )
 
 func pagerComponents(page, total int, sellable bool) []discordgo.MessageComponent {
-	return append(pagerRows(page, total, nil), cardActions(sellable))
+	return append(pagerRows(page, total, nil), cardActions(sellable, false))
 }
 
 func pagerRows(page, total int, options []discordgo.SelectMenuOption) []discordgo.MessageComponent {
@@ -89,7 +89,8 @@ func (b *Bot) renderPage(ctx context.Context, s *Session, elapsed time.Duration)
 		if len(s.Pages) > 1 {
 			content = strings.TrimRight(content, "\n") + fmt.Sprintf("\nPage %d out of %d", s.Page+1, len(s.Pages))
 		}
-		rows := append(pagerRows(s.Page, len(s.Pages), b.selectOptions(s)), discordgo.ActionsRow{Components: []discordgo.MessageComponent{favButton(domain.FavoriteSeries)}})
+		fav := b.favorited(ctx, domain.PlayerKey{GuildID: s.GuildID, UserID: s.OwnerID}, domain.FavoriteSeries, ref.series.Slug)
+		rows := append(pagerRows(s.Page, len(s.Pages), b.selectOptions(s)), discordgo.ActionsRow{Components: []discordgo.MessageComponent{favButton(domain.FavoriteSeries, fav)}})
 		return content, []*discordgo.MessageEmbed{embed}, append(rows, s.Extra...)
 	}
 	if ref.group != nil {
@@ -124,7 +125,8 @@ func (b *Bot) renderPage(ctx context.Context, s *Session, elapsed time.Duration)
 	if len(s.Pages) > 1 {
 		content = strings.TrimRight(content, "\n") + fmt.Sprintf("\nPage %d out of %d", s.Page+1, len(s.Pages))
 	}
-	rows := append(pagerRows(s.Page, len(s.Pages), b.selectOptions(s)), cardActions(s.Sellable))
+	fav := b.favorited(ctx, domain.PlayerKey{GuildID: s.GuildID, UserID: s.OwnerID}, domain.FavoriteWaifu, ref.summary.Slug)
+	rows := append(pagerRows(s.Page, len(s.Pages), b.selectOptions(s)), cardActions(s.Sellable, fav))
 	return content, []*discordgo.MessageEmbed{embed}, append(rows, s.Extra...)
 }
 
@@ -176,7 +178,7 @@ func (b *Bot) openPager(ctx context.Context, ic *interaction, content string, pa
 }
 
 func (b *Bot) openPagerWith(ctx context.Context, ic *interaction, content string, pages []pageRef, sellable bool, extra []discordgo.MessageComponent, elapsed time.Duration) {
-	s := &Session{Kind: SessionPager, OwnerID: ic.userID(), ChannelID: ic.ChannelID, Content: content, Pages: pages, Sellable: sellable, Extra: extra}
+	s := &Session{Kind: SessionPager, OwnerID: ic.userID(), GuildID: ic.GuildID, ChannelID: ic.ChannelID, Content: content, Pages: pages, Sellable: sellable, Extra: extra}
 	c, embeds, components := b.renderPage(ctx, s, elapsed)
 	msg := b.edit(ic, c, embeds, components)
 	if msg == nil || len(pages) <= 1 {

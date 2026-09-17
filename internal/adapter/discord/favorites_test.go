@@ -27,32 +27,40 @@ func TestFavorites_ButtonToggleAndLists(t *testing.T) {
 	f.give(aliceID, "rem")
 	card := f.waifuMessage("c1", "rem")
 
+	card.Components = []discordgo.MessageComponent{cardActions(false, false)}
 	f.run(f.click(aliceID, card, favPrefix+"waifu"))
-	if got := f.respondContent(); got != "Added **Name rem** to your favorites." {
-		t.Fatalf("add = %q", got)
+	if got := f.api.lastFollowup(); got == nil || got.Content != "Added **Name rem** to your favorites." || got.Flags&discordgo.MessageFlagsEphemeral == 0 {
+		t.Fatalf("add = %+v", got)
 	}
+	if r := f.api.lastRespond(); r.Type != discordgo.InteractionResponseUpdateMessage || favLabel(r.Data.Components) != "Unfavorite" {
+		t.Errorf("the card button should flip to Unfavorite: %+v", r)
+	}
+	card.Components = f.api.lastRespond().Data.Components
 	f.run(f.click(aliceID, card, favPrefix+"waifu"))
-	if got := f.respondContent(); got != "Removed **Name rem** from your favorites." {
+	if got := f.api.lastFollowup().Content; got != "Removed **Name rem** from your favorites." {
 		t.Errorf("remove = %q", got)
+	}
+	if favLabel(f.api.lastRespond().Data.Components) != "Favorite" {
+		t.Error("the card button should flip back to Favorite")
 	}
 	f.run(f.click(aliceID, card, favPrefix+"waifu"))
 	f.clock.now = f.clock.now.Add(time.Second)
 	f.run(f.click(aliceID, f.waifuMessage("c2", "ranked-000"), favPrefix+"waifu"))
 	f.run(f.click(bobID, card, favPrefix+"waifu"))
-	if got := f.respondContent(); got != "Added **Name rem** to your favorites." {
+	if got := f.api.lastFollowup().Content; got != "Added **Name rem** to your favorites." {
 		t.Errorf("bob's own favorite = %q", got)
 	}
 
 	f.source.EXPECT().Work(mock.Anything, "re-zero").Return(reZero, nil).Once()
 	series := f.seriesMessage("s1", "re-zero", "Re:Zero")
 	f.run(f.click(aliceID, series, favPrefix+"series"))
-	if got := f.respondContent(); got != "Added **Re:Zero** to your favorites." {
+	if got := f.api.lastFollowup().Content; got != "Added **Re:Zero** to your favorites." {
 		t.Errorf("series add = %q", got)
 	}
 	f.clock.now = f.clock.now.Add(time.Second)
 	f.source.EXPECT().Work(mock.Anything, "konosuba").Return(domain.Series{}, fmt.Errorf("down")).Once()
 	f.run(f.click(aliceID, f.seriesMessage("s2", "konosuba", "KonoSuba"), favPrefix+"series"))
-	if got := f.respondContent(); got != "Added **KonoSuba** to your favorites." {
+	if got := f.api.lastFollowup().Content; got != "Added **KonoSuba** to your favorites." {
 		t.Errorf("series add without detail should use the embed title: %q", got)
 	}
 
@@ -76,8 +84,8 @@ func TestFavorites_ButtonToggleAndLists(t *testing.T) {
 	}
 	rows := *e.Components
 	last := rows[len(rows)-1].(discordgo.ActionsRow).Components
-	if len(last) != 1 || last[0].(discordgo.Button).CustomID != favPrefix+"waifu" {
-		t.Errorf("card view actions = %+v", last)
+	if len(last) != 1 || last[0].(discordgo.Button).CustomID != favPrefix+"waifu" || last[0].(discordgo.Button).Label != "Unfavorite" {
+		t.Errorf("card view actions should show Unfavorite for the owner's own favorites: %+v", last)
 	}
 
 	f.run(f.slash(aliceID, commandFavs, subFavSeries, nil))
@@ -226,4 +234,61 @@ func mustBanner(t *testing.T, f *fixture) domain.Banner {
 		t.Fatal(err)
 	}
 	return res.Banner
+}
+
+func favLabel(rows []discordgo.MessageComponent) string {
+	for _, row := range rows {
+		var inner []discordgo.MessageComponent
+		switch r := row.(type) {
+		case discordgo.ActionsRow:
+			inner = r.Components
+		case *discordgo.ActionsRow:
+			inner = r.Components
+		}
+		for _, c := range inner {
+			if btn, ok := c.(discordgo.Button); ok && strings.HasPrefix(btn.CustomID, favPrefix) {
+				return btn.Label
+			}
+		}
+	}
+	return ""
+}
+
+func TestFavorites_ButtonReflectsViewerState(t *testing.T) {
+	f := newFixture(t)
+	f.run(f.click(aliceID, f.waifuMessage("c1", "rem"), favPrefix+"waifu"))
+	f.source.EXPECT().Random(mock.Anything).Return(summary("rem"), nil).Once()
+	f.run(f.slash(aliceID, commandWaifu, subRandom, nil))
+	if got := favLabel(*f.api.lastEdit().Components); got != "Unfavorite" {
+		t.Errorf("alice's random card = %q", got)
+	}
+	f.source.EXPECT().Random(mock.Anything).Return(summary("rem"), nil).Once()
+	f.run(f.slash(bobID, commandWaifu, subRandom, nil))
+	if got := favLabel(*f.api.lastEdit().Components); got != "Favorite" {
+		t.Errorf("bob's random card = %q", got)
+	}
+	f.give(aliceID, "rem", "ram")
+	ic := f.slash(aliceID, commandWaifu, subOwned, nil)
+	f.run(ic)
+	if got := favLabel(*f.api.lastEdit().Components); got != "Unfavorite" {
+		t.Errorf("owned page one = %q", got)
+	}
+	f.run(f.click(aliceID, f.message("msg-"+ic.ID), pagerPrefix+pagerNext))
+	if got := favLabel(f.api.lastRespond().Data.Components); got != "Favorite" {
+		t.Errorf("owned page two = %q", got)
+	}
+	f.source.EXPECT().Work(mock.Anything, "re-zero").Return(reZero, nil).Times(3)
+	f.source.EXPECT().WorkCharacters(mock.Anything, "re-zero", 1).Return(app.SearchPage{Page: 1, LastPage: 1}, nil).Times(2)
+	f.run(f.slash(aliceID, commandSeries, subSearch, nil, strOpt(optQuery, slugChoicePrefix+"re-zero")))
+	if got := favLabel(*f.api.lastEdit().Components); got != "Favorite" {
+		t.Errorf("series card before favoriting = %q", got)
+	}
+	f.run(f.click(aliceID, f.seriesMessage("s1", "re-zero", "Re:Zero"), favPrefix+"series"))
+	f.run(f.slash(aliceID, commandSeries, subSearch, nil, strOpt(optQuery, slugChoicePrefix+"re-zero")))
+	if got := favLabel(*f.api.lastEdit().Components); got != "Unfavorite" {
+		t.Errorf("series card after favoriting = %q", got)
+	}
+	if favLabel(swapFavButton([]discordgo.MessageComponent{&discordgo.ActionsRow{Components: []discordgo.MessageComponent{&discordgo.Button{CustomID: favPrefix + "waifu"}}}, discordgo.Button{CustomID: "x"}}, domain.FavoriteWaifu, true)) != "Unfavorite" {
+		t.Error("swapFavButton should handle pointer rows and leave other components alone")
+	}
 }

@@ -43,6 +43,7 @@ type pageRef struct {
 type Session struct {
 	Kind      SessionKind
 	OwnerID   string
+	GuildID   string
 	ChannelID string
 	MessageID string
 	Content   string

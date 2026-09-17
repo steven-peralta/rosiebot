@@ -26,17 +26,58 @@ const (
 	alertTimeout        = 10 * time.Minute
 )
 
-func favButton(kind domain.FavoriteKind) discordgo.Button {
+func favButton(kind domain.FavoriteKind, favorited bool) discordgo.Button {
+	if favorited {
+		return discordgo.Button{Style: discordgo.SecondaryButton, CustomID: favPrefix + string(kind), Emoji: &discordgo.ComponentEmoji{Name: "💔"}, Label: "Unfavorite"}
+	}
 	return discordgo.Button{Style: discordgo.SecondaryButton, CustomID: favPrefix + string(kind), Emoji: &discordgo.ComponentEmoji{Name: "🤍"}, Label: "Favorite"}
 }
 
-func cardActions(sellable bool) discordgo.ActionsRow {
+func cardActions(sellable, favorited bool) discordgo.ActionsRow {
 	row := discordgo.ActionsRow{}
 	if sellable {
 		row.Components = append(row.Components, sellAskButton())
 	}
-	row.Components = append(row.Components, favButton(domain.FavoriteWaifu))
+	row.Components = append(row.Components, favButton(domain.FavoriteWaifu, favorited))
 	return row
+}
+
+func (b *Bot) favorited(ctx context.Context, key domain.PlayerKey, kind domain.FavoriteKind, slug string) bool {
+	if key.GuildID == "" || b.svc.Favorites == nil {
+		return false
+	}
+	has, err := b.svc.Favorites.Has(ctx, key, kind, slug)
+	if err != nil {
+		b.log.Warn("favorite lookup failed", "slug", slug, "err", err)
+		return false
+	}
+	return has
+}
+
+func swapFavButton(components []discordgo.MessageComponent, kind domain.FavoriteKind, favorited bool) []discordgo.MessageComponent {
+	out := make([]discordgo.MessageComponent, 0, len(components))
+	for _, c := range components {
+		var inner []discordgo.MessageComponent
+		switch row := c.(type) {
+		case *discordgo.ActionsRow:
+			inner = row.Components
+		case discordgo.ActionsRow:
+			inner = row.Components
+		default:
+			out = append(out, c)
+			continue
+		}
+		swapped := make([]discordgo.MessageComponent, 0, len(inner))
+		for _, comp := range inner {
+			if buttonID(comp) == favPrefix+string(kind) {
+				swapped = append(swapped, favButton(kind, favorited))
+				continue
+			}
+			swapped = append(swapped, comp)
+		}
+		out = append(out, discordgo.ActionsRow{Components: swapped})
+	}
+	return out
 }
 
 func SeriesSlugFromEmbeds(embeds []*discordgo.MessageEmbed) (string, bool) {
@@ -95,11 +136,23 @@ func (b *Bot) favoriteButton(ctx context.Context, ic *interaction, raw string) {
 		b.replyEphemeral(ic, errorText(err))
 		return
 	}
+	text := fmt.Sprintf(msgFavRemovedFmt, fav.Name)
 	if added {
-		b.replyEphemeral(ic, fmt.Sprintf(msgFavAddedFmt, fav.Name))
+		text = fmt.Sprintf(msgFavAddedFmt, fav.Name)
+	}
+	components := swapFavButton(ic.Message.Components, kind, added)
+	err = b.s.InteractionRespond(ic.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseUpdateMessage,
+		Data: &discordgo.InteractionResponseData{Content: ic.Message.Content, Embeds: ic.Message.Embeds, Components: components},
+	})
+	if err != nil {
+		b.log.Warn("favorite button update failed", "err", err)
+		b.replyEphemeral(ic, text)
 		return
 	}
-	b.replyEphemeral(ic, fmt.Sprintf(msgFavRemovedFmt, fav.Name))
+	if _, err := b.s.FollowupMessageCreate(ic.Interaction, true, &discordgo.WebhookParams{Content: text, Flags: discordgo.MessageFlagsEphemeral}); err != nil {
+		b.log.Warn("favorite followup failed", "err", err)
+	}
 }
 
 func (b *Bot) favoriteFromMessage(ctx context.Context, kind domain.FavoriteKind, msg *discordgo.Message) (domain.Favorite, bool) {

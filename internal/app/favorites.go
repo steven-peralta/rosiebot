@@ -41,3 +41,16 @@ func (s *FavoriteService) List(ctx context.Context, key domain.PlayerKey, kind d
 	}
 	return favs, nil
 }
+
+func (s *FavoriteService) Has(ctx context.Context, key domain.PlayerKey, kind domain.FavoriteKind, slug string) (bool, error) {
+	matches, err := s.store.Find(ctx, kind, []string{slug}, key.GuildID)
+	if err != nil {
+		return false, fmt.Errorf("find favorite: %w", err)
+	}
+	for _, m := range matches {
+		if m.Key == key {
+			return true, nil
+		}
+	}
+	return false, nil
+}

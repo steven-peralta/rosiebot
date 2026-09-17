@@ -53,8 +53,17 @@ func TestFavoriteService_ToggleAndList(t *testing.T) {
 	if others, _ := svc.List(f.ctx, bob, domain.FavoriteWaifu); len(others) != 0 {
 		t.Errorf("favorites leaked across players: %+v", others)
 	}
+	if has, err := svc.Has(f.ctx, alice, domain.FavoriteWaifu, "rem"); err != nil || !has {
+		t.Errorf("Has after add = %v %v", has, err)
+	}
+	if has, _ := svc.Has(f.ctx, bob, domain.FavoriteWaifu, "rem"); has {
+		t.Error("Has must be per player")
+	}
 	if added, err := svc.Toggle(f.ctx, alice, rem); err != nil || added {
 		t.Errorf("second toggle should remove: %v %v", added, err)
+	}
+	if has, _ := svc.Has(f.ctx, alice, domain.FavoriteWaifu, "rem"); has {
+		t.Error("Has after remove")
 	}
 	if waifus, _ := svc.List(f.ctx, alice, domain.FavoriteWaifu); len(waifus) != 0 {
 		t.Errorf("favorite should be gone: %+v", waifus)
@@ -71,5 +80,8 @@ func TestFavoriteService_ToggleAndList(t *testing.T) {
 	}
 	if _, err := broken.List(f.ctx, alice, domain.FavoriteWaifu); err == nil {
 		t.Error("store error should surface from list")
+	}
+	if _, err := broken.Has(f.ctx, alice, domain.FavoriteWaifu, "rem"); err == nil {
+		t.Error("store error should surface from has")
 	}
 }

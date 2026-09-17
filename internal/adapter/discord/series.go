@@ -55,10 +55,10 @@ func viewMenuRow(chars []cardCharacter) discordgo.MessageComponent {
 	}}}
 }
 
-func seriesCardComponents(slug string) []discordgo.MessageComponent {
+func seriesCardComponents(slug string, favorited bool) []discordgo.MessageComponent {
 	return []discordgo.MessageComponent{discordgo.ActionsRow{Components: []discordgo.MessageComponent{
 		discordgo.Button{Style: discordgo.SecondaryButton, CustomID: seriesPrefix + seriesBrowse + ":" + slug, Emoji: &discordgo.ComponentEmoji{Name: "📖"}, Label: "Browse characters"},
-		favButton(domain.FavoriteSeries),
+		favButton(domain.FavoriteSeries, favorited),
 	}}}
 }
 
@@ -111,9 +111,10 @@ func (b *Bot) seriesSearch(ctx context.Context, ic *interaction, opts []*discord
 		}
 	}
 	e.Footer = b.footer(b.cfg.Clock.Now().Sub(start))
-	components := []discordgo.MessageComponent{discordgo.ActionsRow{Components: []discordgo.MessageComponent{favButton(domain.FavoriteSeries)}}}
+	fav := b.favorited(ctx, ic.key(), domain.FavoriteSeries, res.Series.Slug)
+	components := []discordgo.MessageComponent{discordgo.ActionsRow{Components: []discordgo.MessageComponent{favButton(domain.FavoriteSeries, fav)}}}
 	if len(chars) > 0 {
-		components = seriesCardComponents(res.Series.Slug)
+		components = seriesCardComponents(res.Series.Slug, fav)
 	}
 	b.edit(ic, mention(ic.userID())+" "+msgSeriesFound, []*discordgo.MessageEmbed{e}, components)
 }
