@@ -20,7 +20,7 @@ const (
 
 func rollAgainComponents(userID string) []discordgo.MessageComponent {
 	return []discordgo.MessageComponent{discordgo.ActionsRow{Components: []discordgo.MessageComponent{
-		discordgo.Button{Style: discordgo.PrimaryButton, CustomID: rollPrefix + rollAgain + ":" + userID, Emoji: &discordgo.ComponentEmoji{Name: "🎲"}, Label: fmt.Sprintf("Roll again · %d coins", domain.RollCost)},
+		discordgo.Button{Style: discordgo.PrimaryButton, CustomID: rollPrefix + rollAgain + ":" + userID, Emoji: &discordgo.ComponentEmoji{Name: "🎲"}, Label: fmt.Sprintf("Roll again · %s coins", thousands(domain.RollCost))},
 	}}}
 }
 
@@ -107,17 +107,17 @@ func (b *Bot) daily(ctx context.Context, ic *interaction) {
 	}
 	who := mention(ic.userID())
 	if res.Critical() {
-		b.editText(ic, fmt.Sprintf("%s %s", who, fmt.Sprintf(msgDailyCriticalFmt, msgCritical, res.Coins)))
+		b.editText(ic, fmt.Sprintf("%s %s", who, fmt.Sprintf(msgDailyCriticalFmt, msgCritical, coins(res.Coins))))
 		return
 	}
-	b.editText(ic, fmt.Sprintf("%s %s", who, fmt.Sprintf(msgDailyFmt, res.Coins)))
+	b.editText(ic, fmt.Sprintf("%s %s", who, fmt.Sprintf(msgDailyFmt, coins(res.Coins))))
 }
 
 func coinWord(n int64) string {
 	if n == 1 {
 		return "1 coin"
 	}
-	return fmt.Sprintf("%d coins", n)
+	return coins(n) + " coins"
 }
 
 func (b *Bot) coins(ctx context.Context, ic *interaction, opts []*discordgo.ApplicationCommandInteractionDataOption, resolved *discordgo.ApplicationCommandInteractionDataResolved) {
@@ -160,8 +160,13 @@ func (b *Bot) owned(ctx context.Context, ic *interaction, opts []*discordgo.Appl
 		b.editText(ic, mention(ic.userID())+" "+msgOwnsNothing)
 		return
 	}
-	pages := pagesFromOwned(sortOwned(items, stringOption(opts, optSort), app.LookupFrom(b.svc.Ranking)))
-	b.openPager(ctx, ic, mention(ic.userID()), pages, key.UserID == ic.userID(), b.cfg.Clock.Now().Sub(start))
+	sorted := sortOwned(items, stringOption(opts, optSort), app.LookupFrom(b.svc.Ranking))
+	if stringOption(opts, optView) == viewCompact {
+		content := mention(ic.userID()) + " " + collectionSummary(items, b.svc.Inventory.Price)
+		b.openPager(ctx, ic, content, pagesCompact(sorted, app.LookupFrom(b.svc.Ranking)), false, b.cfg.Clock.Now().Sub(start))
+		return
+	}
+	b.openPager(ctx, ic, mention(ic.userID()), pagesFromOwned(sorted), key.UserID == ic.userID(), b.cfg.Clock.Now().Sub(start))
 }
 
 func sortOwned(items []domain.OwnedWaifu, sortValue string, lookup app.RankLookup) []domain.OwnedWaifu {

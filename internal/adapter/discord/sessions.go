@@ -25,7 +25,13 @@ const (
 	tradeDone
 )
 
+type compactGroup struct {
+	first int
+	items []cardCharacter
+}
+
 type pageRef struct {
+	group   *compactGroup
 	summary domain.WaifuSummary
 	detail  *domain.Waifu
 }

@@ -146,15 +146,15 @@ func (b *Bot) admin(ctx context.Context, ic *interaction, data discordgo.Applica
 	case groupCoins + "/" + adminSet:
 		var balance int64
 		balance, err = b.svc.Admin.SetCoins(ctx, actor, key, int64(amount))
-		text = fmt.Sprintf(msgAdminSetFmt, who, balance)
+		text = fmt.Sprintf(msgAdminSetFmt, who, coins(balance))
 	case groupCoins + "/" + adminIncrement:
 		var balance int64
 		balance, err = b.svc.Admin.AdjustCoins(ctx, actor, key, int64(amount))
-		text = fmt.Sprintf(msgAdminAddedFmt, amount, who, balance)
+		text = fmt.Sprintf(msgAdminAddedFmt, thousands(amount), who, coins(balance))
 	case groupCoins + "/" + adminDecrement:
 		var balance int64
 		balance, err = b.svc.Admin.AdjustCoins(ctx, actor, key, -int64(amount))
-		text = fmt.Sprintf(msgAdminRemovedFmt, amount, who, balance)
+		text = fmt.Sprintf(msgAdminRemovedFmt, thousands(amount), who, coins(balance))
 	case groupWaifu + "/" + adminAdd:
 		var w domain.Waifu
 		w, err = b.svc.Admin.GrantWaifu(ctx, actor, key, waifuInput(stringOption(opts, optWaifu)))

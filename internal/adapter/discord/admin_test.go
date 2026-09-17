@@ -162,15 +162,15 @@ func TestAdmin_Coins(t *testing.T) {
 	if r := f.api.calls[0].resp; r.Type != discordgo.InteractionResponseDeferredChannelMessageWithSource || r.Data == nil || r.Data.Flags&discordgo.MessageFlagsEphemeral == 0 {
 		t.Errorf("admin replies should be deferred ephemeral, got %+v", r)
 	}
-	if got := editContent(f.api.lastEdit()); got != "Set <@bob>'s balance to :coin: 1000 coins." || f.coins(bobID) != 1000 {
+	if got := editContent(f.api.lastEdit()); got != "Set <@bob>'s balance to :coin: 1,000 coins." || f.coins(bobID) != 1000 {
 		t.Errorf("set = %q coins=%d", got, f.coins(bobID))
 	}
 	f.run(f.adminCmd(aliceID, groupCoins, adminIncrement, resolvedUsers(bobID), userOption(bobID), intOpt(optAmount, 250)))
-	if got := editContent(f.api.lastEdit()); got != "Added :coin: 250 coins to <@bob>. New balance: 1250 coins." {
+	if got := editContent(f.api.lastEdit()); got != "Added :coin: 250 coins to <@bob>. New balance: 1,250 coins." {
 		t.Errorf("increment = %q", got)
 	}
 	f.run(f.adminCmd(aliceID, groupCoins, adminDecrement, resolvedUsers(bobID), userOption(bobID), intOpt(optAmount, 1250)))
-	if got := editContent(f.api.lastEdit()); got != "Removed :coin: 1250 coins from <@bob>. New balance: 0 coins." {
+	if got := editContent(f.api.lastEdit()); got != "Removed :coin: 1,250 coins from <@bob>. New balance: 0 coins." {
 		t.Errorf("decrement = %q", got)
 	}
 	f.run(f.adminCmd(aliceID, groupCoins, adminDecrement, resolvedUsers(bobID), userOption(bobID), intOpt(optAmount, 1)))

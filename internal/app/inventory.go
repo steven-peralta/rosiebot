@@ -82,3 +82,72 @@ func (s *InventoryService) Sell(ctx context.Context, key domain.PlayerKey, slug 
 	}
 	return SellResult{Waifu: owned, Price: price, Stars: stars, Balance: balance}, nil
 }
+
+type BulkQuote struct {
+	Count int
+	Total int64
+	Tiers [domain.MaxStars + 1]int
+}
+
+type BulkSellResult struct {
+	Count   int
+	Total   int64
+	Balance int64
+}
+
+func (s *InventoryService) eligible(owned []domain.OwnedWaifu, maxStars int) []domain.OwnedWaifu {
+	out := make([]domain.OwnedWaifu, 0, len(owned))
+	for _, w := range owned {
+		if _, stars := s.Price(w.Slug); stars <= maxStars {
+			out = append(out, w)
+		}
+	}
+	return out
+}
+
+func (s *InventoryService) QuoteBelow(ctx context.Context, key domain.PlayerKey, maxStars int) (BulkQuote, error) {
+	owned, err := s.List(ctx, key)
+	if err != nil {
+		return BulkQuote{}, err
+	}
+	var q BulkQuote
+	for _, w := range s.eligible(owned, maxStars) {
+		price, stars := s.Price(w.Slug)
+		q.Count++
+		q.Total += price
+		q.Tiers[stars]++
+	}
+	return q, nil
+}
+
+func (s *InventoryService) SellBelow(ctx context.Context, key domain.PlayerKey, maxStars int) (BulkSellResult, error) {
+	player, err := s.players.EnsurePlayer(ctx, key)
+	if err != nil {
+		return BulkSellResult{}, fmt.Errorf("ensure player: %w", err)
+	}
+	res := BulkSellResult{Balance: player.Coins}
+	err = s.players.WithinTx(ctx, func(r PlayerRepo) error {
+		owned, err := r.ListOwned(ctx, key, "", 0)
+		if err != nil {
+			return fmt.Errorf("list owned: %w", err)
+		}
+		for _, w := range s.eligible(owned, maxStars) {
+			price, _ := s.Price(w.Slug)
+			balance, ok, err := r.SellOwned(ctx, key, w.Slug, price)
+			if err != nil {
+				return fmt.Errorf("sell %s: %w", w.Slug, err)
+			}
+			if !ok {
+				continue
+			}
+			res.Count++
+			res.Total += price
+			res.Balance = balance
+		}
+		return nil
+	})
+	if err != nil {
+		return BulkSellResult{}, err
+	}
+	return res, nil
+}

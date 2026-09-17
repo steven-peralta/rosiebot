@@ -59,22 +59,27 @@ const (
 	commandWotd   = "wotd"
 	commandSell   = "Sell Waifu"
 
-	subRoll   = "roll"
-	subDaily  = "daily"
-	subCoins  = "coins"
-	subOwned  = "owned"
-	subSearch = "search"
-	subList   = "list"
-	subRandom = "random"
-	subToday  = "today"
-	subTrade  = "trade"
-	subBanner = "banner"
+	subRoll    = "roll"
+	subDaily   = "daily"
+	subCoins   = "coins"
+	subOwned   = "owned"
+	subSearch  = "search"
+	subList    = "list"
+	subRandom  = "random"
+	subToday   = "today"
+	subTrade   = "trade"
+	subSellAll = "sellall"
+	subBanner  = "banner"
 
-	optUser    = "user"
-	optQuery   = "query"
-	optGive    = "give"
-	optReceive = "receive"
-	optBanner  = "banner"
+	optUser     = "user"
+	optQuery    = "query"
+	optGive     = "give"
+	optReceive  = "receive"
+	optBanner   = "banner"
+	optMaxStars = "max_stars"
+	optView     = "view"
+	viewCards   = "cards"
+	viewCompact = "compact"
 )
 
 type Bot struct {
@@ -133,7 +138,8 @@ func (b *Bot) Commands() []*discordgo.ApplicationCommand {
 			sub(subDaily, "Get your daily dose of waifu coins"),
 			sub(subCoins, "See how many coins you or another user has", userOpt("Whose balance to show")),
 			sub(subOwned, "See the waifus that you or another user owns", userOpt("Whose collection to show"),
-				&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optSort, Description: "Order of the collection", Choices: choicesFor(ownedSorts)}),
+				&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optSort, Description: "Order of the collection", Choices: choicesFor(ownedSorts)},
+				&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optView, Description: "One card per page, or a compact list of twenty", Choices: []*discordgo.ApplicationCommandOptionChoice{{Name: "Cards", Value: viewCards}, {Name: "Compact list", Value: viewCompact}}}),
 			sub(subSearch, "Search for a waifu by name", searchOptions()...),
 			sub(subList, "Browse waifus by rank, series, or filters", listOptions()...),
 			sub(subRandom, "Pull a random waifu"),
@@ -144,6 +150,8 @@ func (b *Bot) Commands() []*discordgo.ApplicationCommand {
 				&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optGive, Description: "Waifus you give, comma separated", Autocomplete: true},
 				&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optReceive, Description: "Waifus you receive, comma separated", Autocomplete: true},
 			),
+			sub(subSellAll, "Sell every waifu you own at or below a star rating",
+				&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionInteger, Name: optMaxStars, Description: "Highest rating to sell; unranked waifus are always included", Required: true, Choices: sellAllChoices()}),
 			sub(subHelp, "Explain rolls, odds, coins, trading, and stars"),
 		}
 	}
@@ -253,6 +261,8 @@ func (b *Bot) handleCommand(ctx context.Context, ic *interaction) {
 			b.today(ctx, ic)
 		case subBanner:
 			b.banner(ctx, ic)
+		case subSellAll:
+			b.guildOnly(ctx, ic, subSellAll, func(ctx context.Context, ic *interaction) { b.sellAllCommand(ctx, ic, opts) })
 		case subHelp:
 			b.help(ic, waifuHelpEmbed())
 		case subTrade:

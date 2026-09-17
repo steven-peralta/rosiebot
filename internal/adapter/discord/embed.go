@@ -215,6 +215,10 @@ func num(f float64) string {
 	return strconv.FormatFloat(f, 'f', -1, 64)
 }
 
+func coins(n int64) string {
+	return thousands(int(n))
+}
+
 func thousands(n int) string {
 	s := strconv.Itoa(n)
 	if len(s) <= 3 {

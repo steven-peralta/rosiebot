@@ -9,6 +9,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 
+	"github.com/steven-peralta/rosiebot/internal/app"
 	"github.com/steven-peralta/rosiebot/internal/domain"
 )
 
@@ -84,6 +85,15 @@ func (b *Bot) renderPage(ctx context.Context, s *Session, elapsed time.Duration)
 		s.Page = len(s.Pages) - 1
 	}
 	ref := &s.Pages[s.Page]
+	if ref.group != nil {
+		embed := compactEmbed(ref.group)
+		embed.Footer = b.footer(elapsed)
+		content := s.Content
+		if len(s.Pages) > 1 {
+			content = strings.TrimRight(content, "\n") + fmt.Sprintf("\nPage %d out of %d", s.Page+1, len(s.Pages))
+		}
+		return content, []*discordgo.MessageEmbed{embed}, pagerRows(s.Page, len(s.Pages), false, b.selectOptions(s))
+	}
 	if ref.detail == nil {
 		w, err := b.svc.Search.Detail(ctx, ref.summary.Slug)
 		if err != nil {
@@ -118,6 +128,14 @@ func (b *Bot) selectOptions(s *Session) []discordgo.SelectMenuOption {
 	start, end := selectWindow(s.Page, len(s.Pages), maxSuggestions)
 	options := make([]discordgo.SelectMenuOption, 0, end-start)
 	for i := start; i < end; i++ {
+		if g := s.Pages[i].group; g != nil {
+			options = append(options, discordgo.SelectMenuOption{
+				Label:   fmt.Sprintf("Page %d · %d to %d", i+1, g.first+1, g.first+len(g.items)),
+				Value:   strconv.Itoa(i),
+				Default: i == s.Page,
+			})
+			continue
+		}
 		summary := s.Pages[i].summary
 		desc := fmt.Sprintf("❤️ %s · 🗑️ %s", thousands(summary.Likes), thousands(summary.Trash))
 		if r, ok := ranking.Lookup(summary.Slug); ok && r.Stars > 0 {
@@ -289,4 +307,41 @@ func (b *Bot) SweepExpired() int {
 		}
 	}
 	return len(expired)
+}
+
+const compactPageSize = 20
+
+func pagesCompact(items []domain.OwnedWaifu, lookup app.RankLookup) []pageRef {
+	summaries := make([]domain.WaifuSummary, len(items))
+	for i, o := range items {
+		summaries[i] = domain.WaifuSummary{Slug: o.Slug, UUID: o.UUID, Name: o.Name, PictureURL: o.PictureURL, Likes: o.Likes, Trash: o.Trash}
+	}
+	chars := cardCharacters(summaries, lookup)
+	pages := make([]pageRef, 0, (len(chars)+compactPageSize-1)/compactPageSize)
+	for start := 0; start < len(chars); start += compactPageSize {
+		end := min(start+compactPageSize, len(chars))
+		pages = append(pages, pageRef{group: &compactGroup{first: start, items: chars[start:end]}})
+	}
+	return pages
+}
+
+func compactEmbed(g *compactGroup) *discordgo.MessageEmbed {
+	lines := make([]string, len(g.items))
+	for i, c := range g.items {
+		lines[i] = fmt.Sprintf("%d. %s", g.first+i+1, cardLine(c))
+	}
+	return &discordgo.MessageEmbed{Title: "Collection", Color: brandingColor, Description: strings.Join(lines, "\n")}
+}
+
+func collectionSummary(items []domain.OwnedWaifu, price func(slug string) (int64, int)) string {
+	ranked := 0
+	var worth int64
+	for _, it := range items {
+		p, stars := price(it.Slug)
+		worth += p
+		if stars > 0 {
+			ranked++
+		}
+	}
+	return fmt.Sprintf("%s waifus · %s ranked · worth :coin: %s coins if sold", thousands(len(items)), thousands(ranked), coins(worth))
 }

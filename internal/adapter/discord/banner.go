@@ -23,7 +23,7 @@ func bannerCardComponents(bn domain.Banner) []discordgo.MessageComponent {
 		rows = append(rows, viewMenuRow(chars))
 	}
 	return append(rows, discordgo.ActionsRow{Components: []discordgo.MessageComponent{
-		discordgo.Button{Style: discordgo.PrimaryButton, CustomID: bannerPrefix + bannerRoll, Emoji: &discordgo.ComponentEmoji{Name: "🎟️"}, Label: fmt.Sprintf("Roll on banner · %d coins", domain.BannerRollCost)},
+		discordgo.Button{Style: discordgo.PrimaryButton, CustomID: bannerPrefix + bannerRoll, Emoji: &discordgo.ComponentEmoji{Name: "🎟️"}, Label: fmt.Sprintf("Roll on banner · %s coins", thousands(domain.BannerRollCost))},
 	}})
 }
 
@@ -37,7 +37,7 @@ func bannerCharacters(bn domain.Banner) []cardCharacter {
 
 func bannerAgainComponents(userID string) []discordgo.MessageComponent {
 	return []discordgo.MessageComponent{discordgo.ActionsRow{Components: []discordgo.MessageComponent{
-		discordgo.Button{Style: discordgo.PrimaryButton, CustomID: rollPrefix + rollBanner + ":" + userID, Emoji: &discordgo.ComponentEmoji{Name: "🎟️"}, Label: fmt.Sprintf("Roll on banner again · %d coins", domain.BannerRollCost)},
+		discordgo.Button{Style: discordgo.PrimaryButton, CustomID: rollPrefix + rollBanner + ":" + userID, Emoji: &discordgo.ComponentEmoji{Name: "🎟️"}, Label: fmt.Sprintf("Roll on banner again · %s coins", thousands(domain.BannerRollCost))},
 	}}}
 }
 

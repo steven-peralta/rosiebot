@@ -110,3 +110,63 @@ func TestInventoryService_OwnsAndSuggest(t *testing.T) {
 		t.Errorf("Suggest limit returned %d", len(got))
 	}
 }
+
+func TestInventoryService_QuoteAndSellBelow(t *testing.T) {
+	f := newFixture(t)
+	f.ranking.Set(rankingOf(200))
+	svc := app.NewInventoryService(f.players, f.ranking)
+	f.give(alice, "ranked-000", "ranked-005", "ranked-020", "ranked-040", "ranked-100", "plain-a", "plain-b")
+
+	q, err := svc.QuoteBelow(f.ctx, alice, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if q.Count != 4 || q.Total != 100+100+150+200 || q.Tiers[0] != 2 || q.Tiers[1] != 1 || q.Tiers[2] != 1 || q.Tiers[3] != 0 {
+		t.Errorf("quote at 2 stars = %+v", q)
+	}
+	if q, _ := svc.QuoteBelow(f.ctx, alice, 0); q.Count != 2 || q.Total != 200 {
+		t.Errorf("quote unranked only = %+v", q)
+	}
+	if q, _ := svc.QuoteBelow(f.ctx, alice, domain.MaxStars); q.Count != 7 || q.Total != 100+100+150+200+300+500+1000 {
+		t.Errorf("quote everything = %+v", q)
+	}
+
+	res, err := svc.SellBelow(f.ctx, alice, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Count != 4 || res.Total != 550 || res.Balance != domain.StartingCoins+550 || f.coins(alice) != domain.StartingCoins+550 {
+		t.Errorf("sell below 2 = %+v coins=%d", res, f.coins(alice))
+	}
+	for _, slug := range []string{"plain-a", "plain-b", "ranked-100", "ranked-040"} {
+		if f.owns(alice, slug) {
+			t.Errorf("%s should have been sold", slug)
+		}
+	}
+	for _, slug := range []string{"ranked-000", "ranked-005", "ranked-020"} {
+		if !f.owns(alice, slug) {
+			t.Errorf("%s should have been kept", slug)
+		}
+	}
+	again, err := svc.SellBelow(f.ctx, alice, 2)
+	if err != nil || again.Count != 0 || again.Total != 0 || again.Balance != domain.StartingCoins+550 {
+		t.Errorf("nothing left to sell = %+v %v", again, err)
+	}
+	if res, err := svc.SellBelow(f.ctx, bob, domain.MaxStars); err != nil || res.Count != 0 || res.Balance != domain.StartingCoins {
+		t.Errorf("sell below for a new player = %+v %v", res, err)
+	}
+
+	f.give(bob, "plain-c")
+	for _, name := range []string{"EnsurePlayer", "WithinTx", "ListOwned", "SellOwned"} {
+		broken := app.NewInventoryService(failStore{PlayerStore: f.players, fail: map[string]bool{name: true}}, f.ranking)
+		if _, err := broken.SellBelow(f.ctx, bob, domain.MaxStars); !errors.Is(err, errStore) {
+			t.Errorf("%s failure should surface, got %v", name, err)
+		}
+		if _, err := broken.QuoteBelow(f.ctx, bob, domain.MaxStars); name != "SellOwned" && name != "WithinTx" && !errors.Is(err, errStore) {
+			t.Errorf("%s failure should surface from the quote, got %v", name, err)
+		}
+	}
+	if !f.owns(bob, "plain-c") {
+		t.Error("a failed bulk sale must roll back")
+	}
+}

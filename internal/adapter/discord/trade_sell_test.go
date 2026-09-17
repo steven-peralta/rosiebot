@@ -242,18 +242,75 @@ func TestSell_RankedPrice(t *testing.T) {
 		msg := f.waifuMessage(fmt.Sprintf("s%d", i), c.slug)
 		f.run(f.contextMenu(aliceID, msg))
 		r := f.api.lastRespond()
-		if want := fmt.Sprintf("Are you sure you want to sell your Name %s for %d coins?", c.slug, c.price); r.Data.Content != want {
+		if want := fmt.Sprintf("Are you sure you want to sell your Name %s for %s coins?", c.slug, thousands(int(c.price))); r.Data.Content != want {
 			t.Errorf("confirm = %q, want %q", r.Data.Content, want)
 		}
 		okID := r.Data.Components[0].(discordgo.ActionsRow).Components[0].(discordgo.Button).CustomID
 		f.run(f.click(aliceID, nil, okID))
 		balance += c.price
-		if want := fmt.Sprintf("Sold Name %s for %d coins. You now have %d coins.", c.slug, c.price, balance); f.api.lastRespond().Data.Content != want {
+		if want := fmt.Sprintf("Sold Name %s for %s coins. You now have %s coins.", c.slug, thousands(int(c.price)), thousands(int(balance))); f.api.lastRespond().Data.Content != want {
 			t.Errorf("sold = %q, want %q", f.api.lastRespond().Data.Content, want)
 		}
 	}
 	if f.coins(aliceID) != balance {
 		t.Errorf("coins = %d, want %d", f.coins(aliceID), balance)
+	}
+}
+
+func TestSellAll_Flow(t *testing.T) {
+	f := newFixture(t)
+	f.give(aliceID, "ranked-000", "ranked-005", "ranked-020", "ranked-040", "ranked-100", "plain-a", "plain-b")
+
+	f.run(f.slash(aliceID, commandWaifu, subSellAll, nil, intOpt(optMaxStars, 2)))
+	r := f.api.lastRespond()
+	if r.Data.Content != "Sell **4** waifus (2 unranked, 1 ⭐, 1 ⭐⭐) for :coin: 550 coins? This can't be undone." || r.Data.Flags&discordgo.MessageFlagsEphemeral == 0 {
+		t.Fatalf("confirm = %+v", r.Data)
+	}
+	buttons := r.Data.Components[0].(discordgo.ActionsRow).Components
+	okID := buttons[0].(discordgo.Button).CustomID
+	if okID != sellPrefix+sellAll+":2" || buttons[1].(discordgo.Button).CustomID != sellPrefix+sellNo {
+		t.Errorf("buttons = %+v", buttons)
+	}
+
+	f.run(f.click(aliceID, nil, sellPrefix+sellNo))
+	if got := f.api.lastRespond().Data.Content; got != msgSellCancelled {
+		t.Errorf("cancel = %q", got)
+	}
+	if f.coins(aliceID) != domain.StartingCoins {
+		t.Error("cancel must not sell")
+	}
+
+	f.run(f.click(aliceID, nil, okID))
+	if got := f.api.lastRespond().Data.Content; got != "Sold 4 waifus for :coin: 550 coins. You now have 750 coins." {
+		t.Errorf("sold = %q", got)
+	}
+	if f.owns(aliceID, "plain-a") || f.owns(aliceID, "ranked-040") || !f.owns(aliceID, "ranked-020") {
+		t.Error("wrong waifus sold")
+	}
+
+	f.run(f.click(aliceID, nil, okID))
+	if got := f.api.lastRespond().Data.Content; got != msgSellAllNone {
+		t.Errorf("second confirm = %q", got)
+	}
+	f.run(f.slash(aliceID, commandWaifu, subSellAll, nil, intOpt(optMaxStars, 0)))
+	if got := f.respondContent(); got != msgSellAllNone {
+		t.Errorf("nothing left unranked = %q", got)
+	}
+
+	f.run(f.slash(aliceID, commandWaifu, subSellAll, nil, intOpt(optMaxStars, 5)))
+	if got := f.respondContent(); got != "Sell **3** waifus (1 ⭐⭐⭐, 1 ⭐⭐⭐⭐, 1 ⭐⭐⭐⭐⭐) for :coin: 1,800 coins? This can't be undone." {
+		t.Errorf("everything = %q", got)
+	}
+	f.run(f.slash(aliceID, commandWaifu, subSellAll, nil, intOpt(optMaxStars, 9)))
+	if got := f.respondContent(); got != msgUnexpected {
+		t.Errorf("bad threshold = %q", got)
+	}
+	f.run(f.click(aliceID, nil, sellPrefix+sellAll+":x"))
+	if got := f.api.lastRespond().Data.Content; got != msgUnexpected {
+		t.Errorf("bad confirm id = %q", got)
+	}
+	if choices := sellAllChoices(); len(choices) != 6 || choices[0].Name != "Unranked only" || choices[5].Name != "Everything" {
+		t.Errorf("choices = %+v", choices)
 	}
 }
 

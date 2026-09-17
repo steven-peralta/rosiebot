@@ -132,6 +132,20 @@ func (f failRepo) OwnedSlugs(ctx context.Context, key domain.PlayerKey, slugs []
 	return f.PlayerRepo.OwnedSlugs(ctx, key, slugs)
 }
 
+func (f failRepo) ListOwned(ctx context.Context, key domain.PlayerKey, prefix string, limit int) ([]domain.OwnedWaifu, error) {
+	if f.fail["ListOwned"] {
+		return nil, errStore
+	}
+	return f.PlayerRepo.ListOwned(ctx, key, prefix, limit)
+}
+
+func (f failRepo) SellOwned(ctx context.Context, key domain.PlayerKey, slug string, price int64) (int64, bool, error) {
+	if f.fail["SellOwned"] {
+		return 0, false, errStore
+	}
+	return f.PlayerRepo.SellOwned(ctx, key, slug, price)
+}
+
 func (f failRepo) TransferOwned(ctx context.Context, from, to domain.PlayerKey, slugs []string) (int64, error) {
 	if f.fail["TransferOwned"] {
 		return 0, errStore

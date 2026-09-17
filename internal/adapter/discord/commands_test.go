@@ -1,6 +1,7 @@
 package discord
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -26,7 +27,7 @@ func TestCommands_Registration(t *testing.T) {
 			names[c.Name] = append(names[c.Name], o.Name)
 		}
 	}
-	want := []string{subRoll, subDaily, subCoins, subOwned, subSearch, subList, subRandom, subToday, subBanner, subTrade, subHelp}
+	want := []string{subRoll, subDaily, subCoins, subOwned, subSearch, subList, subRandom, subToday, subBanner, subTrade, subSellAll, subHelp}
 	if strings.Join(names[commandWaifu], ",") != strings.Join(want, ",") {
 		t.Errorf("waifu subcommands = %v", names[commandWaifu])
 	}
@@ -65,7 +66,7 @@ func TestCommands_Registration(t *testing.T) {
 
 func TestDMGating_PerSubcommand(t *testing.T) {
 	f := newFixture(t)
-	for _, sub := range []string{subRoll, subDaily, subCoins, subOwned, subTrade} {
+	for _, sub := range []string{subRoll, subDaily, subCoins, subOwned, subTrade, subSellAll} {
 		f.api.reset()
 		f.run(f.dm(aliceID, commandWaifu, sub))
 		r := f.api.lastRespond()
@@ -233,7 +234,7 @@ func TestDaily_Texts(t *testing.T) {
 	f.give(bobID)
 	f.script(d100(1))
 	f.run(f.slash(bobID, commandWaifu, subDaily, nil))
-	if got := editContent(f.api.lastEdit()); got != "<@bob> :sparkles: **CRITICAL ROLL!!** :sparkles: You claimed :coin: 2000 coins!" {
+	if got := editContent(f.api.lastEdit()); got != "<@bob> :sparkles: **CRITICAL ROLL!!** :sparkles: You claimed :coin: 2,000 coins!" {
 		t.Errorf("critical daily = %q", got)
 	}
 }
@@ -376,6 +377,62 @@ func TestOwned_SortAndSelectMenu(t *testing.T) {
 	f.run(f.slash(aliceID, commandWaifu, subOwned, nil, strOpt(optSort, "rank_asc")))
 	if cardName((*f.api.lastEdit().Embeds)[0]) != "Name ranked-001" {
 		t.Error("rank sort should put the ranked waifu first")
+	}
+}
+
+func TestOwned_CompactView(t *testing.T) {
+	f := newFixture(t)
+	slugs := make([]string, 0, 25)
+	for i := range 23 {
+		slugs = append(slugs, fmt.Sprintf("plain-%02d", i))
+	}
+	slugs = append(slugs, "ranked-000", "ranked-100")
+	f.give(aliceID, slugs...)
+
+	ic := f.slash(aliceID, commandWaifu, subOwned, nil, strOpt(optView, viewCompact), strOpt(optSort, "rank_asc"))
+	f.run(ic)
+	e := f.api.lastEdit()
+	if got := editContent(e); got != "<@alice> 25 waifus · 2 ranked · worth :coin: 3,450 coins if sold\nPage 1 out of 2" {
+		t.Errorf("compact header = %q", got)
+	}
+	embed := (*e.Embeds)[0]
+	lines := strings.Split(embed.Description, "\n")
+	if embed.Title != "Collection" || len(lines) != 20 || lines[0] != "1. :star::star::star::star::star: Name ranked-000 · Rank #1" || lines[1] != "2. :star: Name ranked-100 · Rank #101" || lines[2] != "3. Name plain-00 · unranked" || embed.Footer == nil {
+		t.Errorf("compact page = %+v", embed)
+	}
+	rows := *e.Components
+	if len(rows) != 2 {
+		t.Fatalf("compact pager should have nav and select rows only, got %d", len(rows))
+	}
+	menu := rows[1].(discordgo.ActionsRow).Components[0].(discordgo.SelectMenu)
+	if len(menu.Options) != 2 || menu.Options[0].Label != "Page 1 · 1 to 20" || menu.Options[1].Label != "Page 2 · 21 to 25" {
+		t.Errorf("compact select = %+v", menu.Options)
+	}
+	for _, c := range rows[0].(discordgo.ActionsRow).Components {
+		if c.(discordgo.Button).CustomID == sellPrefix+sellAsk {
+			t.Error("compact view must not offer a sell button")
+		}
+	}
+
+	msg := f.message("msg-" + ic.ID)
+	f.run(f.click(aliceID, msg, pagerPrefix+pagerNext))
+	r := f.api.lastRespond()
+	second := strings.Split(r.Data.Embeds[0].Description, "\n")
+	if len(second) != 5 || !strings.HasPrefix(second[0], "21. ") || !strings.HasSuffix(r.Data.Content, "Page 2 out of 2") {
+		t.Errorf("second compact page = %+v", r.Data)
+	}
+
+	f.run(f.slash(aliceID, commandWaifu, subOwned, nil, strOpt(optView, viewCards)))
+	if (*f.api.lastEdit().Embeds)[0].Title == "Collection" {
+		t.Error("cards view should still render one card per page")
+	}
+	f.source.ExpectedCalls = nil
+	f.source.EXPECT().Get(mock.Anything, mock.Anything).RunAndReturn(func(_ context.Context, slug string) (domain.Waifu, error) { return detail(slug), nil }).Maybe()
+	f.give(bobID, "one")
+	f.run(f.slash(aliceID, commandWaifu, subOwned, resolvedUsers(bobID), userOption(bobID), strOpt(optView, viewCompact)))
+	e = f.api.lastEdit()
+	if editContent(e) != "<@alice> 1 waifus · 0 ranked · worth :coin: 100 coins if sold" || len(*e.Components) != 0 {
+		t.Errorf("single compact page = %q rows=%d", editContent(e), len(*e.Components))
 	}
 }
 
