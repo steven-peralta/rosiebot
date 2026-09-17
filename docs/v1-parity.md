@@ -106,7 +106,7 @@ The v2 card is a deliberate redesign (owner request during live testing on 2026-
 | `Series was not found.` | `discord.TestSearch_SeriesOption` |
 | `User was not found. (Are you sure you @'d them correctly?)` | `discord.TestTrade_ViolationTexts` |
 | `The <name> command cannot be invoked from the direct messages of the bot.` | `discord.TestDMGating_PerSubcommand` |
-| `/series search` shows a series card (cover, description, characters ranked first with stars, Browse characters button opening the v1-style pager) instead of paging straight into characters; the `series` option on `/waifu search` and `/waifu list` still pages characters with filters | Owner liked the banner card and asked for the same on series (`discord.TestSeriesSearch_Card`, `discord.TestSeriesSearch_DirectSlugNotFoundAndErrors`, `discord.TestSeriesSearch_Autocomplete`, `discord.TestSeriesCardEmbed_CapsList`) |
+| `/series search` (alias `/s`) shows a series card (cover, description, characters ranked first with stars and linked to MyWaifuList, a select menu that opens a character's card as an ephemeral reply, and a Browse characters button opening the v1-style pager) instead of paging straight into characters; the banner card gets the same links and menu; the `series` option on `/waifu search` and `/waifu list` still pages characters with filters | Owner liked the banner card and asked for the same on series (`discord.TestSeriesSearch_Card`, `discord.TestSeriesSearch_DirectSlugNotFoundAndErrors`, `discord.TestSeriesSearch_Autocomplete`, `discord.TestSeriesCardEmbed_CapsList`) |
 
 ## Deliberate departures from v1
 

@@ -17,7 +17,7 @@ import (
 func TestCommands_Registration(t *testing.T) {
 	f := newFixture(t)
 	cmds := f.bot.Commands()
-	if len(cmds) != 4 {
+	if len(cmds) != 5 {
 		t.Fatalf("commands = %d", len(cmds))
 	}
 	names := map[string][]string{}
@@ -39,8 +39,11 @@ func TestCommands_Registration(t *testing.T) {
 	if cmds[2].Name != commandSeries || len(cmds[2].Options) != 1 || cmds[2].Options[0].Name != subSearch || !cmds[2].Options[0].Options[0].Required || !cmds[2].Options[0].Options[0].Autocomplete {
 		t.Errorf("series command = %+v", cmds[2])
 	}
-	if cmds[3].Type != discordgo.MessageApplicationCommand || cmds[3].Name != commandSell {
-		t.Errorf("context command = %+v", cmds[3])
+	if cmds[3].Name != commandSAlias || len(cmds[3].Options) != 1 || cmds[3].Options[0].Name != subSearch {
+		t.Errorf("/s alias = %+v", cmds[3])
+	}
+	if cmds[4].Type != discordgo.MessageApplicationCommand || cmds[4].Name != commandSell {
+		t.Errorf("context command = %+v", cmds[4])
 	}
 	if err := f.bot.Register(guildID); err != nil {
 		t.Fatal(err)

@@ -52,6 +52,7 @@ const (
 
 	commandWaifu  = "waifu"
 	commandWAlias = "w"
+	commandSAlias = "s"
 	commandSell   = "Sell Waifu"
 
 	subRoll   = "roll"
@@ -114,6 +115,12 @@ func (b *Bot) Commands() []*discordgo.ApplicationCommand {
 	sub := func(name, desc string, opts ...*discordgo.ApplicationCommandOption) *discordgo.ApplicationCommandOption {
 		return &discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionSubCommand, Name: name, Description: desc, Options: opts}
 	}
+	seriesOptions := func() []*discordgo.ApplicationCommandOption {
+		return []*discordgo.ApplicationCommandOption{
+			sub(subSearch, "Show a series card with its ranked characters",
+				&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optQuery, Description: "Series name", Required: true, Autocomplete: true}),
+		}
+	}
 	waifuOptions := func() []*discordgo.ApplicationCommandOption {
 		return []*discordgo.ApplicationCommandOption{
 			sub(subRoll, "Roll for a waifu",
@@ -154,10 +161,14 @@ func (b *Bot) Commands() []*discordgo.ApplicationCommand {
 			Description:      "Look up an anime, game, or other series",
 			Contexts:         &allContexts,
 			IntegrationTypes: &integrations,
-			Options: []*discordgo.ApplicationCommandOption{
-				sub(subSearch, "Show a series card with its ranked characters",
-					&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optQuery, Description: "Series name", Required: true, Autocomplete: true}),
-			},
+			Options:          seriesOptions(),
+		},
+		{
+			Name:             commandSAlias,
+			Description:      "Shorthand for /series",
+			Contexts:         &allContexts,
+			IntegrationTypes: &integrations,
+			Options:          seriesOptions(),
 		},
 		{
 			Type:             discordgo.MessageApplicationCommand,
@@ -230,7 +241,7 @@ func (b *Bot) handleCommand(ctx context.Context, ic *interaction) {
 		default:
 			b.log.Warn("unknown waifu subcommand", "sub", sub)
 		}
-	case commandSeries:
+	case commandSeries, commandSAlias:
 		if sub == subSearch {
 			b.seriesSearch(ctx, ic, opts)
 		} else {
@@ -266,6 +277,8 @@ func (b *Bot) handleComponent(ctx context.Context, ic *interaction) {
 		b.bannerButton(ctx, ic, strings.TrimPrefix(id, bannerPrefix))
 	case strings.HasPrefix(id, seriesPrefix):
 		b.seriesButton(ctx, ic, strings.TrimPrefix(id, seriesPrefix))
+	case id == viewWaifuMenu:
+		b.viewWaifu(ctx, ic)
 	default:
 		b.log.Warn("unknown component", "custom_id", id)
 	}
@@ -284,7 +297,7 @@ func (b *Bot) handleModal(ctx context.Context, ic *interaction) {
 func (b *Bot) handleAutocomplete(ctx context.Context, ic *interaction) {
 	data := ic.ApplicationCommandData()
 	sub, opts := subcommand(data)
-	if data.Name == commandSeries {
+	if data.Name == commandSeries || data.Name == commandSAlias {
 		if sub == subSearch {
 			b.seriesAutocomplete(ctx, ic, opts)
 		}

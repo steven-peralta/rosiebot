@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/bwmarrin/discordgo"
 
@@ -18,10 +17,22 @@ const (
 	rollBanner   = "banner"
 )
 
-func bannerCardComponents() []discordgo.MessageComponent {
-	return []discordgo.MessageComponent{discordgo.ActionsRow{Components: []discordgo.MessageComponent{
+func bannerCardComponents(bn domain.Banner) []discordgo.MessageComponent {
+	rows := []discordgo.MessageComponent{}
+	if chars := bannerCharacters(bn); len(chars) > 0 {
+		rows = append(rows, viewMenuRow(chars))
+	}
+	return append(rows, discordgo.ActionsRow{Components: []discordgo.MessageComponent{
 		discordgo.Button{Style: discordgo.PrimaryButton, CustomID: bannerPrefix + bannerRoll, Emoji: &discordgo.ComponentEmoji{Name: "🎟️"}, Label: fmt.Sprintf("Roll on banner · %d coins", domain.BannerRollCost)},
-	}}}
+	}})
+}
+
+func bannerCharacters(bn domain.Banner) []cardCharacter {
+	out := make([]cardCharacter, len(bn.Characters))
+	for i := range bn.Characters {
+		out[i] = cardCharacter{summary: bn.Characters[i].WaifuSummary, ranked: &bn.Characters[i]}
+	}
+	return out
 }
 
 func bannerAgainComponents(userID string) []discordgo.MessageComponent {
@@ -54,7 +65,7 @@ func (b *Bot) banner(ctx context.Context, ic *interaction) {
 	content := fmt.Sprintf("%s %s", mention(ic.userID()), fmt.Sprintf(msgBannerFmt, domain.FormatCountdown(res.RefreshIn)))
 	e := bannerEmbed(res.Banner)
 	e.Footer = b.footer(b.cfg.Clock.Now().Sub(start))
-	b.edit(ic, content, []*discordgo.MessageEmbed{e}, bannerCardComponents())
+	b.edit(ic, content, []*discordgo.MessageEmbed{e}, bannerCardComponents(res.Banner))
 }
 
 func (b *Bot) bannerButton(ctx context.Context, ic *interaction, action string) {
@@ -81,16 +92,8 @@ func (b *Bot) bannerButton(ctx context.Context, ic *interaction, action string) 
 
 func bannerEmbed(bn domain.Banner) *discordgo.MessageEmbed {
 	e := seriesEmbed(bn.Series)
-	lines := make([]string, 0, len(bn.Characters))
-	for i, c := range bn.Characters {
-		if i == domain.BannerCardLimit {
-			lines = append(lines, fmt.Sprintf("+%d more", len(bn.Characters)-domain.BannerCardLimit))
-			break
-		}
-		lines = append(lines, fmt.Sprintf("%s %s · Rank #%s", strings.Repeat(":star:", c.Stars), c.Name, thousands(c.Position)))
-	}
-	if len(lines) > 0 {
-		e.Fields = append(e.Fields, &discordgo.MessageEmbedField{Name: "Featured this week", Value: strings.Join(lines, "\n")})
+	if len(bn.Characters) > 0 {
+		e.Fields = append(e.Fields, &discordgo.MessageEmbedField{Name: "Featured this week", Value: cardLines(bannerCharacters(bn))})
 	}
 	return e
 }

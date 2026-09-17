@@ -29,10 +29,14 @@ func TestBanner_CardShowsSeriesFeaturedAndCountdown(t *testing.T) {
 		t.Fatalf("fields = %+v", embed.Fields)
 	}
 	lines := strings.Split(embed.Fields[0].Value, "\n")
-	if len(lines) != 3 || lines[0] != ":star::star::star::star::star: Ranked 000 · Rank #1" || lines[2] != ":star::star: Ranked 050 · Rank #51" {
+	if len(lines) != 3 || lines[0] != ":star::star::star::star::star: [Ranked 000](https://www.mywaifulist.moe/waifu/ranked-000) · Rank #1" || lines[2] != ":star::star: [Ranked 050](https://www.mywaifulist.moe/waifu/ranked-050) · Rank #51" {
 		t.Errorf("featured lines = %q", lines)
 	}
-	button := (*e.Components)[0].(discordgo.ActionsRow).Components[0].(discordgo.Button)
+	menu := (*e.Components)[0].(discordgo.ActionsRow).Components[0].(discordgo.SelectMenu)
+	if menu.CustomID != viewWaifuMenu || len(menu.Options) != 3 || menu.Options[0].Value != "ranked-000" || menu.Options[0].Description != "⭐⭐⭐⭐⭐ · rank #1" {
+		t.Errorf("view menu = %+v", menu)
+	}
+	button := (*e.Components)[1].(discordgo.ActionsRow).Components[0].(discordgo.Button)
 	if button.CustomID != bannerPrefix+bannerRoll || button.Label != "Roll on banner · 400 coins" {
 		t.Errorf("button = %+v", button)
 	}
@@ -191,5 +195,16 @@ func TestBannerEmbed_CapsFeaturedList(t *testing.T) {
 	}
 	if empty := bannerEmbed(domain.Banner{Series: domain.Series{Name: "S"}}); len(empty.Fields) != 0 {
 		t.Errorf("empty banner should have no field: %+v", empty.Fields)
+	}
+	if rows := bannerCardComponents(domain.Banner{}); len(rows) != 1 {
+		t.Errorf("empty banner should only have the roll button: %d rows", len(rows))
+	}
+	many := make([]domain.RankedWaifu, 30)
+	for i := range many {
+		many[i] = domain.RankedWaifu{WaifuSummary: domain.WaifuSummary{Slug: fmt.Sprintf("m%02d", i), Name: fmt.Sprintf("M%02d", i)}, Position: i + 1, Stars: 1}
+	}
+	rows := bannerCardComponents(domain.Banner{Characters: many})
+	if menu := rows[0].(discordgo.ActionsRow).Components[0].(discordgo.SelectMenu); len(menu.Options) != viewMenuLimit {
+		t.Errorf("view menu should cap at %d options, got %d", viewMenuLimit, len(menu.Options))
 	}
 }

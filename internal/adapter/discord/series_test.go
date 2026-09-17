@@ -35,11 +35,20 @@ func TestSeriesSearch_Card(t *testing.T) {
 		t.Fatalf("fields = %+v", embed.Fields)
 	}
 	lines := strings.Split(embed.Fields[0].Value, "\n")
-	want := []string{":star::star::star::star::star: Name ranked-000 · Rank #1", ":star::star: Name ranked-050 · Rank #51", "Name ram · unranked", "Name rem · unranked"}
+	want := []string{
+		":star::star::star::star::star: [Name ranked-000](https://www.mywaifulist.moe/waifu/ranked-000) · Rank #1",
+		":star::star: [Name ranked-050](https://www.mywaifulist.moe/waifu/ranked-050) · Rank #51",
+		"[Name ram](https://www.mywaifulist.moe/waifu/ram) · unranked",
+		"[Name rem](https://www.mywaifulist.moe/waifu/rem) · unranked",
+	}
 	if strings.Join(lines, "|") != strings.Join(want, "|") {
 		t.Errorf("lines = %q", lines)
 	}
-	button := (*e.Components)[0].(discordgo.ActionsRow).Components[0].(discordgo.Button)
+	menu := (*e.Components)[0].(discordgo.ActionsRow).Components[0].(discordgo.SelectMenu)
+	if menu.CustomID != viewWaifuMenu || menu.Placeholder != viewPlaceholder || len(menu.Options) != 4 || menu.Options[2].Value != "ram" || menu.Options[2].Description != "unranked" {
+		t.Errorf("view menu = %+v", menu)
+	}
+	button := (*e.Components)[1].(discordgo.ActionsRow).Components[0].(discordgo.Button)
 	if button.CustomID != seriesPrefix+seriesBrowse+":re-zero" || button.Label != "Browse characters" {
 		t.Errorf("button = %+v", button)
 	}
@@ -57,6 +66,43 @@ func TestSeriesSearch_Card(t *testing.T) {
 	}
 	f.run(f.click(bobID, card, seriesPrefix+"bogus:x"))
 	f.run(f.click(bobID, card, seriesPrefix+seriesBrowse+":"))
+
+	f.run(f.selectValues(bobID, card, viewWaifuMenu, "rem"))
+	if r := f.api.calls[len(f.api.calls)-2].resp; r == nil || r.Type != discordgo.InteractionResponseDeferredChannelMessageWithSource || r.Data == nil || r.Data.Flags&discordgo.MessageFlagsEphemeral == 0 {
+		t.Errorf("viewing a character should be a deferred ephemeral reply, got %+v", r)
+	}
+	if e := f.api.lastEdit(); editContent(e) != "" || (*e.Embeds)[0].Title != "Name rem" || (*e.Embeds)[0].Footer == nil {
+		t.Errorf("viewed card = %+v", (*e.Embeds)[0])
+	}
+	f.api.reset()
+	f.run(f.selectValues(bobID, card, viewWaifuMenu))
+	if len(f.api.calls) != 0 {
+		t.Error("an empty selection should be ignored")
+	}
+	f.source.ExpectedCalls = nil
+	f.source.EXPECT().Get(mock.Anything, "ghost").Return(domain.Waifu{}, app.ErrNotFound).Once()
+	f.run(f.selectValues(bobID, card, viewWaifuMenu, "ghost"))
+	if got := editContent(f.api.lastEdit()); got != "<@bob> "+msgNoData {
+		t.Errorf("missing character = %q", got)
+	}
+}
+
+func TestSeriesAlias_SRoutesLikeSeries(t *testing.T) {
+	f := newFixture(t)
+	f.source.EXPECT().SearchWorks(mock.Anything, "nothing").Return(nil, nil).Once()
+	f.run(f.slash(aliceID, commandSAlias, subSearch, nil, strOpt(optQuery, "nothing")))
+	if got := editContent(f.api.lastEdit()); got != "<@alice> "+msgSeriesNotFound {
+		t.Errorf("/s search = %q", got)
+	}
+	f.source.EXPECT().SearchWorks(mock.Anything, "re").Return([]domain.Series{reZero}, nil).Once()
+	focused := strOpt(optQuery, "re")
+	focused.Focused = true
+	ic := f.slash(aliceID, commandSAlias, subSearch, nil, focused)
+	ic.Type = discordgo.InteractionApplicationCommandAutocomplete
+	f.run(ic)
+	if r := f.api.lastRespond(); r.Type != discordgo.InteractionApplicationCommandAutocompleteResult || len(r.Data.Choices) != 1 {
+		t.Errorf("/s autocomplete = %+v", r)
+	}
 }
 
 func TestSeriesSearch_DirectSlugNotFoundAndErrors(t *testing.T) {
@@ -105,7 +151,7 @@ func TestSeriesCardEmbed_CapsList(t *testing.T) {
 	for i := range items {
 		items[i] = summary(fmt.Sprintf("ranked-%03d", i))
 	}
-	e := seriesCardEmbed(reZero, items, app.LookupFrom(newFixture(t).ranking))
+	e := seriesCardEmbed(reZero, cardCharacters(items, app.LookupFrom(newFixture(t).ranking)))
 	lines := strings.Split(e.Fields[0].Value, "\n")
 	if len(lines) != domain.BannerCardLimit+1 || lines[len(lines)-1] != "+5 more" || e.Fields[0].Name != "Characters · 20 ranked of 20" {
 		t.Errorf("field = %+v", e.Fields[0])
