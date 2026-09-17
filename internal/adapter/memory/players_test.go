@@ -243,6 +243,12 @@ func TestBannerStore(t *testing.T) {
 	if err != nil || got.Series.Slug != "first" {
 		t.Errorf("same instant in another zone = %+v %v", got, err)
 	}
+	if err := s.Replace(ctx, domain.Banner{WeekStart: week, Series: domain.Series{Slug: "third"}}); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := s.Get(ctx, week); got.Series.Slug != "third" {
+		t.Errorf("replace should overwrite, got %s", got.Series.Slug)
+	}
 }
 
 func TestPlayerStore_SetAndAdjustCoins(t *testing.T) {

@@ -41,3 +41,10 @@ func (s *BannerStore) Put(ctx context.Context, b domain.Banner) (domain.Banner, 
 	s.weeks[weekKey(b.WeekStart)] = b
 	return b, nil
 }
+
+func (s *BannerStore) Replace(ctx context.Context, b domain.Banner) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.weeks[weekKey(b.WeekStart)] = b
+	return nil
+}

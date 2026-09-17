@@ -72,7 +72,7 @@ func TestBannerService_EnsurePicksEligibleSeries(t *testing.T) {
 	f.source.EXPECT().WorkCharacters(mock.MatchedBy(app.IsBackground), "re-zero", 1).
 		Return(members(1, 1, "ranked-003", "ghost", "ranked-050", "ranked-000", "ranked-150", "ranked-010", "ranked-003"), nil).Once()
 
-	got, err := f.banner().Ensure(f.ctx)
+	got, err := f.banner().Ensure(app.WithBackground(f.ctx))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -177,7 +177,7 @@ func TestBannerService_PickerFillsMissingPicture(t *testing.T) {
 			f.script(0)
 			f.source.EXPECT().Get(mock.Anything, "ranked-000").Return(detailIn("ranked-000", bare), nil).Once()
 			f.source.EXPECT().WorkCharacters(mock.Anything, "plain", 1).Return(members(1, 1, "ranked-000", "ranked-001", "ranked-002", "ranked-003", "ranked-004"), nil).Once()
-			f.source.EXPECT().Work(mock.MatchedBy(app.IsBackground), "plain").Return(series("plain"), workErr).Once()
+			f.source.EXPECT().Work(mock.Anything, "plain").Return(series("plain"), workErr).Once()
 
 			got, err := f.banner().Ensure(f.ctx)
 			if err != nil {
@@ -265,6 +265,10 @@ func (b failingBanners) Put(context.Context, domain.Banner) (domain.Banner, erro
 	return domain.Banner{}, b.putErr
 }
 
+func (b failingBanners) Replace(context.Context, domain.Banner) error {
+	return b.putErr
+}
+
 func TestBannerService_StoreErrorsPropagate(t *testing.T) {
 	f := newFixture(t)
 	f.ranking.Set(rankingOf(200))
@@ -282,6 +286,62 @@ func TestBannerService_StoreErrorsPropagate(t *testing.T) {
 	putFails := app.NewBannerService(failingBanners{putErr: errors.New("put boom")}, f.ranking, f.source, f.clock, f.rng, nil, app.BannerConfig{}, nil)
 	if _, err := putFails.Ensure(f.ctx); err == nil {
 		t.Error("Ensure should surface the put error")
+	}
+}
+
+func TestBannerService_RerollReplacesAndExcludesCurrentAndPrevious(t *testing.T) {
+	f := newFixture(t)
+	f.ranking.Set(rankingOf(200))
+	week := domain.BannerWeekStart(f.clock.now, f.loc)
+	if _, err := f.banners.Put(f.ctx, domain.NewBanner(week.AddDate(0, 0, -7), series("last"), nil)); err != nil {
+		t.Fatal(err)
+	}
+	f.seedBanner("ranked-000", "ranked-001", "ranked-002", "ranked-003", "ranked-004")
+	f.script(0, 1, 2)
+	f.source.EXPECT().Get(mock.MatchedBy(func(ctx context.Context) bool { return !app.IsBackground(ctx) }), "ranked-000").Return(detailIn("ranked-000", series("re-zero")), nil).Once()
+	f.source.EXPECT().Get(mock.Anything, "ranked-001").Return(detailIn("ranked-001", series("last")), nil).Once()
+	f.source.EXPECT().Get(mock.Anything, "ranked-002").Return(detailIn("ranked-002", series("fresh")), nil).Once()
+	f.source.EXPECT().WorkCharacters(mock.Anything, "fresh", 1).Return(members(1, 1, "ranked-002", "ranked-020", "ranked-021", "ranked-022", "ranked-023"), nil).Once()
+
+	got, err := f.banner().Reroll(f.ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Series.Slug != "fresh" {
+		t.Errorf("reroll picked %s, want a series other than the current and previous ones", got.Series.Slug)
+	}
+	stored, err := f.banners.Get(f.ctx, week)
+	if err != nil || stored.Series.Slug != "fresh" || len(stored.Characters) != 5 {
+		t.Errorf("stored after reroll = %+v %v", stored, err)
+	}
+	f.source.AssertNotCalled(t, "WorkCharacters", mock.Anything, "re-zero", mock.Anything)
+	f.source.AssertNotCalled(t, "WorkCharacters", mock.Anything, "last", mock.Anything)
+}
+
+func TestBannerService_RerollWithoutBannerOrRanking(t *testing.T) {
+	f := newFixture(t)
+	if _, err := f.banner().Reroll(f.ctx); !errors.Is(err, app.ErrNoRanking) {
+		t.Fatalf("reroll without ranking = %v", err)
+	}
+	f.ranking.Set(rankingOf(200))
+	f.script(0)
+	f.source.EXPECT().Get(mock.Anything, "ranked-000").Return(detailIn("ranked-000", series("first")), nil).Once()
+	f.source.EXPECT().WorkCharacters(mock.Anything, "first", 1).Return(members(1, 1, "ranked-000", "ranked-001", "ranked-002", "ranked-003", "ranked-004"), nil).Once()
+	got, err := f.banner().Reroll(f.ctx)
+	if err != nil || got.Series.Slug != "first" {
+		t.Errorf("reroll without a current banner should still pick: %+v %v", got, err)
+	}
+
+	broken := app.NewBannerService(failingBanners{getErr: errors.New("get boom")}, f.ranking, f.source, f.clock, f.rng, nil, app.BannerConfig{}, nil)
+	if _, err := broken.Reroll(f.ctx); err == nil {
+		t.Error("store get error should surface")
+	}
+	f.script(0)
+	f.source.EXPECT().Get(mock.Anything, "ranked-000").Return(detailIn("ranked-000", series("first")), nil).Once()
+	f.source.EXPECT().WorkCharacters(mock.Anything, "first", 1).Return(members(1, 1, "ranked-000", "ranked-001", "ranked-002", "ranked-003", "ranked-004"), nil).Once()
+	replaceFails := app.NewBannerService(failingBanners{putErr: errors.New("replace boom")}, f.ranking, f.source, f.clock, f.rng, nil, app.BannerConfig{}, nil)
+	if _, err := replaceFails.Reroll(f.ctx); err == nil {
+		t.Error("store replace error should surface")
 	}
 }
 

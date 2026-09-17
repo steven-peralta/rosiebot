@@ -70,6 +70,7 @@ type DailyStore interface {
 type BannerStore interface {
 	Get(ctx context.Context, weekStart time.Time) (domain.Banner, error)
 	Put(ctx context.Context, b domain.Banner) (domain.Banner, error)
+	Replace(ctx context.Context, b domain.Banner) error
 }
 
 type Clock interface {

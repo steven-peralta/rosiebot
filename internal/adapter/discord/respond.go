@@ -197,3 +197,9 @@ func violationText(v *domain.TradeViolation, targetMention, name string) string 
 		return fmt.Sprintf("%s already owns %s", targetMention, name)
 	}
 }
+
+const (
+	msgAdminRerolledFmt = "This week's banner is now **%s**."
+	msgAdminNoRanking   = "The ranking isn't loaded yet, so no banner can be picked. Try again in a minute."
+	msgAdminNoSeries    = "Couldn't find an eligible series this time. Try again."
+)

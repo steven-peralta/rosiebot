@@ -43,7 +43,7 @@ func TestCommands_Registration(t *testing.T) {
 		t.Errorf("/s alias = %+v", cmds[3])
 	}
 	admin := cmds[4]
-	if admin.Name != commandAdmin || admin.DefaultMemberPermissions == nil || *admin.DefaultMemberPermissions != discordgo.PermissionAdministrator || len(admin.Options) != 2 {
+	if admin.Name != commandAdmin || admin.DefaultMemberPermissions == nil || *admin.DefaultMemberPermissions != discordgo.PermissionAdministrator || len(admin.Options) != 3 || admin.Options[2].Name != groupBanner {
 		t.Errorf("admin command = %+v", admin)
 	}
 	if groups := admin.Options; groups[0].Name != groupCoins || len(groups[0].Options) != 3 || groups[1].Name != groupWaifu || len(groups[1].Options) != 2 || !groups[1].Options[0].Options[1].Autocomplete {

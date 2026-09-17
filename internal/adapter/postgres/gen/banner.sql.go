@@ -64,3 +64,42 @@ func (q *Queries) PutBanner(ctx context.Context, arg PutBannerParams) (int64, er
 	}
 	return result.RowsAffected(), nil
 }
+
+const replaceBanner = `-- name: ReplaceBanner :exec
+INSERT INTO banners (week_start, series_slug, series_uuid, series_name, series_url, picture_url, description, characters)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+ON CONFLICT (week_start) DO UPDATE SET
+    series_slug = EXCLUDED.series_slug,
+    series_uuid = EXCLUDED.series_uuid,
+    series_name = EXCLUDED.series_name,
+    series_url  = EXCLUDED.series_url,
+    picture_url = EXCLUDED.picture_url,
+    description = EXCLUDED.description,
+    characters  = EXCLUDED.characters,
+    created_at  = now()
+`
+
+type ReplaceBannerParams struct {
+	WeekStart   time.Time
+	SeriesSlug  string
+	SeriesUuid  string
+	SeriesName  string
+	SeriesUrl   string
+	PictureUrl  string
+	Description string
+	Characters  []byte
+}
+
+func (q *Queries) ReplaceBanner(ctx context.Context, arg ReplaceBannerParams) error {
+	_, err := q.db.Exec(ctx, replaceBanner,
+		arg.WeekStart,
+		arg.SeriesSlug,
+		arg.SeriesUuid,
+		arg.SeriesName,
+		arg.SeriesUrl,
+		arg.PictureUrl,
+		arg.Description,
+		arg.Characters,
+	)
+	return err
+}

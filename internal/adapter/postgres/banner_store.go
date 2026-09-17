@@ -50,6 +50,28 @@ func (s *BannerStore) Get(ctx context.Context, weekStart time.Time) (domain.Bann
 }
 
 func (s *BannerStore) Put(ctx context.Context, b domain.Banner) (domain.Banner, error) {
+	params, err := bannerParams(b)
+	if err != nil {
+		return domain.Banner{}, err
+	}
+	if _, err := s.q.PutBanner(ctx, gen.PutBannerParams(params)); err != nil {
+		return domain.Banner{}, fmt.Errorf("postgres: put banner: %w", err)
+	}
+	return s.Get(ctx, b.WeekStart)
+}
+
+func (s *BannerStore) Replace(ctx context.Context, b domain.Banner) error {
+	params, err := bannerParams(b)
+	if err != nil {
+		return err
+	}
+	if err := s.q.ReplaceBanner(ctx, gen.ReplaceBannerParams(params)); err != nil {
+		return fmt.Errorf("postgres: replace banner: %w", err)
+	}
+	return nil
+}
+
+func bannerParams(b domain.Banner) (gen.PutBannerParams, error) {
 	chars := make([]bannerCharacter, len(b.Characters))
 	for i, c := range b.Characters {
 		chars[i] = bannerCharacter{
@@ -59,9 +81,9 @@ func (s *BannerStore) Put(ctx context.Context, b domain.Banner) (domain.Banner, 
 	}
 	payload, err := json.Marshal(chars)
 	if err != nil {
-		return domain.Banner{}, fmt.Errorf("postgres: encode banner: %w", err)
+		return gen.PutBannerParams{}, fmt.Errorf("postgres: encode banner: %w", err)
 	}
-	_, err = s.q.PutBanner(ctx, gen.PutBannerParams{
+	return gen.PutBannerParams{
 		WeekStart:   b.WeekStart.UTC(),
 		SeriesSlug:  b.Series.Slug,
 		SeriesUuid:  b.Series.UUID,
@@ -70,11 +92,7 @@ func (s *BannerStore) Put(ctx context.Context, b domain.Banner) (domain.Banner, 
 		PictureUrl:  b.Series.PictureURL,
 		Description: b.Series.Description,
 		Characters:  payload,
-	})
-	if err != nil {
-		return domain.Banner{}, fmt.Errorf("postgres: put banner: %w", err)
-	}
-	return s.Get(ctx, b.WeekStart)
+	}, nil
 }
 
 func toBanner(row gen.Banner) (domain.Banner, error) {

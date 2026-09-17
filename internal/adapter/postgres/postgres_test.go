@@ -585,6 +585,18 @@ func TestBannerStore(t *testing.T) {
 	if _, err := bs.Get(ctx, week.AddDate(0, 0, 7)); !errors.Is(err, app.ErrNotFound) {
 		t.Errorf("next week should be empty, got %v", err)
 	}
+	if err := bs.Replace(ctx, domain.NewBanner(week, domain.Series{Slug: "replaced", Name: "Replaced"}, chars[:1])); err != nil {
+		t.Fatalf("Replace = %v", err)
+	}
+	if got, err := bs.Get(ctx, week); err != nil || got.Series.Slug != "replaced" || len(got.Characters) != 1 {
+		t.Errorf("after replace = %+v %v", got, err)
+	}
+	if err := bs.Replace(ctx, domain.NewBanner(week.AddDate(0, 0, 14), domain.Series{Slug: "fresh", Name: "Fresh"}, nil)); err != nil {
+		t.Fatalf("Replace on an empty week = %v", err)
+	}
+	if got, err := bs.Get(ctx, week.AddDate(0, 0, 14)); err != nil || got.Series.Slug != "fresh" {
+		t.Errorf("replace should insert when missing: %+v %v", got, err)
+	}
 	if _, err := toBanner(gen.Banner{Characters: []byte("nope")}); err == nil {
 		t.Error("corrupt payload should fail to decode")
 	}

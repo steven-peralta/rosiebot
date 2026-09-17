@@ -101,7 +101,7 @@ func (s *BannerService) Ensure(ctx context.Context) (domain.Banner, error) {
 	if !errors.Is(err, ErrNotFound) {
 		return domain.Banner{}, fmt.Errorf("load banner: %w", err)
 	}
-	picked, err := s.pick(ctx, week)
+	picked, err := s.pick(ctx, week, s.previousSeries(ctx, week))
 	if err != nil {
 		return domain.Banner{}, err
 	}
@@ -113,12 +113,39 @@ func (s *BannerService) Ensure(ctx context.Context) (domain.Banner, error) {
 	return stored, nil
 }
 
+func (s *BannerService) Reroll(ctx context.Context) (domain.Banner, error) {
+	week := domain.BannerWeekStart(s.clock.Now(), s.loc)
+	exclude := s.previousSeries(ctx, week)
+	if current, err := s.store.Get(ctx, week); err == nil {
+		exclude[current.Series.Slug] = struct{}{}
+	} else if !errors.Is(err, ErrNotFound) {
+		return domain.Banner{}, fmt.Errorf("load banner: %w", err)
+	}
+	picked, err := s.pick(ctx, week, exclude)
+	if err != nil {
+		return domain.Banner{}, err
+	}
+	if err := s.store.Replace(ctx, picked); err != nil {
+		return domain.Banner{}, fmt.Errorf("replace banner: %w", err)
+	}
+	s.log.Info("banner rerolled", "week", week, "series", picked.Series.Slug, "characters", len(picked.Characters))
+	return picked, nil
+}
+
+func (s *BannerService) previousSeries(ctx context.Context, week time.Time) map[string]struct{} {
+	exclude := map[string]struct{}{}
+	if prev, err := s.store.Get(ctx, week.AddDate(0, 0, -7)); err == nil && prev.Series.Slug != "" {
+		exclude[prev.Series.Slug] = struct{}{}
+	}
+	return exclude
+}
+
 func (s *BannerService) Run(ctx context.Context) error {
 	for {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		if _, err := s.Ensure(ctx); err != nil {
+		if _, err := s.Ensure(WithBackground(ctx)); err != nil {
 			if ctx.Err() != nil {
 				return ctx.Err()
 			}
@@ -139,16 +166,10 @@ func (s *BannerService) Run(ctx context.Context) error {
 	}
 }
 
-func (s *BannerService) pick(ctx context.Context, week time.Time) (domain.Banner, error) {
+func (s *BannerService) pick(ctx context.Context, week time.Time, exclude map[string]struct{}) (domain.Banner, error) {
 	ranking := s.ranking.Current()
 	if ranking.Len() == 0 {
 		return domain.Banner{}, ErrNoRanking
-	}
-	bg := WithBackground(ctx)
-
-	previous := ""
-	if prev, err := s.store.Get(ctx, week.AddDate(0, 0, -7)); err == nil {
-		previous = prev.Series.Slug
 	}
 
 	tried := map[string]struct{}{}
@@ -162,13 +183,16 @@ func (s *BannerService) pick(ctx context.Context, week time.Time) (domain.Banner
 				return domain.Banner{}, ErrNoRanking
 			}
 		}
-		detail, err := s.source.Get(bg, seed.Slug)
+		detail, err := s.source.Get(ctx, seed.Slug)
 		if err != nil {
 			s.log.Warn("banner seed lookup failed", "slug", seed.Slug, "attempt", attempt, "err", err)
 			continue
 		}
 		series, ok := detail.FirstSeries()
-		if !ok || series.Slug == "" || series.Slug == previous {
+		if !ok || series.Slug == "" {
+			continue
+		}
+		if _, skip := exclude[series.Slug]; skip {
 			continue
 		}
 		if _, dup := tried[series.Slug]; dup {
@@ -176,7 +200,7 @@ func (s *BannerService) pick(ctx context.Context, week time.Time) (domain.Banner
 		}
 		tried[series.Slug] = struct{}{}
 
-		members, err := s.members(bg, series.Slug)
+		members, err := s.members(ctx, series.Slug)
 		if err != nil {
 			s.log.Warn("banner series lookup failed", "series", series.Slug, "attempt", attempt, "err", err)
 			continue
@@ -187,7 +211,7 @@ func (s *BannerService) pick(ctx context.Context, week time.Time) (domain.Banner
 			continue
 		}
 		if series.PictureURL == "" {
-			if full, err := s.source.Work(bg, series.Slug); err == nil {
+			if full, err := s.source.Work(ctx, series.Slug); err == nil {
 				series = full
 			}
 		}

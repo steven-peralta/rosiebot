@@ -14,14 +14,16 @@ import (
 const (
 	commandAdmin = "admin"
 
-	groupCoins = "coins"
-	groupWaifu = "waifu"
+	groupCoins  = "coins"
+	groupWaifu  = "waifu"
+	groupBanner = "banner"
 
 	adminSet       = "set"
 	adminIncrement = "increment"
 	adminDecrement = "decrement"
 	adminAdd       = "add"
 	adminRemove    = "remove"
+	adminReroll    = "reroll"
 
 	optAmount = "amount"
 	optWaifu  = "waifu"
@@ -59,6 +61,9 @@ func adminCommand() *discordgo.ApplicationCommand {
 				sub(adminAdd, "Give a waifu to a player", user("Who receives the waifu"), waifu("Waifu to give")),
 				sub(adminRemove, "Take a waifu from a player", user("Who loses the waifu"), waifu("Waifu to take")),
 			}},
+			{Type: discordgo.ApplicationCommandOptionSubCommandGroup, Name: groupBanner, Description: "Manage this week's banner", Options: []*discordgo.ApplicationCommandOption{
+				sub(adminReroll, "Pick a different series for this week's banner"),
+			}},
 		},
 	}
 }
@@ -85,6 +90,10 @@ func (b *Bot) admin(ctx context.Context, ic *interaction, data discordgo.Applica
 	}
 	if !ic.isAdmin() {
 		b.replyEphemeral(ic, msgAdminOnly)
+		return
+	}
+	if group == groupBanner {
+		b.adminBanner(ctx, ic, sub)
 		return
 	}
 	target := resolvedUser(opts, data.Resolved, optUser)
@@ -134,6 +143,33 @@ func (b *Bot) admin(ctx context.Context, ic *interaction, data discordgo.Applica
 		return
 	}
 	b.editText(ic, text)
+}
+
+func (b *Bot) adminBanner(ctx context.Context, ic *interaction, sub string) {
+	if sub != adminReroll {
+		b.log.Warn("unknown admin banner subcommand", "sub", sub)
+		b.replyEphemeral(ic, msgUnexpected)
+		return
+	}
+	if !b.deferReply(ic, true) {
+		return
+	}
+	start := b.cfg.Clock.Now()
+	bn, err := b.svc.Banner.Reroll(ctx)
+	if err != nil {
+		switch {
+		case errors.Is(err, app.ErrNoRanking):
+			b.editText(ic, msgAdminNoRanking)
+		case errors.Is(err, app.ErrNoEligibleSeries):
+			b.editText(ic, msgAdminNoSeries)
+		default:
+			b.failed(ic, "banner reroll", err)
+		}
+		return
+	}
+	e := bannerEmbed(bn)
+	e.Footer = b.footer(b.cfg.Clock.Now().Sub(start))
+	b.edit(ic, fmt.Sprintf(msgAdminRerolledFmt, bn.Series.Name), []*discordgo.MessageEmbed{e}, nil)
 }
 
 func waifuInput(raw string) string {

@@ -22,6 +22,7 @@ A Discord waifu gacha bot backed by [MyWaifuList](https://mywaifulist.moe). Roll
 | `/s …` | Shorthand for `/series`. |
 | `/admin coins set\|increment\|decrement <user> <amount>` | Server administrators only: set, add to, or take from a player's balance. Replies privately. |
 | `/admin waifu add\|remove <user> <waifu>` | Server administrators only: give a waifu to a player or take one away, with autocomplete. No coins change hands. |
+| `/admin banner reroll` | Server administrators only: replace this week's banner with a different eligible series, never the current or last week's one. |
 | **Sell Waifu** (message context menu) | Right-click any bot message showing a waifu you own to sell it for 100 coins. |
 
 Character details and search pages are cached in Postgres and refreshed lazily: a stale entry is served immediately while one background request refreshes it, so nothing depends on a scheduled job. Random rolls and the waifu of the day always go to the live API, so newly submitted characters appear as soon as MyWaifuList lists them.

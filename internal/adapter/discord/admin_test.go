@@ -11,6 +11,57 @@ import (
 	"github.com/steven-peralta/rosiebot/internal/domain"
 )
 
+func TestAdmin_BannerReroll(t *testing.T) {
+	f := newFixture(t)
+	f.seedBanner("ranked-000", "ranked-001", "ranked-002", "ranked-003", "ranked-004")
+	f.script(0, 1)
+	series := domain.Series{Slug: "fresh", Name: "Fresh", URL: "https://www.mywaifulist.moe/series/fresh", PictureURL: "https://img/fresh"}
+	f.source.ExpectedCalls = nil
+	current := detail("ranked-000")
+	current.Appearances = []domain.Series{{Slug: "re-zero", Name: "Re:Zero"}}
+	next := detail("ranked-001")
+	next.Appearances = []domain.Series{series}
+	f.source.EXPECT().Get(mock.Anything, "ranked-000").Return(current, nil).Once()
+	f.source.EXPECT().Get(mock.Anything, "ranked-001").Return(next, nil).Once()
+	f.source.EXPECT().WorkCharacters(mock.Anything, "fresh", 1).Return(app.SearchPage{Page: 1, LastPage: 1, Items: []domain.WaifuSummary{summary("ranked-001"), summary("ranked-010"), summary("ranked-011"), summary("ranked-012"), summary("ranked-013")}}, nil).Once()
+
+	ic := f.adminCmd(aliceID, groupBanner, adminReroll, nil)
+	f.run(ic)
+	if r := f.api.calls[0].resp; r.Type != discordgo.InteractionResponseDeferredChannelMessageWithSource || r.Data == nil || r.Data.Flags&discordgo.MessageFlagsEphemeral == 0 {
+		t.Errorf("reroll should be deferred ephemeral, got %+v", r)
+	}
+	e := f.api.lastEdit()
+	if got := editContent(e); got != "This week's banner is now **Fresh**." || (*e.Embeds)[0].Title != "Fresh" || len((*e.Embeds)[0].Fields) != 1 {
+		t.Errorf("reroll = %q %+v", got, (*e.Embeds)[0])
+	}
+	f.run(f.slash(bobID, commandWaifu, subBanner, nil))
+	if title := (*f.api.lastEdit().Embeds)[0].Title; title != "Fresh" {
+		t.Errorf("/waifu banner after reroll shows %q", title)
+	}
+
+	f.run(f.adminCmd(aliceID, groupBanner, "nope", nil))
+	if got := f.respondContent(); got != msgUnexpected {
+		t.Errorf("unknown banner sub = %q", got)
+	}
+
+	f.ranking.Set(nil)
+	f.run(f.adminCmd(aliceID, groupBanner, adminReroll, nil))
+	if got := editContent(f.api.lastEdit()); got != msgAdminNoRanking {
+		t.Errorf("no ranking = %q", got)
+	}
+
+	g := newFixture(t)
+	g.source.ExpectedCalls = nil
+	g.source.EXPECT().Get(mock.Anything, mock.Anything).Return(domain.Waifu{}, errors.New("down")).Maybe()
+	for range 12 {
+		g.script(0)
+	}
+	g.run(g.adminCmd(aliceID, groupBanner, adminReroll, nil))
+	if got := editContent(g.api.lastEdit()); got != msgAdminNoSeries {
+		t.Errorf("no eligible series = %q", got)
+	}
+}
+
 func TestAdmin_Coins(t *testing.T) {
 	f := newFixture(t)
 	ic := f.adminCmd(aliceID, groupCoins, adminSet, resolvedUsers(bobID), userOption(bobID), intOpt(optAmount, 1000))
