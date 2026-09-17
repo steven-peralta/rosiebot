@@ -17,6 +17,14 @@ type RollResult struct {
 	Ranked   *domain.RankedWaifu
 	Balance  int64
 	Attempts int
+	Banner   bool
+}
+
+type rollPlan struct {
+	cost   int64
+	banner bool
+	kindFn func(int) (domain.RollKind, error)
+	pickFn func(context.Context, domain.RollKind) (domain.WaifuSummary, domain.RollKind, error)
 }
 
 type RollService struct {
@@ -24,37 +32,81 @@ type RollService struct {
 	source   WaifuSource
 	ranking  RankingProvider
 	wotd     *WotdService
+	banner   *BannerService
 	clock    Clock
 	rng      Random
 	minVotes int
 	log      *slog.Logger
 }
 
-func NewRollService(players PlayerStore, source WaifuSource, ranking RankingProvider, wotd *WotdService, clock Clock, rng Random, minVotes int, log *slog.Logger) *RollService {
+func NewRollService(players PlayerStore, source WaifuSource, ranking RankingProvider, wotd *WotdService, banner *BannerService, clock Clock, rng Random, minVotes int, log *slog.Logger) *RollService {
 	if log == nil {
 		log = slog.Default()
 	}
 	if minVotes <= 0 {
 		minVotes = domain.DefaultMinVotes
 	}
-	return &RollService{players: players, source: source, ranking: ranking, wotd: wotd, clock: clock, rng: rng, minVotes: minVotes, log: log}
+	return &RollService{players: players, source: source, ranking: ranking, wotd: wotd, banner: banner, clock: clock, rng: rng, minVotes: minVotes, log: log}
 }
 
 func (s *RollService) Roll(ctx context.Context, key domain.PlayerKey) (RollResult, error) {
+	return s.roll(ctx, key, rollPlan{
+		cost:   domain.RollCost,
+		kindFn: domain.RollKindFor,
+		pickFn: func(ctx context.Context, kind domain.RollKind) (domain.WaifuSummary, domain.RollKind, error) {
+			w, err := s.pick(ctx, kind)
+			return w, kind, err
+		},
+	})
+}
+
+func (s *RollService) RollBanner(ctx context.Context, key domain.PlayerKey) (RollResult, error) {
+	if s.banner == nil {
+		return RollResult{}, ErrNoBanner
+	}
+	current, err := s.banner.Current(ctx)
+	if err != nil {
+		return RollResult{}, err
+	}
+	owned, err := s.players.OwnedSlugs(ctx, key, current.Banner.Slugs())
+	if err != nil {
+		return RollResult{}, fmt.Errorf("check banner ownership: %w", err)
+	}
+	pool := current.Banner.Unowned(owned)
+	return s.roll(ctx, key, rollPlan{
+		cost:   domain.BannerRollCost,
+		banner: true,
+		kindFn: domain.BannerRollKindFor,
+		pickFn: func(ctx context.Context, kind domain.RollKind) (domain.WaifuSummary, domain.RollKind, error) {
+			if kind != domain.RollBanner {
+				w, err := s.pick(ctx, kind)
+				return w, kind, err
+			}
+			if len(pool) == 0 {
+				s.log.Debug("banner pool exhausted, degrading to critical", "series", current.Banner.Series.Slug, "user", key.UserID)
+				w, err := s.pickRanked(ctx)
+				return w, domain.RollCritical, err
+			}
+			return pool[s.rng.IntN(len(pool))].WaifuSummary, domain.RollBanner, nil
+		},
+	})
+}
+
+func (s *RollService) roll(ctx context.Context, key domain.PlayerKey, plan rollPlan) (RollResult, error) {
 	player, err := s.players.EnsurePlayer(ctx, key)
 	if err != nil {
 		return RollResult{}, fmt.Errorf("ensure player: %w", err)
 	}
-	if player.Coins < domain.RollCost {
+	if player.Coins < plan.cost {
 		return RollResult{}, ErrInsufficientCoins
 	}
 
 	for attempt := 1; attempt <= domain.MaxRerollAttempts; attempt++ {
-		kind, err := domain.RollKindFor(Rolled(s.rng))
+		kind, err := plan.kindFn(Rolled(s.rng))
 		if err != nil {
 			return RollResult{}, err
 		}
-		summary, err := s.pick(ctx, kind)
+		summary, kind, err := plan.pickFn(ctx, kind)
 		if err != nil {
 			return RollResult{}, fmt.Errorf("pick %s waifu: %w", kind, err)
 		}
@@ -75,7 +127,7 @@ func (s *RollService) Roll(ctx context.Context, key domain.PlayerKey) (RollResul
 
 		var balance int64
 		err = s.players.WithinTx(ctx, func(r PlayerRepo) error {
-			bal, ok, err := r.DebitCoins(ctx, key, domain.RollCost)
+			bal, ok, err := r.DebitCoins(ctx, key, plan.cost)
 			if err != nil {
 				return err
 			}
@@ -100,7 +152,7 @@ func (s *RollService) Roll(ctx context.Context, key domain.PlayerKey) (RollResul
 			return RollResult{}, err
 		}
 
-		result := RollResult{Kind: kind, Waifu: detail, Balance: balance, Attempts: attempt}
+		result := RollResult{Kind: kind, Waifu: detail, Balance: balance, Attempts: attempt, Banner: plan.banner}
 		if ranked, ok := s.ranking.Current().Lookup(summary.Slug); ok {
 			result.Ranked = &ranked
 		}

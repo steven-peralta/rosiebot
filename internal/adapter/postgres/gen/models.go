@@ -8,6 +8,18 @@ import (
 	"time"
 )
 
+type Banner struct {
+	WeekStart   time.Time
+	SeriesSlug  string
+	SeriesUuid  string
+	SeriesName  string
+	SeriesUrl   string
+	PictureUrl  string
+	Description string
+	Characters  []byte
+	CreatedAt   time.Time
+}
+
 type DailyWaifu struct {
 	Day          time.Time
 	Slug         string

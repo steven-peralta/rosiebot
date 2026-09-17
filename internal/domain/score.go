@@ -135,3 +135,22 @@ func (r *Ranking) Sample(rng IntN, keep func(RankedWaifu) bool) (RankedWaifu, er
 	}
 	return r.rows[candidates[rng.IntN(len(candidates))]], nil
 }
+
+func (r *Ranking) Subset(slugs []string) []RankedWaifu {
+	if r == nil {
+		return nil
+	}
+	out := make([]RankedWaifu, 0, len(slugs))
+	seen := make(map[string]struct{}, len(slugs))
+	for _, slug := range slugs {
+		if _, dup := seen[slug]; dup {
+			continue
+		}
+		seen[slug] = struct{}{}
+		if row, ok := r.Lookup(slug); ok {
+			out = append(out, row)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Position < out[j].Position })
+	return out
+}

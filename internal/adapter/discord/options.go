@@ -103,6 +103,15 @@ func seriesChoices(series []domain.Series) []*discordgo.ApplicationCommandOption
 	return out
 }
 
+func boolOption(opts []*discordgo.ApplicationCommandInteractionDataOption, name string) (bool, bool) {
+	o := option(opts, name)
+	if o == nil {
+		return false, false
+	}
+	v, ok := o.Value.(bool)
+	return v, ok
+}
+
 func intOption(opts []*discordgo.ApplicationCommandInteractionDataOption, name string) (int, bool) {
 	o := option(opts, name)
 	if o == nil {

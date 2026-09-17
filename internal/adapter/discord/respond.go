@@ -29,6 +29,9 @@ const (
 	msgDailyFmt          = "You claimed :coin: %d coins"
 	msgDailyCriticalFmt  = "%s You claimed :coin: %d coins!"
 	msgWotdFmt           = "Here's the Waifu of the Day:\nRefreshes in %s"
+	msgBannerRoll        = ":confetti_ball: **BANNER ROLL!!** :confetti_ball:"
+	msgBannerFmt         = "Here's this week's banner:\nRefreshes in %s"
+	msgNoBanner          = "There's no banner this week yet. Check back soon!"
 	msgSeriesHeaderFmt   = "Showing results for series %s"
 	msgTradeAccepted     = "You accepted the trade."
 	msgTradeDenied       = "You denied the trade."
@@ -157,6 +160,8 @@ func errorText(err error) string {
 		return "A waifu can't be on both sides of a trade."
 	case errors.Is(err, app.ErrRateLimited):
 		return msgRateLimited
+	case errors.Is(err, app.ErrNoBanner):
+		return msgNoBanner
 	case errors.Is(err, app.ErrNotFound):
 		return msgNoData
 	default:

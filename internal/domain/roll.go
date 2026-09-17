@@ -8,6 +8,7 @@ const (
 	RollRegular RollKind = iota
 	RollCritical
 	RollWaifuOfTheDay
+	RollBanner
 )
 
 func (k RollKind) String() string {
@@ -18,6 +19,8 @@ func (k RollKind) String() string {
 		return "critical"
 	case RollWaifuOfTheDay:
 		return "waifu-of-the-day"
+	case RollBanner:
+		return "banner"
 	default:
 		return fmt.Sprintf("RollKind(%d)", int(k))
 	}
@@ -30,6 +33,10 @@ const (
 	criticalRollLow    = 2
 	criticalRollHigh   = 13
 	waifuOfTheDayRoll  = 1
+	bannerRollLow      = 1
+	bannerRollHigh     = 8
+	bannerCriticalLow  = 9
+	bannerCriticalHigh = 20
 	dailyJackpotRoll   = 1
 	dailyDoubleRollLow = 2
 	dailyDoubleRollHi  = 21
@@ -43,6 +50,20 @@ func RollKindFor(d100 int) (RollKind, error) {
 	case d100 == waifuOfTheDayRoll:
 		return RollWaifuOfTheDay, nil
 	case d100 >= criticalRollLow && d100 <= criticalRollHigh:
+		return RollCritical, nil
+	default:
+		return RollRegular, nil
+	}
+}
+
+func BannerRollKindFor(d100 int) (RollKind, error) {
+	if err := checkD100(d100); err != nil {
+		return RollRegular, err
+	}
+	switch {
+	case d100 >= bannerRollLow && d100 <= bannerRollHigh:
+		return RollBanner, nil
+	case d100 >= bannerCriticalLow && d100 <= bannerCriticalHigh:
 		return RollCritical, nil
 	default:
 		return RollRegular, nil

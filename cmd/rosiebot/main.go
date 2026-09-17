@@ -72,14 +72,16 @@ func run(ctx context.Context, dryRun bool) error {
 	players := postgres.NewStore(pool, clock)
 	ranking := app.NewRankingService(postgres.NewRankingStore(pool), source, clock, app.RankingConfig{RefreshInterval: cfg.RankingRefresh, MinVotes: cfg.RankingMinVotes}, logger)
 	wotd := app.NewWotdService(postgres.NewDailyStore(pool), ranking, source, clock, rng, cfg.Timezone)
+	banner := app.NewBannerService(postgres.NewBannerStore(pool), ranking, source, clock, rng, cfg.Timezone, app.BannerConfig{}, logger)
 	services := discord.Services{
-		Roll:      app.NewRollService(players, source, ranking, wotd, clock, rng, cfg.RankingMinVotes, logger),
+		Roll:      app.NewRollService(players, source, ranking, wotd, banner, clock, rng, cfg.RankingMinVotes, logger),
 		Daily:     app.NewDailyService(players, clock, rng, cfg.Timezone),
 		Coins:     app.NewCoinsService(players),
 		Inventory: app.NewInventoryService(players),
 		Search:    app.NewSearchService(source, ranking),
 		Trade:     app.NewTradeService(players),
 		Wotd:      wotd,
+		Banner:    banner,
 		Ranking:   ranking,
 	}
 
@@ -119,6 +121,11 @@ func run(ctx context.Context, dryRun bool) error {
 	go func() {
 		if err := ranking.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 			logger.Error("ranking service stopped", "err", err)
+		}
+	}()
+	go func() {
+		if err := banner.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			logger.Error("banner service stopped", "err", err)
 		}
 	}()
 	go bot.RunJanitor(ctx)

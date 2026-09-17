@@ -217,3 +217,24 @@ func TestDailyStore(t *testing.T) {
 		t.Errorf("Get = %+v, %v", w, err)
 	}
 }
+
+func TestBannerStore(t *testing.T) {
+	ctx := context.Background()
+	s := NewBannerStore()
+	week := time.Date(2026, 9, 14, 15, 0, 0, 0, time.UTC)
+	if _, err := s.Get(ctx, week); !errors.Is(err, app.ErrNotFound) {
+		t.Fatalf("miss = %v", err)
+	}
+	first, err := s.Put(ctx, domain.Banner{WeekStart: week, Series: domain.Series{Slug: "first"}})
+	if err != nil || first.Series.Slug != "first" {
+		t.Fatal(err)
+	}
+	second, err := s.Put(ctx, domain.Banner{WeekStart: week, Series: domain.Series{Slug: "second"}})
+	if err != nil || second.Series.Slug != "first" {
+		t.Errorf("second put = %+v %v", second, err)
+	}
+	got, err := s.Get(ctx, week.In(time.FixedZone("x", -5*3600)))
+	if err != nil || got.Series.Slug != "first" {
+		t.Errorf("same instant in another zone = %+v %v", got, err)
+	}
+}

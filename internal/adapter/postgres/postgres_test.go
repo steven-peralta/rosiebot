@@ -16,6 +16,7 @@ import (
 	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 
+	"github.com/steven-peralta/rosiebot/internal/adapter/postgres/gen"
 	"github.com/steven-peralta/rosiebot/internal/app"
 	"github.com/steven-peralta/rosiebot/internal/app/mocks"
 	"github.com/steven-peralta/rosiebot/internal/domain"
@@ -531,6 +532,45 @@ func TestDailyStore(t *testing.T) {
 	}
 }
 
+func TestBannerStore(t *testing.T) {
+	requireDB(t)
+	ctx := context.Background()
+	bs := NewBannerStore(testPool)
+	week := time.Date(2026, 6, 1, 10, 0, 0, 0, time.FixedZone("CDT", -5*3600))
+
+	if _, err := bs.Get(ctx, week); !errors.Is(err, app.ErrNotFound) {
+		t.Fatalf("Get on empty = %v", err)
+	}
+	chars := []domain.RankedWaifu{
+		{WaifuSummary: domain.WaifuSummary{Slug: "rem", UUID: "u1", Name: "Rem", OriginalName: "レム", RomajiName: "Remu", PictureURL: "P", Likes: 5000, Trash: 100}, Position: 3, Stars: 5},
+		{WaifuSummary: domain.WaifuSummary{Slug: "ram", Name: "Ram", Likes: 2000, Trash: 200}, Position: 40, Stars: 3},
+	}
+	first := domain.NewBanner(week, domain.Series{Slug: "re-zero", UUID: "s1", Name: "Re:Zero", URL: "U", PictureURL: "SP", Description: "D"}, chars)
+	got, err := bs.Put(ctx, first)
+	if err != nil {
+		t.Fatalf("Put = %v", err)
+	}
+	if !got.WeekStart.Equal(week) || got.Series != first.Series || len(got.Characters) != 2 {
+		t.Fatalf("round trip = %+v", got)
+	}
+	if got.Characters[0].Slug != "rem" || got.Characters[0].Position != 3 || got.Characters[0].Stars != 5 || got.Characters[0].OriginalName != "レム" || got.Characters[0].Score != domain.Score(5000, 100) {
+		t.Errorf("character round trip = %+v", got.Characters[0])
+	}
+	second, err := bs.Put(ctx, domain.NewBanner(week, domain.Series{Slug: "other", Name: "Other"}, nil))
+	if err != nil || second.Series.Slug != "re-zero" {
+		t.Errorf("second Put should return the first winner: %+v %v", second, err)
+	}
+	if got, err := bs.Get(ctx, week.UTC()); err != nil || got.Series.Slug != "re-zero" {
+		t.Errorf("Get by the same instant in UTC = %+v %v", got, err)
+	}
+	if _, err := bs.Get(ctx, week.AddDate(0, 0, 7)); !errors.Is(err, app.ErrNotFound) {
+		t.Errorf("next week should be empty, got %v", err)
+	}
+	if _, err := toBanner(gen.Banner{Characters: []byte("nope")}); err == nil {
+		t.Error("corrupt payload should fail to decode")
+	}
+}
+
 func TestServices_RollRaceOnPostgres(t *testing.T) {
 	alice, _ := keys(t)
 	ctx := context.Background()
@@ -549,7 +589,7 @@ func TestServices_RollRaceOnPostgres(t *testing.T) {
 		t.Fatal(err)
 	}
 	rng := regularOnly{}
-	svc := app.NewRollService(store, source, noRanking{}, nil, app.SystemClock(), rng, 0, nil)
+	svc := app.NewRollService(store, source, noRanking{}, nil, nil, app.SystemClock(), rng, 0, nil)
 
 	var wins, broke atomic.Int32
 	var wg sync.WaitGroup

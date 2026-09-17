@@ -30,6 +30,7 @@ type Services struct {
 	Search    *app.SearchService
 	Trade     *app.TradeService
 	Wotd      *app.WotdService
+	Banner    *app.BannerService
 	Ranking   app.RankingProvider
 }
 
@@ -62,11 +63,13 @@ const (
 	subRandom = "random"
 	subToday  = "today"
 	subTrade  = "trade"
+	subBanner = "banner"
 
 	optUser    = "user"
 	optQuery   = "query"
 	optGive    = "give"
 	optReceive = "receive"
+	optBanner  = "banner"
 )
 
 type Bot struct {
@@ -113,7 +116,8 @@ func (b *Bot) Commands() []*discordgo.ApplicationCommand {
 	}
 	waifuOptions := func() []*discordgo.ApplicationCommandOption {
 		return []*discordgo.ApplicationCommandOption{
-			sub(subRoll, "Roll for a waifu"),
+			sub(subRoll, "Roll for a waifu",
+				&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionBoolean, Name: optBanner, Description: fmt.Sprintf("Spend %d coins on a banner roll: 8%% featured, 12%% critical", domain.BannerRollCost)}),
 			sub(subDaily, "Get your daily dose of waifu coins"),
 			sub(subCoins, "See how many coins you or another user has", userOpt("Whose balance to show")),
 			sub(subOwned, "See the waifus that you or another user owns", userOpt("Whose collection to show"),
@@ -122,6 +126,7 @@ func (b *Bot) Commands() []*discordgo.ApplicationCommand {
 			sub(subList, "Browse waifus by rank, series, or filters", listOptions()...),
 			sub(subRandom, "Pull a random waifu"),
 			sub(subToday, "Show the waifu of the day"),
+			sub(subBanner, "Show this week's banner series"),
 			sub(subTrade, "Trade waifus with another user",
 				&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionUser, Name: optUser, Description: "Who to trade with", Required: true},
 				&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optGive, Description: "Waifus you give, comma separated", Autocomplete: true},
@@ -193,7 +198,7 @@ func (b *Bot) handleCommand(ctx context.Context, ic *interaction) {
 	case commandWaifu, commandWAlias:
 		switch sub {
 		case subRoll:
-			b.guildOnly(ctx, ic, subRoll, b.roll)
+			b.guildOnly(ctx, ic, subRoll, func(ctx context.Context, ic *interaction) { b.roll(ctx, ic, opts) })
 		case subDaily:
 			b.guildOnly(ctx, ic, subDaily, b.daily)
 		case subCoins:
@@ -208,6 +213,8 @@ func (b *Bot) handleCommand(ctx context.Context, ic *interaction) {
 			b.random(ctx, ic)
 		case subToday:
 			b.today(ctx, ic)
+		case subBanner:
+			b.banner(ctx, ic)
 		case subTrade:
 			b.guildOnly(ctx, ic, subTrade, func(ctx context.Context, ic *interaction) { b.trade(ctx, ic, opts, data.Resolved) })
 		default:
@@ -239,6 +246,8 @@ func (b *Bot) handleComponent(ctx context.Context, ic *interaction) {
 		b.rollAgain(ctx, ic, strings.TrimPrefix(id, rollPrefix))
 	case strings.HasPrefix(id, builderPrefix):
 		b.builderComponent(ctx, ic, strings.TrimPrefix(id, builderPrefix))
+	case strings.HasPrefix(id, bannerPrefix):
+		b.bannerButton(ctx, ic, strings.TrimPrefix(id, bannerPrefix))
 	default:
 		b.log.Warn("unknown component", "custom_id", id)
 	}

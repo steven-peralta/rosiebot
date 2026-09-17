@@ -24,23 +24,37 @@ func rollAgainComponents(userID string) []discordgo.MessageComponent {
 	}}}
 }
 
-func (b *Bot) roll(ctx context.Context, ic *interaction) {
+func (b *Bot) roll(ctx context.Context, ic *interaction, opts []*discordgo.ApplicationCommandInteractionDataOption) {
 	if !b.deferReply(ic, false) {
 		return
 	}
 	start := b.cfg.Clock.Now()
-	res, err := b.svc.Roll.Roll(ctx, ic.key())
+	res, err := b.rollFor(ctx, ic, onBanner(opts))
 	if err != nil {
 		b.failed(ic, "roll", err)
 		return
 	}
 	content, embed := b.rollResult(ic.userID(), res, b.cfg.Clock.Now().Sub(start))
-	b.edit(ic, content, []*discordgo.MessageEmbed{embed}, rollAgainComponents(ic.userID()))
+	b.edit(ic, content, []*discordgo.MessageEmbed{embed}, againComponents(res, ic.userID()))
+}
+
+func onBanner(opts []*discordgo.ApplicationCommandInteractionDataOption) bool {
+	v, ok := boolOption(opts, optBanner)
+	return ok && v
+}
+
+func (b *Bot) rollFor(ctx context.Context, ic *interaction, banner bool) (app.RollResult, error) {
+	if banner {
+		return b.svc.Roll.RollBanner(ctx, ic.key())
+	}
+	return b.svc.Roll.Roll(ctx, ic.key())
 }
 
 func (b *Bot) rollResult(userID string, res app.RollResult, elapsed time.Duration) (string, *discordgo.MessageEmbed) {
 	content := mention(userID)
 	switch res.Kind {
+	case domain.RollBanner:
+		content += " " + msgBannerRoll
 	case domain.RollCritical:
 		content += " " + msgCritical
 	case domain.RollWaifuOfTheDay:
@@ -53,7 +67,7 @@ func (b *Bot) rollResult(userID string, res app.RollResult, elapsed time.Duratio
 
 func (b *Bot) rollAgain(ctx context.Context, ic *interaction, action string) {
 	kind, owner, _ := strings.Cut(action, ":")
-	if kind != rollAgain {
+	if kind != rollAgain && kind != rollBanner {
 		b.log.Warn("unknown roll action", "action", action)
 		return
 	}
@@ -70,16 +84,16 @@ func (b *Bot) rollAgain(ctx context.Context, ic *interaction, action string) {
 		return
 	}
 	start := b.cfg.Clock.Now()
-	res, err := b.svc.Roll.Roll(ctx, ic.key())
+	res, err := b.rollFor(ctx, ic, kind == rollBanner)
 	if err != nil {
-		b.log.Warn("roll again failed", "user", ic.userID(), "err", err)
+		b.log.Warn("roll again failed", "user", ic.userID(), "kind", kind, "err", err)
 		if _, ferr := b.s.FollowupMessageCreate(ic.Interaction, true, &discordgo.WebhookParams{Content: mention(ic.userID()) + " " + errorText(err), Flags: discordgo.MessageFlagsEphemeral}); ferr != nil {
 			b.log.Error("roll again followup failed", "err", ferr)
 		}
 		return
 	}
 	content, embed := b.rollResult(ic.userID(), res, b.cfg.Clock.Now().Sub(start))
-	b.edit(ic, content, []*discordgo.MessageEmbed{embed}, rollAgainComponents(ic.userID()))
+	b.edit(ic, content, []*discordgo.MessageEmbed{embed}, againComponents(res, ic.userID()))
 }
 
 func (b *Bot) daily(ctx context.Context, ic *interaction) {

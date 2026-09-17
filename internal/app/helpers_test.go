@@ -75,6 +75,7 @@ type fixture struct {
 	loc     *time.Location
 	players *memory.PlayerStore
 	daily   *memory.DailyStore
+	banners *memory.BannerStore
 	ranking *memory.RankingHolder
 	source  *mocks.WaifuSource
 }
@@ -91,6 +92,7 @@ func newFixture(t *testing.T) *fixture {
 		loc:     loc,
 		players: memory.NewPlayerStore(clock),
 		daily:   memory.NewDailyStore(),
+		banners: memory.NewBannerStore(),
 		ranking: memory.NewRankingHolder(nil),
 		source:  mocks.NewWaifuSource(t),
 	}
@@ -102,8 +104,24 @@ func (f *fixture) wotd() *app.WotdService {
 	return app.NewWotdService(f.daily, f.ranking, f.source, f.clock, f.rng, f.loc)
 }
 
+func (f *fixture) banner() *app.BannerService {
+	return app.NewBannerService(f.banners, f.ranking, f.source, f.clock, f.rng, f.loc, app.BannerConfig{}, nil)
+}
+
+func (f *fixture) seedBanner(slugs ...string) domain.Banner {
+	f.t.Helper()
+	ranking := rankingOf(200)
+	chars := ranking.Subset(slugs)
+	week := domain.BannerWeekStart(f.clock.now, f.loc)
+	stored, err := f.banners.Put(f.ctx, domain.NewBanner(week, domain.Series{Slug: "re-zero", Name: "Re:Zero", URL: "https://www.mywaifulist.moe/series/re-zero", PictureURL: "https://img/re-zero"}, chars))
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	return stored
+}
+
 func (f *fixture) roll() *app.RollService {
-	return app.NewRollService(f.players, f.source, f.ranking, f.wotd(), f.clock, f.rng, 0, nil)
+	return app.NewRollService(f.players, f.source, f.ranking, f.wotd(), f.banner(), f.clock, f.rng, 0, nil)
 }
 
 func (f *fixture) give(key domain.PlayerKey, slugs ...string) {

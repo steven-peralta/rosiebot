@@ -225,6 +225,8 @@ type fixture struct {
 	source  *mocks.WaifuSource
 	ranking *memory.RankingHolder
 	daily   *memory.DailyStore
+	banners *memory.BannerStore
+	loc     *time.Location
 	seq     int
 }
 
@@ -260,22 +262,44 @@ func newFixture(t *testing.T) *fixture {
 	ranking := memory.NewRankingHolder(rankingOf(200))
 	daily := memory.NewDailyStore()
 	wotd := app.NewWotdService(daily, ranking, source, clock, rng, loc)
+	banners := memory.NewBannerStore()
+	banner := app.NewBannerService(banners, ranking, source, clock, rng, loc, app.BannerConfig{}, nil)
 	svc := Services{
-		Roll:      app.NewRollService(players, source, ranking, wotd, clock, rng, 0, nil),
+		Roll:      app.NewRollService(players, source, ranking, wotd, banner, clock, rng, 0, nil),
 		Daily:     app.NewDailyService(players, clock, rng, loc),
 		Coins:     app.NewCoinsService(players),
 		Inventory: app.NewInventoryService(players),
 		Search:    app.NewSearchService(source, ranking),
 		Trade:     app.NewTradeService(players),
 		Wotd:      wotd,
+		Banner:    banner,
 		Ranking:   ranking,
 	}
 	api := newFakeAPI()
 	bot := New(api, svc, Config{AppID: "app", BotUserID: botID, Version: "test", Clock: clock})
-	return &fixture{t: t, api: api, bot: bot, clock: clock, rng: rng, players: players, source: source, ranking: ranking, daily: daily}
+	return &fixture{t: t, api: api, bot: bot, clock: clock, rng: rng, players: players, source: source, ranking: ranking, daily: daily, banners: banners, loc: loc}
 }
 
 func (f *fixture) script(vals ...int) { f.rng.vals = append(f.rng.vals, vals...) }
+
+func (f *fixture) seedBanner(slugs ...string) domain.Banner {
+	f.t.Helper()
+	week := domain.BannerWeekStart(f.clock.now, f.loc)
+	series := domain.Series{Slug: "re-zero", Name: "Re:Zero", URL: "https://www.mywaifulist.moe/series/re-zero", PictureURL: "https://img/re-zero", Description: "A boy is summoned."}
+	stored, err := f.banners.Put(context.Background(), domain.NewBanner(week, series, rankingOf(200).Subset(slugs)))
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	return stored
+}
+
+func (f *fixture) fund(userID string, amount int64) {
+	f.t.Helper()
+	f.give(userID)
+	if _, ok, err := f.players.ClaimDaily(context.Background(), domain.PlayerKey{GuildID: guildID, UserID: userID}, amount, f.clock.now.Add(-time.Hour), f.clock.now); err != nil || !ok {
+		f.t.Fatalf("setup funding failed: ok=%v err=%v", ok, err)
+	}
+}
 
 func d100(v int) int { return v - 1 }
 
@@ -318,6 +342,10 @@ func member(userID string) *discordgo.Member {
 
 func strOpt(name, value string) *discordgo.ApplicationCommandInteractionDataOption {
 	return &discordgo.ApplicationCommandInteractionDataOption{Name: name, Type: discordgo.ApplicationCommandOptionString, Value: value}
+}
+
+func boolOpt(name string, value bool) *discordgo.ApplicationCommandInteractionDataOption {
+	return &discordgo.ApplicationCommandInteractionDataOption{Name: name, Type: discordgo.ApplicationCommandOptionBoolean, Value: value}
 }
 
 func userOption(userID string) *discordgo.ApplicationCommandInteractionDataOption {

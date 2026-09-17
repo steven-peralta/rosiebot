@@ -139,14 +139,14 @@ func expectStoreErr(t *testing.T, err error) {
 func TestStoreFailures_Roll(t *testing.T) {
 	t.Run("ensure player", func(t *testing.T) {
 		f := newFixture(t)
-		_, err := app.NewRollService(f.failing("EnsurePlayer"), f.source, f.ranking, f.wotd(), f.clock, f.rng, 0, nil).Roll(f.ctx, alice)
+		_, err := app.NewRollService(f.failing("EnsurePlayer"), f.source, f.ranking, f.wotd(), f.banner(), f.clock, f.rng, 0, nil).Roll(f.ctx, alice)
 		expectStoreErr(t, err)
 	})
 	t.Run("owned slugs", func(t *testing.T) {
 		f := newFixture(t)
 		f.script(d100(50))
 		f.source.EXPECT().Random(mock.Anything).Return(summary("rem", 1, 0), nil).Once()
-		_, err := app.NewRollService(f.failing("OwnedSlugs"), f.source, f.ranking, f.wotd(), f.clock, f.rng, 0, nil).Roll(f.ctx, alice)
+		_, err := app.NewRollService(f.failing("OwnedSlugs"), f.source, f.ranking, f.wotd(), f.banner(), f.clock, f.rng, 0, nil).Roll(f.ctx, alice)
 		expectStoreErr(t, err)
 	})
 	for _, name := range []string{"WithinTx", "DebitCoins", "AddOwned"} {
@@ -155,7 +155,7 @@ func TestStoreFailures_Roll(t *testing.T) {
 			f.script(d100(50))
 			f.source.EXPECT().Random(mock.Anything).Return(summary("rem", 1, 0), nil).Once()
 			f.source.EXPECT().Get(mock.Anything, "rem").Return(detail("rem"), nil).Once()
-			_, err := app.NewRollService(f.failing(name), f.source, f.ranking, f.wotd(), f.clock, f.rng, 0, nil).Roll(f.ctx, alice)
+			_, err := app.NewRollService(f.failing(name), f.source, f.ranking, f.wotd(), f.banner(), f.clock, f.rng, 0, nil).Roll(f.ctx, alice)
 			expectStoreErr(t, err)
 			if f.coins(alice) != domain.StartingCoins {
 				t.Errorf("charged despite failure: %d", f.coins(alice))

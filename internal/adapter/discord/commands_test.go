@@ -26,9 +26,12 @@ func TestCommands_Registration(t *testing.T) {
 			names[c.Name] = append(names[c.Name], o.Name)
 		}
 	}
-	want := []string{subRoll, subDaily, subCoins, subOwned, subSearch, subList, subRandom, subToday, subTrade}
+	want := []string{subRoll, subDaily, subCoins, subOwned, subSearch, subList, subRandom, subToday, subBanner, subTrade}
 	if strings.Join(names[commandWaifu], ",") != strings.Join(want, ",") {
 		t.Errorf("waifu subcommands = %v", names[commandWaifu])
+	}
+	if roll := cmds[0].Options[0]; len(roll.Options) != 1 || roll.Options[0].Name != optBanner || roll.Options[0].Type != discordgo.ApplicationCommandOptionBoolean {
+		t.Errorf("roll options = %+v", roll.Options)
 	}
 	if strings.Join(names[commandWAlias], ",") != strings.Join(want, ",") {
 		t.Errorf("/w alias subcommands = %v", names[commandWAlias])
@@ -53,6 +56,11 @@ func TestDMGating_PerSubcommand(t *testing.T) {
 		if r == nil || r.Data == nil || r.Data.Flags&discordgo.MessageFlagsEphemeral == 0 || r.Data.Content != "The "+sub+" command cannot be invoked from the direct messages of the bot." {
 			t.Errorf("%s in DM -> %+v", sub, r)
 		}
+	}
+	f.api.reset()
+	f.run(f.dm(aliceID, commandWaifu, subRoll, boolOpt(optBanner, true)))
+	if got := f.respondContent(); got != "The roll command cannot be invoked from the direct messages of the bot." {
+		t.Errorf("banner roll in DM = %q", got)
 	}
 	f.api.reset()
 	f.source.EXPECT().Random(mock.Anything).Return(summary("rem"), nil).Once()

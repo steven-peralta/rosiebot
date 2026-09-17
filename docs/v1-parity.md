@@ -128,6 +128,9 @@ The v2 card is a deliberate redesign (owner request during live testing on 2026-
 | Selling a waifu that is currently shown in a live pager re-renders that pager at the same index | New behaviour enabled by the context-menu design |
 | Target player row created on demand for trades | v1 failed the trade when the target had never used the bot |
 | `/waifu trade <user>` with no lists opens an ephemeral builder (paged multi-select menus for both collections, name filter modal, Send/Cancel); offers gain a Counter button that opens the builder prefilled with the reversed offer | Owner asked for a trading interface built on Discord interactions instead of comma-separated slugs (`discord.TestTradeBuilder_*`) |
+| Weekly banner: a featured series rotates every Monday 10:00 bot time, persisted per week, never the same series twice in a row; eligible series have 5+ ranked characters and at least one 4-star | New v2 feature requested by the owner (`domain.TestBannerWeekStart_AroundMondayTen`, `domain.TestBannerWeekStart_DST`, `domain.TestBannerEligible`, `app.TestBannerService_EnsurePicksEligibleSeries`, `app.TestBannerService_PickerExcludesPreviousWeek`, `app.TestBannerService_RunEnsuresThenSleepsUntilBoundary`, `postgres.TestBannerStore`) |
+| Banner roll: 400 coins, d100 1..8 featured (uniform over unowned featured characters), 9..20 critical, 21..100 regular; degrades to critical when every featured character is owned; refused uncharged when no banner exists; reroll cap and race handling as the normal roll | Owner decision (`domain.TestBannerRollKind_D100Table`, `domain.TestBannerConstants`, `app.TestRollService_Banner*`, `discord.TestRoll_BannerOptionTexts`) |
+| `/waifu banner` card with a shared Roll on banner button that replies as a new message for whoever clicks; banner results carry an owner-guarded Roll on banner again button; `/waifu roll` gains a `banner` option | Owner decision (`discord.TestBanner_CardShowsSeriesFeaturedAndCountdown`, `discord.TestBanner_ButtonRollsForAnyClickerWithoutTouchingCard`, `discord.TestBanner_ButtonInDMAndInsufficientCoins`, `discord.TestBanner_NoBannerText`, `discord.TestBannerEmbed_CapsFeaturedList`) |
 | MWL client: only `/meta/random` and `/meta/daily` go through the ogen-generated client; character detail, search, work characters and rankings are hand-rolled over the same transport | The checked-in spec declares nullable fields as non-null strings (`appearances[].studio`, `release_date`) so the generated decoders reject live payloads, and it declares no `page` parameters. See `internal/adapter/mwl/source.go` |
 
 ## Manual release checklist (dev guild)
@@ -141,6 +144,7 @@ The v2 card is a deliberate redesign (owner request during live testing on 2026-
 - [ ] `/series search` with results and with none
 - [ ] `/waifu random`
 - [ ] `/waifu today` twice in a row and after a restart
+- [ ] `/waifu banner` shows the featured series with stars and countdown, again after a restart; Roll on banner from a second account; `/w roll banner:true` debits 400 and shows the banner prefix on a hit
 - [ ] `/waifu trade` accept, decline, gift, and a conflict after the counterparty sells
 - [ ] `/waifu trade @user` with no lists: builder paging on a collection over 25, filter modal, Cancel, Send, then Counter from the other account
 - [ ] Sell Waifu on an owned page, a roll result, a non-owned search result, and a non-bot message

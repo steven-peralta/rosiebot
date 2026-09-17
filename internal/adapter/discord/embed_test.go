@@ -215,6 +215,7 @@ func TestErrorText_V1Strings(t *testing.T) {
 		"overlap":    {domain.ErrTradeOverlap, "A waifu can't be on both sides of a trade."},
 		"not found":  {app.ErrNotFound, msgNoData},
 		"ratelimit":  {app.ErrRateLimited, msgRateLimited},
+		"no banner":  {app.ErrNoBanner, msgNoBanner},
 		"unexpected": {errors.New("boom"), msgUnexpected},
 		"violation":  {&domain.TradeViolation{Slug: "rem", Side: domain.TradeSideTarget, Err: domain.ErrTradeAlreadyOwn}, "they already owns rem"},
 	}

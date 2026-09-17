@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/mock"
 
@@ -173,7 +174,7 @@ func TestRollService_LostRaceRerolls(t *testing.T) {
 			t.Fatal(err)
 		}
 	}}
-	svc := app.NewRollService(store, f.source, f.ranking, f.wotd(), f.clock, f.rng, 0, nil)
+	svc := app.NewRollService(store, f.source, f.ranking, f.wotd(), f.banner(), f.clock, f.rng, 0, nil)
 
 	res, err := svc.Roll(f.ctx, alice)
 	if err != nil {
@@ -218,7 +219,7 @@ func TestRollService_ConcurrentDebitLosesWhenBalanceGone(t *testing.T) {
 			t.Fatal("setup debit failed")
 		}
 	}}
-	svc := app.NewRollService(store, f.source, f.ranking, f.wotd(), f.clock, f.rng, 0, nil)
+	svc := app.NewRollService(store, f.source, f.ranking, f.wotd(), f.banner(), f.clock, f.rng, 0, nil)
 
 	_, err := svc.Roll(f.ctx, alice)
 	if !errors.Is(err, app.ErrInsufficientCoins) {
@@ -236,5 +237,170 @@ func TestRolled_CoversFullD100(t *testing.T) {
 	}
 	if len(seen) != 100 || !seen[1] || !seen[100] {
 		t.Errorf("Rolled should map IntN(100) onto 1..100, got %d distinct", len(seen))
+	}
+}
+
+func (f *fixture) fund(key domain.PlayerKey, amount int64) {
+	f.t.Helper()
+	f.give(key)
+	if _, ok, err := f.players.ClaimDaily(f.ctx, key, amount, f.clock.now.Add(-time.Hour), f.clock.now); err != nil || !ok {
+		f.t.Fatalf("setup funding failed: ok=%v err=%v", ok, err)
+	}
+}
+
+func TestRollService_BannerRollHitsFeatured(t *testing.T) {
+	f := newFixture(t)
+	f.ranking.Set(rankingOf(200))
+	f.seedBanner("ranked-050", "ranked-000", "ranked-020", "ranked-005", "ranked-100")
+	f.fund(alice, domain.BannerRollCost-domain.StartingCoins)
+	f.script(d100(5), 2)
+	f.source.EXPECT().Get(mock.Anything, "ranked-020").Return(detail("ranked-020"), nil).Once()
+
+	res, err := f.roll().RollBanner(f.ctx, alice)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Kind != domain.RollBanner || !res.Banner || res.Waifu.Slug != "ranked-020" || res.Balance != 0 || res.Ranked == nil || res.Ranked.Position != 21 {
+		t.Errorf("result = %+v ranked=%+v", res, res.Ranked)
+	}
+	if f.coins(alice) != 0 || !f.owns(alice, "ranked-020") {
+		t.Errorf("state after banner roll: coins=%d owns=%v", f.coins(alice), f.owns(alice, "ranked-020"))
+	}
+}
+
+func TestRollService_BannerCriticalAndRegularStillCost400(t *testing.T) {
+	f := newFixture(t)
+	f.ranking.Set(rankingOf(200))
+	f.seedBanner("ranked-000", "ranked-001", "ranked-002", "ranked-003", "ranked-004")
+	f.fund(alice, 2*domain.BannerRollCost-domain.StartingCoins)
+
+	f.script(d100(15), 7)
+	f.source.EXPECT().Get(mock.Anything, "ranked-007").Return(detail("ranked-007"), nil).Once()
+	res, err := f.roll().RollBanner(f.ctx, alice)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Kind != domain.RollCritical || !res.Banner || res.Balance != domain.BannerRollCost {
+		t.Errorf("critical on banner = %+v", res)
+	}
+
+	f.script(d100(50))
+	f.source.EXPECT().Random(mock.Anything).Return(summary("rem", 1, 0), nil).Once()
+	f.source.EXPECT().Get(mock.Anything, "rem").Return(detail("rem"), nil).Once()
+	res, err = f.roll().RollBanner(f.ctx, alice)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Kind != domain.RollRegular || !res.Banner || res.Balance != 0 {
+		t.Errorf("regular on banner = %+v", res)
+	}
+}
+
+func TestRollService_BannerDegradesToCriticalWhenAllOwned(t *testing.T) {
+	f := newFixture(t)
+	f.ranking.Set(rankingOf(200))
+	f.seedBanner("ranked-000", "ranked-001", "ranked-002", "ranked-003", "ranked-004")
+	f.give(alice, "ranked-000", "ranked-001", "ranked-002", "ranked-003", "ranked-004")
+	f.fund(alice, domain.BannerRollCost-domain.StartingCoins)
+	f.script(d100(3), 9)
+	f.source.EXPECT().Get(mock.Anything, "ranked-009").Return(detail("ranked-009"), nil).Once()
+
+	res, err := f.roll().RollBanner(f.ctx, alice)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Kind != domain.RollCritical || !res.Banner || res.Waifu.Slug != "ranked-009" || f.coins(alice) != 0 {
+		t.Errorf("degraded result = %+v coins=%d", res, f.coins(alice))
+	}
+}
+
+func TestRollService_BannerWithoutBannerUnchargedNoAPICall(t *testing.T) {
+	f := newFixture(t)
+	f.ranking.Set(rankingOf(200))
+	f.fund(alice, domain.BannerRollCost)
+	if _, err := f.roll().RollBanner(f.ctx, alice); !errors.Is(err, app.ErrNoBanner) {
+		t.Fatalf("err = %v, want ErrNoBanner", err)
+	}
+	if f.coins(alice) != domain.BannerRollCost+domain.StartingCoins {
+		t.Errorf("player was charged: %d", f.coins(alice))
+	}
+	svc := app.NewRollService(f.players, f.source, f.ranking, f.wotd(), nil, f.clock, f.rng, 0, nil)
+	if _, err := svc.RollBanner(f.ctx, alice); !errors.Is(err, app.ErrNoBanner) {
+		t.Fatalf("nil banner service err = %v, want ErrNoBanner", err)
+	}
+	f.source.AssertNotCalled(t, "Random", mock.Anything)
+	f.source.AssertNotCalled(t, "Get", mock.Anything, mock.Anything)
+}
+
+func TestRollService_BannerInsufficientCoins(t *testing.T) {
+	f := newFixture(t)
+	f.ranking.Set(rankingOf(200))
+	f.seedBanner("ranked-000", "ranked-001", "ranked-002", "ranked-003", "ranked-004")
+	f.fund(alice, domain.BannerRollCost-domain.StartingCoins-1)
+	if _, err := f.roll().RollBanner(f.ctx, alice); !errors.Is(err, app.ErrInsufficientCoins) {
+		t.Fatalf("err = %v, want ErrInsufficientCoins", err)
+	}
+	if f.coins(alice) != domain.BannerRollCost-1 {
+		t.Errorf("coins = %d", f.coins(alice))
+	}
+}
+
+func TestRollService_BannerRerollOnOwnedAndExhausted(t *testing.T) {
+	f := newFixture(t)
+	f.ranking.Set(rankingOf(200))
+	f.seedBanner("ranked-000", "ranked-005", "ranked-006", "ranked-007", "ranked-008")
+	f.give(alice, "ranked-000")
+	f.fund(alice, domain.BannerRollCost-domain.StartingCoins)
+	f.script(d100(15), 0, d100(5), 0)
+	f.source.EXPECT().Get(mock.Anything, "ranked-005").Return(detail("ranked-005"), nil).Once()
+
+	res, err := f.roll().RollBanner(f.ctx, alice)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Attempts != 2 || res.Kind != domain.RollBanner || res.Waifu.Slug != "ranked-005" {
+		t.Errorf("result = %+v", res)
+	}
+
+	f.fund(bob, domain.BannerRollCost-domain.StartingCoins)
+	f.give(bob, "ranked-000")
+	for range domain.MaxRerollAttempts {
+		f.script(d100(15), 0)
+	}
+	if _, err := f.roll().RollBanner(f.ctx, bob); !errors.Is(err, app.ErrRollExhausted) {
+		t.Fatalf("err = %v, want ErrRollExhausted", err)
+	}
+	if f.coins(bob) != domain.BannerRollCost {
+		t.Errorf("bob was charged: %d", f.coins(bob))
+	}
+}
+
+func TestRollService_BannerLostRaceRerolls(t *testing.T) {
+	f := newFixture(t)
+	f.ranking.Set(rankingOf(200))
+	f.seedBanner("ranked-000", "ranked-005", "ranked-006", "ranked-007", "ranked-008")
+	f.fund(alice, domain.BannerRollCost-domain.StartingCoins)
+	f.script(d100(5), 0, d100(5), 0, d100(5), 1)
+	f.source.EXPECT().Get(mock.Anything, "ranked-000").Return(detail("ranked-000"), nil).Once()
+	f.source.EXPECT().Get(mock.Anything, "ranked-005").Return(detail("ranked-005"), nil).Once()
+
+	raced := false
+	store := hookedStore{PlayerStore: f.players, beforeTx: func() {
+		if raced {
+			return
+		}
+		raced = true
+		if _, err := f.players.AddOwned(f.ctx, alice, domain.OwnedFromSummary(summary("ranked-000", 1, 0), f.clock.now)); err != nil {
+			t.Fatal(err)
+		}
+	}}
+	svc := app.NewRollService(store, f.source, f.ranking, f.wotd(), f.banner(), f.clock, f.rng, 0, nil)
+
+	res, err := svc.RollBanner(f.ctx, alice)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Attempts != 3 || res.Waifu.Slug != "ranked-005" || f.coins(alice) != 0 {
+		t.Errorf("result = %+v coins=%d", res, f.coins(alice))
 	}
 }

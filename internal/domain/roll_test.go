@@ -32,8 +32,35 @@ func TestRollKind_RejectsOutOfRange(t *testing.T) {
 	}
 }
 
+func TestBannerRollKind_D100Table(t *testing.T) {
+	counts := map[RollKind]int{}
+	for d := D100Min; d <= D100Max; d++ {
+		kind, err := BannerRollKindFor(d)
+		if err != nil {
+			t.Fatalf("BannerRollKindFor(%d): %v", d, err)
+		}
+		counts[kind]++
+		switch {
+		case d <= 8 && kind != RollBanner:
+			t.Errorf("d=%d kind=%v, want banner", d, kind)
+		case d >= 9 && d <= 20 && kind != RollCritical:
+			t.Errorf("d=%d kind=%v, want critical", d, kind)
+		case d >= 21 && kind != RollRegular:
+			t.Errorf("d=%d kind=%v, want regular", d, kind)
+		}
+	}
+	if counts[RollBanner] != 8 || counts[RollCritical] != 12 || counts[RollRegular] != 80 || counts[RollWaifuOfTheDay] != 0 {
+		t.Errorf("odds = %v, want 8/12/80 and never the waifu of the day", counts)
+	}
+	for _, d := range []int{0, 101} {
+		if _, err := BannerRollKindFor(d); err == nil {
+			t.Errorf("BannerRollKindFor(%d) should fail", d)
+		}
+	}
+}
+
 func TestRollKind_String(t *testing.T) {
-	cases := map[RollKind]string{RollRegular: "regular", RollCritical: "critical", RollWaifuOfTheDay: "waifu-of-the-day", RollKind(9): "RollKind(9)"}
+	cases := map[RollKind]string{RollRegular: "regular", RollCritical: "critical", RollWaifuOfTheDay: "waifu-of-the-day", RollBanner: "banner", RollKind(9): "RollKind(9)"}
 	for k, want := range cases {
 		if k.String() != want {
 			t.Errorf("%d.String() = %q, want %q", int(k), k.String(), want)
