@@ -92,7 +92,7 @@ func (b *Bot) renderPage(ctx context.Context, s *Session, elapsed time.Duration)
 		if len(s.Pages) > 1 {
 			content = strings.TrimRight(content, "\n") + fmt.Sprintf("\nPage %d out of %d", s.Page+1, len(s.Pages))
 		}
-		return content, []*discordgo.MessageEmbed{embed}, pagerRows(s.Page, len(s.Pages), false, b.selectOptions(s))
+		return content, []*discordgo.MessageEmbed{embed}, append(pagerRows(s.Page, len(s.Pages), false, b.selectOptions(s)), s.Extra...)
 	}
 	if ref.detail == nil {
 		w, err := b.svc.Search.Detail(ctx, ref.summary.Slug)
@@ -117,7 +117,7 @@ func (b *Bot) renderPage(ctx context.Context, s *Session, elapsed time.Duration)
 	if len(s.Pages) > 1 {
 		content = strings.TrimRight(content, "\n") + fmt.Sprintf("\nPage %d out of %d", s.Page+1, len(s.Pages))
 	}
-	return content, []*discordgo.MessageEmbed{embed}, pagerRows(s.Page, len(s.Pages), s.Sellable, b.selectOptions(s))
+	return content, []*discordgo.MessageEmbed{embed}, append(pagerRows(s.Page, len(s.Pages), s.Sellable, b.selectOptions(s)), s.Extra...)
 }
 
 func (b *Bot) selectOptions(s *Session) []discordgo.SelectMenuOption {
@@ -152,7 +152,11 @@ func (b *Bot) selectOptions(s *Session) []discordgo.SelectMenuOption {
 }
 
 func (b *Bot) openPager(ctx context.Context, ic *interaction, content string, pages []pageRef, sellable bool, elapsed time.Duration) {
-	s := &Session{Kind: SessionPager, OwnerID: ic.userID(), ChannelID: ic.ChannelID, Content: content, Pages: pages, Sellable: sellable}
+	b.openPagerWith(ctx, ic, content, pages, sellable, nil, elapsed)
+}
+
+func (b *Bot) openPagerWith(ctx context.Context, ic *interaction, content string, pages []pageRef, sellable bool, extra []discordgo.MessageComponent, elapsed time.Duration) {
+	s := &Session{Kind: SessionPager, OwnerID: ic.userID(), ChannelID: ic.ChannelID, Content: content, Pages: pages, Sellable: sellable, Extra: extra}
 	c, embeds, components := b.renderPage(ctx, s, elapsed)
 	msg := b.edit(ic, c, embeds, components)
 	if msg == nil || len(pages) <= 1 {
@@ -312,6 +316,10 @@ func (b *Bot) SweepExpired() int {
 const compactPageSize = 20
 
 func pagesCompact(items []domain.OwnedWaifu, lookup app.RankLookup) []pageRef {
+	return pagesCompactTitled(items, lookup, "")
+}
+
+func pagesCompactTitled(items []domain.OwnedWaifu, lookup app.RankLookup, title string) []pageRef {
 	summaries := make([]domain.WaifuSummary, len(items))
 	for i, o := range items {
 		summaries[i] = domain.WaifuSummary{Slug: o.Slug, UUID: o.UUID, Name: o.Name, PictureURL: o.PictureURL, Likes: o.Likes, Trash: o.Trash}
@@ -320,7 +328,7 @@ func pagesCompact(items []domain.OwnedWaifu, lookup app.RankLookup) []pageRef {
 	pages := make([]pageRef, 0, (len(chars)+compactPageSize-1)/compactPageSize)
 	for start := 0; start < len(chars); start += compactPageSize {
 		end := min(start+compactPageSize, len(chars))
-		pages = append(pages, pageRef{group: &compactGroup{first: start, items: chars[start:end]}})
+		pages = append(pages, pageRef{group: &compactGroup{first: start, items: chars[start:end], title: title}})
 	}
 	return pages
 }
@@ -330,7 +338,11 @@ func compactEmbed(g *compactGroup) *discordgo.MessageEmbed {
 	for i, c := range g.items {
 		lines[i] = fmt.Sprintf("%d. %s", g.first+i+1, cardLine(c))
 	}
-	return &discordgo.MessageEmbed{Title: "Collection", Color: brandingColor, Description: strings.Join(lines, "\n")}
+	title := g.title
+	if title == "" {
+		title = "Collection"
+	}
+	return &discordgo.MessageEmbed{Title: title, Color: brandingColor, Description: strings.Join(lines, "\n")}
 }
 
 func collectionSummary(items []domain.OwnedWaifu, price func(slug string) (int64, int)) string {

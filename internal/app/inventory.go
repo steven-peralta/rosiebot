@@ -106,18 +106,24 @@ func (s *InventoryService) eligible(owned []domain.OwnedWaifu, maxStars int) []d
 }
 
 func (s *InventoryService) QuoteBelow(ctx context.Context, key domain.PlayerKey, maxStars int) (BulkQuote, error) {
+	_, q, err := s.EligibleBelow(ctx, key, maxStars)
+	return q, err
+}
+
+func (s *InventoryService) EligibleBelow(ctx context.Context, key domain.PlayerKey, maxStars int) ([]domain.OwnedWaifu, BulkQuote, error) {
 	owned, err := s.List(ctx, key)
 	if err != nil {
-		return BulkQuote{}, err
+		return nil, BulkQuote{}, err
 	}
 	var q BulkQuote
-	for _, w := range s.eligible(owned, maxStars) {
+	items := s.eligible(owned, maxStars)
+	for _, w := range items {
 		price, stars := s.Price(w.Slug)
 		q.Count++
 		q.Total += price
 		q.Tiers[stars]++
 	}
-	return q, nil
+	return items, q, nil
 }
 
 func (s *InventoryService) SellBelow(ctx context.Context, key domain.PlayerKey, maxStars int) (BulkSellResult, error) {

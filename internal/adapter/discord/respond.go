@@ -231,4 +231,5 @@ const (
 	msgSellAllNone              = "You have no waifus at or below that rating."
 	msgSellAllConfirmFmt        = "Sell **%s** waifus (%s) for :coin: %s coins? This can't be undone."
 	msgSellAllDoneFmt           = "Sold %s waifus for :coin: %s coins. You now have %s coins."
+	msgSellAllViewing           = "These are the waifus that would be sold:"
 )

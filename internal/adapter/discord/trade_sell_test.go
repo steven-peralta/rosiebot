@@ -261,18 +261,45 @@ func TestSellAll_Flow(t *testing.T) {
 	f := newFixture(t)
 	f.give(aliceID, "ranked-000", "ranked-005", "ranked-020", "ranked-040", "ranked-100", "plain-a", "plain-b")
 
-	f.run(f.slash(aliceID, commandWaifu, subSellAll, nil, intOpt(optMaxStars, 2)))
-	r := f.api.lastRespond()
-	if r.Data.Content != "Sell **4** waifus (2 unranked, 1 ⭐, 1 ⭐⭐) for :coin: 550 coins? This can't be undone." || r.Data.Flags&discordgo.MessageFlagsEphemeral == 0 {
-		t.Fatalf("confirm = %+v", r.Data)
+	ic := f.slash(aliceID, commandWaifu, subSellAll, nil, intOpt(optMaxStars, 2))
+	f.run(ic)
+	if r := f.api.calls[0].resp; r.Type != discordgo.InteractionResponseDeferredChannelMessageWithSource || r.Data == nil || r.Data.Flags&discordgo.MessageFlagsEphemeral == 0 {
+		t.Fatalf("sellall should defer an ephemeral reply, got %+v", r)
 	}
-	buttons := r.Data.Components[0].(discordgo.ActionsRow).Components
+	e := f.api.lastEdit()
+	if editContent(e) != "Sell **4** waifus (2 unranked, 1 ⭐, 1 ⭐⭐) for :coin: 550 coins? This can't be undone." {
+		t.Fatalf("confirm = %q", editContent(e))
+	}
+	embed := (*e.Embeds)[0]
+	lines := strings.Split(embed.Description, "\n")
+	if embed.Title != "Waifus to sell" || len(lines) != 4 || lines[0] != "1. :star::star: Name ranked-040 · Rank #41" || lines[3] != "4. Name plain-b · unranked" {
+		t.Errorf("confirm list = %+v", embed)
+	}
+	rows := *e.Components
+	if len(rows) != 1 {
+		t.Fatalf("a four-item confirmation should only have the action row, got %d rows", len(rows))
+	}
+	buttons := rows[0].(discordgo.ActionsRow).Components
 	okID := buttons[0].(discordgo.Button).CustomID
-	if okID != sellPrefix+sellAll+":2" || buttons[1].(discordgo.Button).CustomID != sellPrefix+sellNo {
+	viewID := buttons[1].(discordgo.Button).CustomID
+	if okID != sellPrefix+sellAll+":2" || viewID != sellPrefix+sellView+":2" || buttons[2].(discordgo.Button).CustomID != sellPrefix+sellNo {
 		t.Errorf("buttons = %+v", buttons)
 	}
+	confirmMsg := f.message("msg-" + ic.ID)
 
-	f.run(f.click(aliceID, nil, sellPrefix+sellNo))
+	view := f.click(aliceID, confirmMsg, viewID)
+	f.run(view)
+	ve := f.api.lastEdit()
+	if editContent(ve) != msgSellAllViewing+"\nPage 1 out of 4" || !strings.HasSuffix((*ve.Embeds)[0].Title, "Name ranked-040") || !hasComponents(*ve.Components) {
+		t.Errorf("view characters = %q %q", editContent(ve), (*ve.Embeds)[0].Title)
+	}
+	for _, c := range (*ve.Components)[0].(discordgo.ActionsRow).Components {
+		if c.(discordgo.Button).CustomID == sellPrefix+sellAsk {
+			t.Error("the preview pager must not offer single sells")
+		}
+	}
+
+	f.run(f.click(aliceID, confirmMsg, sellPrefix+sellNo))
 	if got := f.api.lastRespond().Data.Content; got != msgSellCancelled {
 		t.Errorf("cancel = %q", got)
 	}
@@ -280,7 +307,7 @@ func TestSellAll_Flow(t *testing.T) {
 		t.Error("cancel must not sell")
 	}
 
-	f.run(f.click(aliceID, nil, okID))
+	f.run(f.click(aliceID, confirmMsg, okID))
 	if got := f.api.lastRespond().Data.Content; got != "Sold 4 waifus for :coin: 550 coins. You now have 750 coins." {
 		t.Errorf("sold = %q", got)
 	}
@@ -293,13 +320,21 @@ func TestSellAll_Flow(t *testing.T) {
 		t.Errorf("second confirm = %q", got)
 	}
 	f.run(f.slash(aliceID, commandWaifu, subSellAll, nil, intOpt(optMaxStars, 0)))
-	if got := f.respondContent(); got != msgSellAllNone {
+	if got := editContent(f.api.lastEdit()); got != msgSellAllNone {
 		t.Errorf("nothing left unranked = %q", got)
+	}
+	f.run(f.click(aliceID, confirmMsg, viewID))
+	if got := editContent(f.api.lastEdit()); got != msgSellAllNone {
+		t.Errorf("view after selling = %q", got)
 	}
 
 	f.run(f.slash(aliceID, commandWaifu, subSellAll, nil, intOpt(optMaxStars, 5)))
-	if got := f.respondContent(); got != "Sell **3** waifus (1 ⭐⭐⭐, 1 ⭐⭐⭐⭐, 1 ⭐⭐⭐⭐⭐) for :coin: 1,800 coins? This can't be undone." {
+	if got := editContent(f.api.lastEdit()); got != "Sell **3** waifus (1 ⭐⭐⭐, 1 ⭐⭐⭐⭐, 1 ⭐⭐⭐⭐⭐) for :coin: 1,800 coins? This can't be undone." {
 		t.Errorf("everything = %q", got)
+	}
+	f.run(f.click(aliceID, confirmMsg, sellPrefix+sellView+":x"))
+	if got := f.respondContent(); got != msgUnexpected {
+		t.Errorf("bad view id = %q", got)
 	}
 	f.run(f.slash(aliceID, commandWaifu, subSellAll, nil, intOpt(optMaxStars, 9)))
 	if got := f.respondContent(); got != msgUnexpected {
@@ -311,6 +346,41 @@ func TestSellAll_Flow(t *testing.T) {
 	}
 	if choices := sellAllChoices(); len(choices) != 6 || choices[0].Name != "Unranked only" || choices[5].Name != "Everything" {
 		t.Errorf("choices = %+v", choices)
+	}
+}
+
+func TestSellAll_PagedConfirmation(t *testing.T) {
+	f := newFixture(t)
+	slugs := make([]string, 0, 45)
+	for i := range 45 {
+		slugs = append(slugs, fmt.Sprintf("plain-%02d", i))
+	}
+	f.give(aliceID, slugs...)
+	ic := f.slash(aliceID, commandWaifu, subSellAll, nil, intOpt(optMaxStars, 0))
+	f.run(ic)
+	e := f.api.lastEdit()
+	if !strings.HasSuffix(editContent(e), "Page 1 out of 3") {
+		t.Fatalf("content = %q", editContent(e))
+	}
+	rows := *e.Components
+	if len(rows) != 3 {
+		t.Fatalf("paged confirmation should have nav, select and action rows, got %d", len(rows))
+	}
+	if btn := rows[2].(discordgo.ActionsRow).Components[0].(discordgo.Button); btn.CustomID != sellPrefix+sellAll+":0" {
+		t.Errorf("action row = %+v", rows[2])
+	}
+	msg := f.message("msg-" + ic.ID)
+	f.run(f.click(aliceID, msg, pagerPrefix+pagerLast))
+	r := f.api.lastRespond()
+	if !strings.HasSuffix(r.Data.Content, "Page 3 out of 3") || len(strings.Split(r.Data.Embeds[0].Description, "\n")) != 5 || len(r.Data.Components) != 3 {
+		t.Errorf("last page = %+v", r.Data)
+	}
+	f.run(f.click(aliceID, msg, sellPrefix+sellAll+":0"))
+	if got := f.api.lastRespond().Data.Content; got != "Sold 45 waifus for :coin: 4,500 coins. You now have 4,700 coins." {
+		t.Errorf("sold = %q", got)
+	}
+	if _, ok := f.bot.Sessions().Get(msg.ID); ok {
+		t.Error("confirmation pager session should be closed after selling")
 	}
 }
 

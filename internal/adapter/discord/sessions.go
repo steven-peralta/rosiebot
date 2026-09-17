@@ -1,6 +1,7 @@
 package discord
 
 import (
+	"github.com/bwmarrin/discordgo"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -28,6 +29,7 @@ const (
 type compactGroup struct {
 	first int
 	items []cardCharacter
+	title string
 }
 
 type pageRef struct {
@@ -51,6 +53,7 @@ type Session struct {
 	SenderID  string
 	TargetID  string
 	Builder   *tradeBuilder
+	Extra     []discordgo.MessageComponent
 	ExpiresAt time.Time
 	ttl       time.Duration
 	state     atomic.Int32

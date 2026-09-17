@@ -19,6 +19,7 @@ const (
 	sellOK     = "ok"
 	sellNo     = "no"
 	sellAll    = "all"
+	sellView   = "view"
 )
 
 func sellAskButton() discordgo.Button {
@@ -78,6 +79,7 @@ func sellAllChoices() []*discordgo.ApplicationCommandOptionChoice {
 func sellAllComponents(maxStars int) []discordgo.MessageComponent {
 	return []discordgo.MessageComponent{discordgo.ActionsRow{Components: []discordgo.MessageComponent{
 		discordgo.Button{Style: discordgo.DangerButton, CustomID: fmt.Sprintf("%s%s:%d", sellPrefix, sellAll, maxStars), Emoji: &discordgo.ComponentEmoji{Name: "💰"}, Label: "Sell them all"},
+		discordgo.Button{Style: discordgo.SecondaryButton, CustomID: fmt.Sprintf("%s%s:%d", sellPrefix, sellView, maxStars), Emoji: &discordgo.ComponentEmoji{Name: "📖"}, Label: "View characters"},
 		discordgo.Button{Style: discordgo.SecondaryButton, CustomID: sellPrefix + sellNo, Emoji: &discordgo.ComponentEmoji{Name: "🚫"}, Label: "Cancel"},
 	}}}
 }
@@ -101,17 +103,48 @@ func (b *Bot) sellAllCommand(ctx context.Context, ic *interaction, opts []*disco
 		b.replyEphemeral(ic, msgUnexpected)
 		return
 	}
-	q, err := b.svc.Inventory.QuoteBelow(ctx, ic.key(), maxStars)
+	if !b.deferReply(ic, true) {
+		return
+	}
+	start := b.cfg.Clock.Now()
+	items, q, err := b.svc.Inventory.EligibleBelow(ctx, ic.key(), maxStars)
 	if err != nil {
 		b.log.Error("sell all quote failed", "user", ic.userID(), "err", err)
-		b.replyEphemeral(ic, errorText(err))
+		b.editText(ic, errorText(err))
 		return
 	}
 	if q.Count == 0 {
-		b.replyEphemeral(ic, msgSellAllNone)
+		b.editText(ic, msgSellAllNone)
 		return
 	}
-	b.replyEphemeralComponents(ic, fmt.Sprintf(msgSellAllConfirmFmt, thousands(q.Count), tierBreakdown(q), coins(q.Total)), sellAllComponents(maxStars))
+	lookup := app.LookupFrom(b.svc.Ranking)
+	content := fmt.Sprintf(msgSellAllConfirmFmt, thousands(q.Count), tierBreakdown(q), coins(q.Total))
+	pages := pagesCompactTitled(sortOwned(items, "rank_asc", lookup), lookup, "Waifus to sell")
+	b.openPagerWith(ctx, ic, content, pages, false, sellAllComponents(maxStars), b.cfg.Clock.Now().Sub(start))
+}
+
+func (b *Bot) sellAllView(ctx context.Context, ic *interaction, raw string) {
+	maxStars, err := strconv.Atoi(raw)
+	if err != nil || maxStars < 0 || maxStars > domain.MaxStars {
+		b.log.Warn("bad sell all threshold", "raw", raw)
+		b.replyEphemeral(ic, msgUnexpected)
+		return
+	}
+	if !b.deferReply(ic, true) {
+		return
+	}
+	start := b.cfg.Clock.Now()
+	items, _, err := b.svc.Inventory.EligibleBelow(ctx, ic.key(), maxStars)
+	if err != nil {
+		b.log.Error("sell all view failed", "user", ic.userID(), "err", err)
+		b.editText(ic, errorText(err))
+		return
+	}
+	if len(items) == 0 {
+		b.editText(ic, msgSellAllNone)
+		return
+	}
+	b.openPager(ctx, ic, msgSellAllViewing, pagesFromOwned(sortOwned(items, "rank_asc", app.LookupFrom(b.svc.Ranking))), false, b.cfg.Clock.Now().Sub(start))
 }
 
 func (b *Bot) sellAllConfirm(ctx context.Context, ic *interaction, raw string) {
@@ -132,6 +165,9 @@ func (b *Bot) sellAllConfirm(ctx context.Context, ic *interaction, raw string) {
 		return
 	}
 	b.log.Info("sold collection tier", "user", ic.userID(), "guild", ic.GuildID, "max_stars", maxStars, "count", res.Count, "total", res.Total)
+	if ic.Message != nil {
+		b.sessions.Delete(ic.Message.ID)
+	}
 	b.updateMessage(ic, fmt.Sprintf(msgSellAllDoneFmt, thousands(res.Count), coins(res.Total), coins(res.Balance)), nil, nil)
 }
 
@@ -148,11 +184,18 @@ func (b *Bot) sellButton(ctx context.Context, ic *interaction, action string) {
 		b.offerSale(ctx, ic, ic.Message)
 		return
 	case sellNo:
+		if ic.Message != nil {
+			b.sessions.Delete(ic.Message.ID)
+		}
 		b.updateMessage(ic, msgSellCancelled, nil, nil)
 		return
 	}
 	if rest, ok := strings.CutPrefix(action, sellAll+":"); ok {
 		b.sellAllConfirm(ctx, ic, rest)
+		return
+	}
+	if rest, ok := strings.CutPrefix(action, sellView+":"); ok {
+		b.sellAllView(ctx, ic, rest)
 		return
 	}
 	parts := strings.Split(action, ":")
