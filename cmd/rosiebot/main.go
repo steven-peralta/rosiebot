@@ -104,7 +104,7 @@ func run(ctx context.Context, dryRun bool) error {
 	if err != nil {
 		return fmt.Errorf("discord identity: %w", err)
 	}
-	bot := discord.New(session, services, discord.Config{AppID: me.ID, BotUserID: me.ID, Version: version, Clock: clock, Logger: logger})
+	bot := discord.New(session, services, discord.Config{AppID: me.ID, BotUserID: me.ID, Version: version, Clock: clock, Logger: logger, OwnerIDs: cfg.OwnerIDs})
 	session.AddHandler(func(_ *discordgo.Session, i *discordgo.InteractionCreate) { bot.Handle(i) })
 	session.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
 		logger.Info("discord ready", "user", r.User.Username, "guilds", len(r.Guilds))

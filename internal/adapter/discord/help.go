@@ -61,7 +61,7 @@ func adminHelpEmbed() *discordgo.MessageEmbed {
 	return &discordgo.MessageEmbed{
 		Title:       "/admin · how it works",
 		Color:       brandingColor,
-		Description: "Server administrators only. Every reply is private and every action is written to the bot log with your name.",
+		Description: "Bot owner only; server administrators cannot use these. Every reply is private and every action is written to the bot log.",
 		Fields: []*discordgo.MessageEmbedField{
 			helpField("coins set | increment | decrement @user <amount>",
 				"Set a balance outright, add coins, or take coins. A balance never goes below zero; a decrement that would do so is refused. The player is created if they've never used the bot."),

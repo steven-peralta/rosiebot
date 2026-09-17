@@ -288,7 +288,7 @@ func newFixture(t *testing.T) *fixture {
 		Status:    status,
 	}
 	api := newFakeAPI()
-	bot := New(api, svc, Config{AppID: "app", BotUserID: botID, Version: "test", Clock: clock})
+	bot := New(api, svc, Config{AppID: "app", BotUserID: botID, Version: "test", Clock: clock, OwnerIDs: []string{aliceID}})
 	svc.Status = status
 	return &fixture{t: t, api: api, bot: bot, clock: clock, rng: rng, players: players, source: source, ranking: ranking, daily: daily, banners: banners, loc: loc, status: status}
 }
@@ -390,7 +390,6 @@ func (f *fixture) adminCmd(userID, group, sub string, resolved *discordgo.Applic
 	data := ic.Data.(discordgo.ApplicationCommandInteractionData)
 	data.Options = []*discordgo.ApplicationCommandInteractionDataOption{{Name: group, Type: discordgo.ApplicationCommandOptionSubCommandGroup, Options: data.Options}}
 	ic.Data = data
-	ic.Member.Permissions = discordgo.PermissionAdministrator
 	return ic
 }
 

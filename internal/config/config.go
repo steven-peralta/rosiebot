@@ -23,6 +23,7 @@ type Config struct {
 	DatabaseURL     string
 	Timezone        *time.Location
 	DevGuildID      string
+	OwnerIDs        []string
 	RankingRefresh  time.Duration
 	RankingMinVotes int
 	WaifuCacheTTL   time.Duration
@@ -40,6 +41,7 @@ func Load(getenv Getenv) (Config, error) {
 		WaifuAPIKey:     getenv("WAIFU_API_KEY"),
 		DatabaseURL:     getenv("DATABASE_URL"),
 		DevGuildID:      strings.TrimSpace(getenv("DEV_GUILD_ID")),
+		OwnerIDs:        splitIDs(getenv("BOT_OWNER_IDS")),
 		RankingRefresh:  DefaultRankingRefresh,
 		RankingMinVotes: DefaultMinVotes,
 		WaifuCacheTTL:   DefaultWaifuCacheTTL,
@@ -107,4 +109,14 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func splitIDs(raw string) []string {
+	var out []string
+	for _, part := range strings.Split(raw, ",") {
+		if id := strings.TrimSpace(part); id != "" {
+			out = append(out, id)
+		}
+	}
+	return out
 }

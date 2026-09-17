@@ -34,7 +34,7 @@ const (
 	msgNoBanner            = "There's no banner this week yet. Check back soon!"
 	msgSeriesHeaderFmt     = "Showing results for series %s"
 	msgSeriesFound         = "Here's the series I found:"
-	msgAdminOnly           = "Only server administrators can use this command."
+	msgAdminOnly           = "Only the bot owner can use this command."
 	msgAdminSetFmt         = "Set %s's balance to :coin: %d coins."
 	msgAdminAddedFmt       = "Added :coin: %d coins to %s. New balance: %d coins."
 	msgAdminRemovedFmt     = "Removed :coin: %d coins from %s. New balance: %d coins."
@@ -227,4 +227,5 @@ const (
 	msgResponseTooLarge = "Response too large!"
 
 	msgRankingStatusUnavailable = "Ranking status isn't available in this deployment."
+	msgNoOwner                  = "No bot owner is configured, so admin commands are disabled."
 )

@@ -35,7 +35,6 @@ const (
 func adminCommand() *discordgo.ApplicationCommand {
 	guildOnly := []discordgo.InteractionContextType{discordgo.InteractionContextGuild}
 	integrations := []discordgo.ApplicationIntegrationType{discordgo.ApplicationIntegrationGuildInstall}
-	adminPerms := int64(discordgo.PermissionAdministrator)
 	user := func(desc string) *discordgo.ApplicationCommandOption {
 		return &discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionUser, Name: optUser, Description: desc, Required: true}
 	}
@@ -49,11 +48,10 @@ func adminCommand() *discordgo.ApplicationCommand {
 		return &discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionSubCommand, Name: name, Description: desc, Options: opts}
 	}
 	return &discordgo.ApplicationCommand{
-		Name:                     commandAdmin,
-		Description:              "Administrator tools for coins and collections",
-		Contexts:                 &guildOnly,
-		IntegrationTypes:         &integrations,
-		DefaultMemberPermissions: &adminPerms,
+		Name:             commandAdmin,
+		Description:      "Bot owner tools for coins, collections, and banners",
+		Contexts:         &guildOnly,
+		IntegrationTypes: &integrations,
 		Options: []*discordgo.ApplicationCommandOption{
 			{Type: discordgo.ApplicationCommandOptionSubCommandGroup, Name: groupCoins, Description: "Change a player's balance", Options: []*discordgo.ApplicationCommandOption{
 				sub(adminSet, "Set a player's balance", user("Whose balance to set"), amount("New balance", 0)),
@@ -90,8 +88,14 @@ func groupSubcommand(data discordgo.ApplicationCommandInteractionData) (group, s
 	return g.Name, s.Name, s.Options
 }
 
-func (ic *interaction) isAdmin() bool {
-	return ic.Member != nil && ic.Member.Permissions&discordgo.PermissionAdministrator != 0
+func (b *Bot) isOwner(ic *interaction) bool {
+	id := ic.userID()
+	for _, owner := range b.cfg.OwnerIDs {
+		if owner == id {
+			return true
+		}
+	}
+	return false
 }
 
 func (b *Bot) admin(ctx context.Context, ic *interaction, data discordgo.ApplicationCommandInteractionData) {
@@ -101,7 +105,12 @@ func (b *Bot) admin(ctx context.Context, ic *interaction, data discordgo.Applica
 		b.replyEphemeral(ic, fmt.Sprintf(msgDMFmt, commandAdmin))
 		return
 	}
-	if !ic.isAdmin() {
+	if len(b.cfg.OwnerIDs) == 0 {
+		b.replyEphemeral(ic, msgNoOwner)
+		return
+	}
+	if !b.isOwner(ic) {
+		b.log.Warn("admin command refused", "user", ic.userID(), "guild", ic.GuildID)
 		b.replyEphemeral(ic, msgAdminOnly)
 		return
 	}

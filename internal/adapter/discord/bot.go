@@ -45,6 +45,7 @@ type Config struct {
 	PagerTTL       time.Duration
 	TradeTTL       time.Duration
 	CommandTimeout time.Duration
+	OwnerIDs       []string
 }
 
 const (

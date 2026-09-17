@@ -22,10 +22,10 @@ A Discord waifu gacha bot backed by [MyWaifuList](https://mywaifulist.moe). Roll
 | `/waifu help`, `/series help`, `/admin help` | Private explainer of each command's mechanics: odds, costs, filters, trading, stars, and the admin tools. |
 | `/series search <query>` | Show a series card: cover, description, and its characters ranked first with stars, and a Browse characters button that opens the usual one-per-page pager. Autocompletes series names. |
 | `/s …` | Shorthand for `/series`. |
-| `/admin coins set\|increment\|decrement <user> <amount>` | Server administrators only: set, add to, or take from a player's balance. Replies privately. |
-| `/admin waifu add\|remove <user> <waifu>` | Server administrators only: give a waifu to a player or take one away, with autocomplete. No coins change hands. |
-| `/admin banner reroll` | Server administrators only: replace this week's banner with a different eligible series, never the current or last week's one. |
-| `/admin ranking status` | Server administrators only: show the star ranking snapshot, when the next refresh is due, and the live progress of a running refresh. |
+| `/admin coins set\|increment\|decrement <user> <amount>` | Bot owner only: set, add to, or take from a player's balance. Replies privately. |
+| `/admin waifu add\|remove <user> <waifu>` | Bot owner only: give a waifu to a player or take one away, with autocomplete. No coins change hands. |
+| `/admin banner reroll` | Bot owner only: replace this week's banner with a different eligible series, never the current or last week's one. |
+| `/admin ranking status` | Bot owner only: show the star ranking snapshot, when the next refresh is due, and the live progress of a running refresh. |
 | **Sell Waifu** (message context menu) | Right-click any bot message showing a waifu you own to sell it. Unranked waifus pay 100 coins; ranked ones pay 150, 200, 300, 500 or 1000 for one to five stars. |
 
 Character details and search pages are cached in Postgres and refreshed lazily: a stale entry is served immediately while one background request refreshes it, so nothing depends on a scheduled job. Random rolls and the waifu of the day always go to the live API, so newly submitted characters appear as soon as MyWaifuList lists them.
@@ -43,6 +43,7 @@ Star ratings come from the owner's formula, `((likes+1)/(trash+1)) * (likes+tras
 | `DATABASE_URL` | yes | | Postgres connection string |
 | `BOT_TIMEZONE` | no | `America/Chicago` | Timezone for daily and waifu-of-the-day resets and the weekly banner rotation (Monday 10:00) |
 | `DEV_GUILD_ID` | no | | Register commands to one guild (instant) instead of globally |
+| `BOT_OWNER_IDS` | no | | Comma-separated Discord user ids allowed to use `/admin`. Empty disables the admin commands. |
 | `RANKING_REFRESH` | no | `24h` | How often the ranked set is rebuilt |
 | `RANKING_MIN_VOTES` | no | `100` | Vote threshold for the ranked set |
 | `WAIFU_CACHE_TTL` | no | `24h` | How long a character's detail is served from the cache before a background refresh |

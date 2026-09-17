@@ -42,14 +42,13 @@ func TestHelp_AllCommands(t *testing.T) {
 	check("w", f.dm(aliceID, commandWAlias, subHelp), "/waifu · how it works")
 	check("series", f.slash(aliceID, commandSeries, subHelp, nil), "/series · how it works")
 	check("s", f.dm(aliceID, commandSAlias, subHelp), "/series · how it works")
-	admin := f.slash(aliceID, commandAdmin, subHelp, nil)
-	admin.Member.Permissions = discordgo.PermissionAdministrator
-	check("admin", admin, "/admin · how it works")
+	check("admin", f.slash(aliceID, commandAdmin, subHelp, nil), "/admin · how it works")
 
 	plain := f.slash(bobID, commandAdmin, subHelp, nil)
+	plain.Member.Permissions = discordgo.PermissionAdministrator
 	f.run(plain)
 	if got := f.respondContent(); got != msgAdminOnly {
-		t.Errorf("admin help for non-admins = %q", got)
+		t.Errorf("admin help for a server administrator who is not the owner = %q", got)
 	}
 	if got := waifuHelpEmbed().Fields[0].Name; !strings.Contains(got, "200") {
 		t.Errorf("roll cost missing from help: %q", got)
@@ -220,14 +219,20 @@ func TestAdmin_GuardsAndAutocomplete(t *testing.T) {
 	f := newFixture(t)
 	f.give(aliceID)
 	plain := f.adminCmd(bobID, groupCoins, adminSet, resolvedUsers(aliceID), userOption(aliceID), intOpt(optAmount, 1))
-	plain.Member.Permissions = 0
+	plain.Member.Permissions = discordgo.PermissionAdministrator
 	f.run(plain)
 	if got := f.respondContent(); got != msgAdminOnly {
-		t.Errorf("non-admin = %q", got)
+		t.Errorf("server admin who is not the owner = %q", got)
 	}
 	if f.coins(aliceID) != domain.StartingCoins {
-		t.Error("non-admin must not change coins")
+		t.Error("non-owner must not change coins")
 	}
+	f.bot.cfg.OwnerIDs = nil
+	f.run(f.adminCmd(aliceID, groupCoins, adminSet, resolvedUsers(bobID), userOption(bobID), intOpt(optAmount, 1)))
+	if got := f.respondContent(); got != msgNoOwner {
+		t.Errorf("no owner configured = %q", got)
+	}
+	f.bot.cfg.OwnerIDs = []string{aliceID}
 
 	dm := f.adminCmd(aliceID, groupCoins, adminSet, resolvedUsers(bobID), userOption(bobID), intOpt(optAmount, 1))
 	dm.GuildID = ""
@@ -244,9 +249,7 @@ func TestAdmin_GuardsAndAutocomplete(t *testing.T) {
 	if got := editContent(f.api.lastEdit()); got != msgUnexpected {
 		t.Errorf("unknown subcommand = %q", got)
 	}
-	bare := f.slash(aliceID, commandAdmin, "", nil)
-	bare.Member.Permissions = discordgo.PermissionAdministrator
-	f.run(bare)
+	f.run(f.slash(aliceID, commandAdmin, "", nil))
 
 	f.give(bobID, "rem", "ram")
 	focused := strOpt(optWaifu, "ranked-00")
