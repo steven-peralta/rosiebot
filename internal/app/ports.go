@@ -46,6 +46,16 @@ type PlayerRepo interface {
 	TransferOwned(ctx context.Context, from, to domain.PlayerKey, slugs []string) (moved int64, err error)
 	ListOwned(ctx context.Context, key domain.PlayerKey, prefix string, limit int) ([]domain.OwnedWaifu, error)
 	CountOwned(ctx context.Context, key domain.PlayerKey) (int, error)
+	RecordRoll(ctx context.Context, key domain.PlayerKey, r domain.RollRecord) error
+	RecentRolls(ctx context.Context, key domain.PlayerKey, limit int) ([]domain.RollRecord, error)
+	CountRolls(ctx context.Context, key domain.PlayerKey) (int, error)
+	GuildPlayers(ctx context.Context, guildID string) ([]domain.Player, error)
+	GuildInventory(ctx context.Context, guildID string) ([]OwnedRow, error)
+}
+
+type OwnedRow struct {
+	UserID string
+	Slug   string
 }
 
 type PlayerStore interface {

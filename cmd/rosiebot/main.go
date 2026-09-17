@@ -77,6 +77,7 @@ func run(ctx context.Context, dryRun bool) error {
 	services := discord.Services{
 		Admin:     app.NewAdminService(players, source, clock, logger),
 		Favorites: app.NewFavoriteService(favorites, clock),
+		Stats:     app.NewStatsService(players, ranking, favorites),
 		Roll:      app.NewRollService(players, source, ranking, wotd, banner, clock, rng, cfg.RankingMinVotes, logger),
 		Daily:     app.NewDailyService(players, clock, rng, cfg.Timezone),
 		Coins:     app.NewCoinsService(players),

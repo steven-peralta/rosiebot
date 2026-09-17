@@ -31,7 +31,7 @@ func TestSeriesSearch_Card(t *testing.T) {
 	if embed.Title != "Re:Zero" || embed.URL != reZero.URL || embed.Image == nil || embed.Description != "A boy is summoned." || embed.Footer == nil {
 		t.Errorf("embed = %+v", embed)
 	}
-	if len(embed.Fields) != 1 || embed.Fields[0].Name != "Characters · 2 ranked of 4" {
+	if len(embed.Fields) != 2 || embed.Fields[0].Name != "Characters · 2 ranked of 4" || embed.Fields[1].Name != "Your collection" || embed.Fields[1].Value != "0 of 2 ranked · 0 of 4 characters" {
 		t.Fatalf("fields = %+v", embed.Fields)
 	}
 	lines := strings.Split(embed.Fields[0].Value, "\n")

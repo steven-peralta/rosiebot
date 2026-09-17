@@ -238,4 +238,7 @@ const (
 	msgFavNoneFmt               = "%s favorites don't have any %s yet."
 	msgAlertsOn                 = "Favorite alerts are on. You'll get a DM when a favorite waifu or series is on the banner, when a favorite is the Waifu of the Day, and when someone else here rolls one of your favorites. Make sure DMs from server members are allowed."
 	msgAlertsOff                = "Favorite alerts are off. Turn them back on with /favs alerts on."
+	msgLeaderboardEmpty         = "Nobody here has played yet."
+	msgHistoryNoneFmt           = "%s roll history is empty."
+	msgOwnedSeriesFmt           = "from **%s**: %s of %s characters"
 )

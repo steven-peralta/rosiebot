@@ -18,6 +18,7 @@ type PlayerStore struct {
 	clock     app.Clock
 	players   map[domain.PlayerKey]domain.Player
 	inventory map[domain.PlayerKey]map[string]domain.OwnedWaifu
+	rolls     map[domain.PlayerKey][]domain.RollRecord
 }
 
 var _ app.PlayerStore = (*PlayerStore)(nil)
@@ -34,6 +35,7 @@ func NewPlayerStore(clock app.Clock) *PlayerStore {
 }
 
 type snapshot struct {
+	rolls     map[domain.PlayerKey][]domain.RollRecord
 	players   map[domain.PlayerKey]domain.Player
 	inventory map[domain.PlayerKey]map[string]domain.OwnedWaifu
 }
@@ -43,12 +45,17 @@ func (s *PlayerStore) snapshot() snapshot {
 	for k, v := range s.inventory {
 		inv[k] = maps.Clone(v)
 	}
-	return snapshot{players: maps.Clone(s.players), inventory: inv}
+	rolls := make(map[domain.PlayerKey][]domain.RollRecord, len(s.rolls))
+	for k, v := range s.rolls {
+		rolls[k] = append([]domain.RollRecord(nil), v...)
+	}
+	return snapshot{players: maps.Clone(s.players), inventory: inv, rolls: rolls}
 }
 
 func (s *PlayerStore) restore(snap snapshot) {
 	s.players = snap.players
 	s.inventory = snap.inventory
+	s.rolls = snap.rolls
 }
 
 func (s *PlayerStore) WithinTx(ctx context.Context, fn func(app.PlayerRepo) error) error {
@@ -144,6 +151,86 @@ func (s *PlayerStore) CountOwned(ctx context.Context, key domain.PlayerKey) (int
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return len(s.inventory[key]), nil
+}
+
+func (s *PlayerStore) RecordRoll(ctx context.Context, key domain.PlayerKey, r domain.RollRecord) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.recordRollLocked(key, r)
+}
+
+func (s *PlayerStore) RecentRolls(ctx context.Context, key domain.PlayerKey, limit int) ([]domain.RollRecord, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.recentRollsLocked(key, limit), nil
+}
+
+func (s *PlayerStore) CountRolls(ctx context.Context, key domain.PlayerKey) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return len(s.rolls[key]), nil
+}
+
+func (s *PlayerStore) GuildPlayers(ctx context.Context, guildID string) ([]domain.Player, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.guildPlayersLocked(guildID), nil
+}
+
+func (s *PlayerStore) GuildInventory(ctx context.Context, guildID string) ([]app.OwnedRow, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.guildInventoryLocked(guildID), nil
+}
+
+func (s *PlayerStore) recordRollLocked(key domain.PlayerKey, r domain.RollRecord) error {
+	if s.rolls == nil {
+		s.rolls = map[domain.PlayerKey][]domain.RollRecord{}
+	}
+	s.rolls[key] = append(s.rolls[key], r)
+	return nil
+}
+
+func (s *PlayerStore) recentRollsLocked(key domain.PlayerKey, limit int) []domain.RollRecord {
+	all := s.rolls[key]
+	out := make([]domain.RollRecord, 0, len(all))
+	for i := len(all) - 1; i >= 0; i-- {
+		out = append(out, all[i])
+		if limit > 0 && len(out) == limit {
+			break
+		}
+	}
+	return out
+}
+
+func (s *PlayerStore) guildPlayersLocked(guildID string) []domain.Player {
+	out := []domain.Player{}
+	for k, p := range s.players {
+		if k.GuildID == guildID {
+			out = append(out, p)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Key.UserID < out[j].Key.UserID })
+	return out
+}
+
+func (s *PlayerStore) guildInventoryLocked(guildID string) []app.OwnedRow {
+	out := []app.OwnedRow{}
+	for k, inv := range s.inventory {
+		if k.GuildID != guildID {
+			continue
+		}
+		for slug := range inv {
+			out = append(out, app.OwnedRow{UserID: k.UserID, Slug: slug})
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].UserID != out[j].UserID {
+			return out[i].UserID < out[j].UserID
+		}
+		return out[i].Slug < out[j].Slug
+	})
+	return out
 }
 
 func (s *PlayerStore) ensurePlayerLocked(key domain.PlayerKey) (domain.Player, error) {
@@ -379,4 +466,24 @@ func (t txRepo) ListOwned(_ context.Context, key domain.PlayerKey, prefix string
 
 func (t txRepo) CountOwned(_ context.Context, key domain.PlayerKey) (int, error) {
 	return len(t.s.inventory[key]), nil
+}
+
+func (t txRepo) RecordRoll(_ context.Context, key domain.PlayerKey, r domain.RollRecord) error {
+	return t.s.recordRollLocked(key, r)
+}
+
+func (t txRepo) RecentRolls(_ context.Context, key domain.PlayerKey, limit int) ([]domain.RollRecord, error) {
+	return t.s.recentRollsLocked(key, limit), nil
+}
+
+func (t txRepo) CountRolls(_ context.Context, key domain.PlayerKey) (int, error) {
+	return len(t.s.rolls[key]), nil
+}
+
+func (t txRepo) GuildPlayers(_ context.Context, guildID string) ([]domain.Player, error) {
+	return t.s.guildPlayersLocked(guildID), nil
+}
+
+func (t txRepo) GuildInventory(_ context.Context, guildID string) ([]app.OwnedRow, error) {
+	return t.s.guildInventoryLocked(guildID), nil
 }

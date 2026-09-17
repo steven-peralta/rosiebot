@@ -305,3 +305,65 @@ var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
 func escapeLike(s string) string {
 	return likeEscaper.Replace(s)
 }
+
+func (r repo) RecordRoll(ctx context.Context, key domain.PlayerKey, rec domain.RollRecord) error {
+	if err := r.q.RecordRoll(ctx, gen.RecordRollParams{
+		GuildID: key.GuildID, UserID: key.UserID, Slug: rec.Slug, Name: rec.Name, Kind: rec.Kind.String(), Cost: rec.Cost, RolledAt: rec.At,
+	}); err != nil {
+		return fmt.Errorf("postgres: record roll: %w", err)
+	}
+	return nil
+}
+
+func (r repo) RecentRolls(ctx context.Context, key domain.PlayerKey, limit int) ([]domain.RollRecord, error) {
+	rows, err := r.q.RecentRolls(ctx, gen.RecentRollsParams{GuildID: key.GuildID, UserID: key.UserID, RowLimit: int32(limit)})
+	if err != nil {
+		return nil, fmt.Errorf("postgres: recent rolls: %w", err)
+	}
+	out := make([]domain.RollRecord, len(rows))
+	for i, row := range rows {
+		out[i] = domain.RollRecord{Slug: row.Slug, Name: row.Name, Kind: parseRollKind(row.Kind), Cost: row.Cost, At: row.RolledAt}
+	}
+	return out, nil
+}
+
+func (r repo) CountRolls(ctx context.Context, key domain.PlayerKey) (int, error) {
+	n, err := r.q.CountRolls(ctx, gen.CountRollsParams{GuildID: key.GuildID, UserID: key.UserID})
+	if err != nil {
+		return 0, fmt.Errorf("postgres: count rolls: %w", err)
+	}
+	return int(n), nil
+}
+
+func (r repo) GuildPlayers(ctx context.Context, guildID string) ([]domain.Player, error) {
+	rows, err := r.q.GuildPlayers(ctx, guildID)
+	if err != nil {
+		return nil, fmt.Errorf("postgres: guild players: %w", err)
+	}
+	out := make([]domain.Player, len(rows))
+	for i, row := range rows {
+		out[i] = toPlayer(row)
+	}
+	return out, nil
+}
+
+func (r repo) GuildInventory(ctx context.Context, guildID string) ([]app.OwnedRow, error) {
+	rows, err := r.q.GuildInventory(ctx, guildID)
+	if err != nil {
+		return nil, fmt.Errorf("postgres: guild inventory: %w", err)
+	}
+	out := make([]app.OwnedRow, len(rows))
+	for i, row := range rows {
+		out[i] = app.OwnedRow{UserID: row.UserID, Slug: row.Slug}
+	}
+	return out, nil
+}
+
+func parseRollKind(s string) domain.RollKind {
+	for _, k := range []domain.RollKind{domain.RollRegular, domain.RollCritical, domain.RollWaifuOfTheDay, domain.RollBanner} {
+		if k.String() == s {
+			return k
+		}
+	}
+	return domain.RollRegular
+}

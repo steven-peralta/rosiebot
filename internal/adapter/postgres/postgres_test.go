@@ -724,6 +724,62 @@ func TestAlertStoreAndFavoriteFind(t *testing.T) {
 	}
 }
 
+func TestRepo_RollsAndGuildQueries(t *testing.T) {
+	alice, bob := keys(t)
+	ctx := context.Background()
+	at := time.Date(2026, 9, 16, 12, 0, 0, 0, time.UTC)
+	s := NewStore(testPool, fixedClock{at})
+	for _, k := range []domain.PlayerKey{alice, bob} {
+		if _, err := s.EnsurePlayer(ctx, k); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for i, kind := range []domain.RollKind{domain.RollRegular, domain.RollCritical, domain.RollBanner} {
+		if err := s.RecordRoll(ctx, alice, domain.RollRecord{Slug: fmt.Sprintf("r%d", i), Name: "R", Kind: kind, Cost: 200, At: at.Add(time.Duration(i) * time.Minute)}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	recent, err := s.RecentRolls(ctx, alice, 2)
+	if err != nil || len(recent) != 2 || recent[0].Slug != "r2" || recent[0].Kind != domain.RollBanner || recent[1].Kind != domain.RollCritical || !recent[0].At.Equal(at.Add(2*time.Minute)) {
+		t.Errorf("recent = %+v %v", recent, err)
+	}
+	if n, err := s.CountRolls(ctx, alice); err != nil || n != 3 {
+		t.Errorf("count = %d %v", n, err)
+	}
+	if n, _ := s.CountRolls(ctx, bob); n != 0 {
+		t.Errorf("bob count = %d", n)
+	}
+	if _, err := s.AddOwned(ctx, alice, domain.OwnedWaifu{Slug: "rem", Name: "Rem", AcquiredAt: at}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.AddOwned(ctx, bob, domain.OwnedWaifu{Slug: "ram", Name: "Ram", AcquiredAt: at}); err != nil {
+		t.Fatal(err)
+	}
+	players, err := s.GuildPlayers(ctx, alice.GuildID)
+	if err != nil || len(players) != 2 {
+		t.Errorf("guild players = %+v %v", players, err)
+	}
+	inv, err := s.GuildInventory(ctx, alice.GuildID)
+	if err != nil || len(inv) != 2 || inv[0].Slug != "rem" || inv[1].UserID != bob.UserID {
+		t.Errorf("guild inventory = %+v %v", inv, err)
+	}
+	err = s.WithinTx(ctx, func(r app.PlayerRepo) error {
+		if err := r.RecordRoll(ctx, bob, domain.RollRecord{Slug: "x", Name: "X", Kind: domain.RollRegular, At: at}); err != nil {
+			return err
+		}
+		return errors.New("abort")
+	})
+	if err == nil {
+		t.Fatal("expected abort")
+	}
+	if n, _ := s.CountRolls(ctx, bob); n != 0 {
+		t.Error("history must roll back with the transaction")
+	}
+	if parseRollKind("nonsense") != domain.RollRegular {
+		t.Error("unknown kinds fall back to regular")
+	}
+}
+
 func TestServices_RollRaceOnPostgres(t *testing.T) {
 	alice, _ := keys(t)
 	ctx := context.Background()

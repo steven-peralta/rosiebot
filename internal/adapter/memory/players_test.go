@@ -399,3 +399,77 @@ func TestAlertStore(t *testing.T) {
 		t.Error("another user is a separate send")
 	}
 }
+
+func TestPlayerStore_RollsAndGuildQueries(t *testing.T) {
+	ctx := context.Background()
+	s := NewPlayerStore(nil)
+	for _, k := range []domain.PlayerKey{alice, bob} {
+		if _, err := s.EnsurePlayer(ctx, k); err != nil {
+			t.Fatal(err)
+		}
+	}
+	other := domain.PlayerKey{GuildID: "h", UserID: "zed"}
+	if _, err := s.EnsurePlayer(ctx, other); err != nil {
+		t.Fatal(err)
+	}
+	at := time.Date(2026, 9, 16, 12, 0, 0, 0, time.UTC)
+	for i := range 3 {
+		if err := s.RecordRoll(ctx, alice, domain.RollRecord{Slug: string(rune('a' + i)), Kind: domain.RollRegular, Cost: 200, At: at.Add(time.Duration(i) * time.Minute)}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	recent, _ := s.RecentRolls(ctx, alice, 2)
+	if len(recent) != 2 || recent[0].Slug != "c" || recent[1].Slug != "b" {
+		t.Errorf("recent = %+v", recent)
+	}
+	if all, _ := s.RecentRolls(ctx, alice, 0); len(all) != 3 {
+		t.Errorf("unlimited = %+v", all)
+	}
+	if n, _ := s.CountRolls(ctx, alice); n != 3 {
+		t.Errorf("count = %d", n)
+	}
+	if n, _ := s.CountRolls(ctx, bob); n != 0 {
+		t.Errorf("bob count = %d", n)
+	}
+	if _, err := s.AddOwned(ctx, alice, owned("rem", at)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.AddOwned(ctx, bob, owned("ram", at)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.AddOwned(ctx, other, owned("emilia", at)); err != nil {
+		t.Fatal(err)
+	}
+	players, _ := s.GuildPlayers(ctx, "g")
+	if len(players) != 2 || players[0].Key != alice || players[1].Key != bob {
+		t.Errorf("guild players = %+v", players)
+	}
+	inv, _ := s.GuildInventory(ctx, "g")
+	if len(inv) != 2 || inv[0] != (app.OwnedRow{UserID: "alice", Slug: "rem"}) || inv[1] != (app.OwnedRow{UserID: "bob", Slug: "ram"}) {
+		t.Errorf("guild inventory = %+v", inv)
+	}
+	err := s.WithinTx(ctx, func(r app.PlayerRepo) error {
+		if err := r.RecordRoll(ctx, bob, domain.RollRecord{Slug: "x", At: at}); err != nil {
+			return err
+		}
+		if n, _ := r.CountRolls(ctx, bob); n != 1 {
+			t.Error("count inside tx")
+		}
+		if p, _ := r.GuildPlayers(ctx, "g"); len(p) != 2 {
+			t.Error("players inside tx")
+		}
+		if i, _ := r.GuildInventory(ctx, "g"); len(i) != 2 {
+			t.Error("inventory inside tx")
+		}
+		if rr, _ := r.RecentRolls(ctx, bob, 1); len(rr) != 1 {
+			t.Error("recent inside tx")
+		}
+		return errors.New("abort")
+	})
+	if err == nil {
+		t.Fatal("expected abort")
+	}
+	if n, _ := s.CountRolls(ctx, bob); n != 0 {
+		t.Error("roll history must roll back with the transaction")
+	}
+}

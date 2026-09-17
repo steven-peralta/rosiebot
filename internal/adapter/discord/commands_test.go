@@ -18,7 +18,7 @@ import (
 func TestCommands_Registration(t *testing.T) {
 	f := newFixture(t)
 	cmds := f.bot.Commands()
-	if len(cmds) != 8 {
+	if len(cmds) != 10 {
 		t.Fatalf("commands = %d", len(cmds))
 	}
 	names := map[string][]string{}
@@ -27,7 +27,7 @@ func TestCommands_Registration(t *testing.T) {
 			names[c.Name] = append(names[c.Name], o.Name)
 		}
 	}
-	want := []string{subRoll, subDaily, subCoins, subOwned, subSearch, subList, subRandom, subToday, subBanner, subTrade, subSellAll, subHelp}
+	want := []string{subRoll, subDaily, subCoins, subOwned, subSearch, subList, subRandom, subToday, subBanner, subTrade, subHistory, subSellAll, subHelp}
 	if strings.Join(names[commandWaifu], ",") != strings.Join(want, ",") {
 		t.Errorf("waifu subcommands = %v", names[commandWaifu])
 	}
@@ -46,18 +46,21 @@ func TestCommands_Registration(t *testing.T) {
 	if cmds[4].Name != commandFavs || len(cmds[4].Options) != 3 || cmds[4].Options[0].Name != subFavWaifus || cmds[4].Options[1].Name != subFavSeries || cmds[4].Options[2].Name != subFavAlerts {
 		t.Errorf("/favs = %+v", cmds[4])
 	}
-	if cmds[5].Name != commandWotd || len(cmds[5].Options) != 0 {
-		t.Errorf("/wotd = %+v", cmds[5])
+	if cmds[5].Name != commandProfile || len(cmds[5].Options) != 1 || cmds[6].Name != commandLeaderboard || len(cmds[6].Options[0].Choices) != 4 {
+		t.Errorf("/profile and /leaderboard = %+v %+v", cmds[5], cmds[6])
 	}
-	admin := cmds[6]
+	if cmds[7].Name != commandWotd || len(cmds[7].Options) != 0 {
+		t.Errorf("/wotd = %+v", cmds[7])
+	}
+	admin := cmds[8]
 	if admin.Name != commandAdmin || admin.DefaultMemberPermissions != nil || len(admin.Options) != 5 || admin.Options[2].Name != groupBanner || admin.Options[3].Name != groupRanking || admin.Options[4].Name != subHelp {
 		t.Errorf("admin command = %+v", admin)
 	}
 	if groups := admin.Options; groups[0].Name != groupCoins || len(groups[0].Options) != 3 || groups[1].Name != groupWaifu || len(groups[1].Options) != 2 || !groups[1].Options[0].Options[1].Autocomplete {
 		t.Errorf("admin groups = %+v", groups)
 	}
-	if cmds[7].Type != discordgo.MessageApplicationCommand || cmds[7].Name != commandSell {
-		t.Errorf("context command = %+v", cmds[7])
+	if cmds[9].Type != discordgo.MessageApplicationCommand || cmds[9].Name != commandSell {
+		t.Errorf("context command = %+v", cmds[9])
 	}
 	if err := f.bot.Register(guildID); err != nil {
 		t.Fatal(err)
@@ -69,7 +72,7 @@ func TestCommands_Registration(t *testing.T) {
 
 func TestDMGating_PerSubcommand(t *testing.T) {
 	f := newFixture(t)
-	for _, sub := range []string{subRoll, subDaily, subCoins, subOwned, subTrade, subSellAll} {
+	for _, sub := range []string{subRoll, subDaily, subCoins, subOwned, subTrade, subSellAll, subHistory} {
 		f.api.reset()
 		f.run(f.dm(aliceID, commandWaifu, sub))
 		r := f.api.lastRespond()

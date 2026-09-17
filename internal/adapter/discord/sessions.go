@@ -35,6 +35,7 @@ type compactGroup struct {
 
 type pageRef struct {
 	group   *compactGroup
+	series  *domain.Series
 	summary domain.WaifuSummary
 	detail  *domain.Waifu
 }

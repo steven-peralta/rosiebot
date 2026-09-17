@@ -112,6 +112,17 @@ type RankingSnapshot struct {
 	Complete   bool
 }
 
+type Roll struct {
+	ID       int64
+	GuildID  string
+	UserID   string
+	Slug     string
+	Name     string
+	Kind     string
+	Cost     int64
+	RolledAt time.Time
+}
+
 type WaifuCache struct {
 	Slug       string
 	Payload    []byte

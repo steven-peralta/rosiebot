@@ -105,6 +105,11 @@ func (b *Bot) seriesSearch(ctx context.Context, ic *interaction, opts []*discord
 	}
 	chars := cardCharacters(res.Waifus, app.LookupFrom(b.svc.Ranking))
 	e := seriesCardEmbed(res.Series, chars)
+	if ic.GuildID != "" && len(chars) > 0 {
+		if line, ok := b.completionLine(ctx, ic.key(), chars); ok {
+			e.Fields = append(e.Fields, &discordgo.MessageEmbedField{Name: "Your collection", Value: line})
+		}
+	}
 	e.Footer = b.footer(b.cfg.Clock.Now().Sub(start))
 	components := []discordgo.MessageComponent{discordgo.ActionsRow{Components: []discordgo.MessageComponent{favButton(domain.FavoriteSeries)}}}
 	if len(chars) > 0 {
@@ -162,4 +167,41 @@ func seriesCardEmbed(s domain.Series, chars []cardCharacter) *discordgo.MessageE
 	name := fmt.Sprintf("Characters · %d ranked of %d", ranked, len(chars))
 	e.Fields = append(e.Fields, &discordgo.MessageEmbedField{Name: name, Value: cardLines(chars)})
 	return e
+}
+
+func (b *Bot) completionLine(ctx context.Context, key domain.PlayerKey, chars []cardCharacter) (string, bool) {
+	slugs := make([]string, len(chars))
+	for i, c := range chars {
+		slugs[i] = c.summary.Slug
+	}
+	owned, err := b.svc.Inventory.OwnedSet(ctx, key, slugs)
+	if err != nil {
+		b.log.Warn("series completion lookup failed", "err", err)
+		return "", false
+	}
+	return completionText(chars, owned), true
+}
+
+func completionText(chars []cardCharacter, owned map[string]struct{}) string {
+	ranked, rankedOwned, total, totalOwned := 0, 0, len(chars), 0
+	for _, c := range chars {
+		_, has := owned[c.summary.Slug]
+		if has {
+			totalOwned++
+		}
+		if c.ranked != nil {
+			ranked++
+			if has {
+				rankedOwned++
+			}
+		}
+	}
+	line := fmt.Sprintf("%s of %s characters", thousands(totalOwned), thousands(total))
+	if ranked > 0 {
+		line = fmt.Sprintf("%s of %s ranked · %s", thousands(rankedOwned), thousands(ranked), line)
+	}
+	if totalOwned == total {
+		line += " · complete!"
+	}
+	return line
 }

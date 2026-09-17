@@ -308,6 +308,7 @@ func newFixture(t *testing.T) *fixture {
 	svc := Services{
 		Admin:     app.NewAdminService(players, source, clock, nil),
 		Favorites: app.NewFavoriteService(favorites, clock),
+		Stats:     app.NewStatsService(players, ranking, favorites),
 		Roll:      app.NewRollService(players, source, ranking, wotd, banner, clock, rng, 0, nil),
 		Daily:     app.NewDailyService(players, clock, rng, loc),
 		Coins:     app.NewCoinsService(players),

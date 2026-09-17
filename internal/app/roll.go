@@ -163,6 +163,9 @@ func (s *RollService) roll(ctx context.Context, key domain.PlayerKey, plan rollP
 			if !inserted {
 				return ErrAlreadyOwned
 			}
+			if err := r.RecordRoll(ctx, key, domain.RollRecord{Slug: summary.Slug, Name: summary.Name, Kind: kind, Cost: plan.cost, At: s.clock.Now()}); err != nil {
+				return err
+			}
 			balance = bal
 			return nil
 		})

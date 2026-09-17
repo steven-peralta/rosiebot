@@ -9,14 +9,17 @@ A Discord waifu gacha bot backed by [MyWaifuList](https://mywaifulist.moe). Roll
 | `/waifu roll` | Spend 200 coins on a random waifu. 12% chance of a critical roll from the ranked set, 1% chance of the waifu of the day. The result shows your remaining balance and carries Roll again and Sell buttons. |
 | `/waifu daily` | Claim 400 coins once per day (window resets at 10:00 bot time), with a chance to double or quintuple. |
 | `/waifu coins [user]` | Show a balance. |
-| `/waifu owned [user] [sort] [view]` | Browse a collection, one waifu per page with a Sell button on your own, or `view:compact` for twenty per page with stars, rank, and the collection's total sell value. |
+| `/waifu owned [user] [sort] [view] [series]` | Browse a collection, one waifu per page with a Sell button on your own, or `view:compact` for twenty per page with stars, rank, and the collection's total sell value. `series` narrows it to one series and shows how many of its characters you have. |
+| `/waifu history [user]` | The last ten rolls with rating, roll type and when. |
+| `/profile [user]` | Coins, collection size and value, rating breakdown, rarest pull, roll count, favorites, and server rank. |
+| `/leaderboard [by]` | Top ten in the server by collection value (default), coins, collection size, or 4-star and 5-star count, with your own rank if you are outside the top ten. |
 | `/waifu sellall <max_stars>` | Sell every waifu you own at or below a star rating, unranked included. The private confirmation lists them compact-style with paging, a View characters button that opens the card pager, and the payout. |
 | `/waifu search <query> [series] [sort] [min_stars] [min_likes] [max_trash] [ranked]` | Search waifus by name with autocomplete; `series` (also autocompleted) limits the search to one series. Results default to best rank first, unranked ones alphabetically. |
 | `/waifu list [series] [sort] [min_stars] [min_likes] [max_trash] [ranked]` | Browse without a name: the ranked set (every character with more than 100 votes) by rank, or one series, filtered and sorted the same way as search. |
 | `/waifu random` | Show a random waifu. |
 | `/waifu today` | Show the waifu of the day: a ranked 1 to 4 star pick that changes at local midnight. |
 | `/wotd` | Shorthand for `/waifu today`. |
-| `/favs waifus [user] [view]`, `/favs series [user]` | List your favorite waifus or series, or another user's. Every waifu card and series card has a 🤍 Favorite button; press it again to remove. |
+| `/favs waifus [user] [view]`, `/favs series [user] [view]` | List your favorite waifus or series, or another user's. Every waifu card and series card has a 🤍 Favorite button; press it again to remove. |
 | `/favs alerts on\|off` | Private DM alerts, on by default: a favorite waifu or series on the weekly banner, a favorite as Waifu of the Day, or someone else in the server rolling a favorite. Never posted in channels; one DM per event; stops automatically if your DMs are closed. |
 | `/waifu banner` | Show this week's banner: a featured series, its ranked characters, and a Roll on banner button anyone can press. |
 | `/waifu roll banner:true` | Spend 400 coins on a banner roll: 8% chance of a featured character you don't own yet, 12% critical, 80% regular. Once you own every featured character the banner slot becomes a critical roll. |

@@ -37,6 +37,7 @@ type Services struct {
 	Admin     *app.AdminService
 	Favorites *app.FavoriteService
 	Notify    *app.NotificationService
+	Stats     *app.StatsService
 	Ranking   app.RankingProvider
 	Status    app.RankingStatusProvider
 }
@@ -145,6 +146,7 @@ func (b *Bot) Commands() []*discordgo.ApplicationCommand {
 			sub(subCoins, "See how many coins you or another user has", userOpt("Whose balance to show")),
 			sub(subOwned, "See the waifus that you or another user owns", userOpt("Whose collection to show"),
 				&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optSort, Description: "Order of the collection", Choices: choicesFor(ownedSorts)},
+				&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optSeries, Description: "Only waifus from this series", Autocomplete: true},
 				&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optView, Description: "One card per page, or a compact list of twenty", Choices: []*discordgo.ApplicationCommandOptionChoice{{Name: "Cards", Value: viewCards}, {Name: "Compact list", Value: viewCompact}}}),
 			sub(subSearch, "Search for a waifu by name", searchOptions()...),
 			sub(subList, "Browse waifus by rank, series, or filters", listOptions()...),
@@ -156,6 +158,7 @@ func (b *Bot) Commands() []*discordgo.ApplicationCommand {
 				&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optGive, Description: "Waifus you give, comma separated", Autocomplete: true},
 				&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optReceive, Description: "Waifus you receive, comma separated", Autocomplete: true},
 			),
+			sub(subHistory, "Your last ten rolls", userOpt("Whose rolls to show")),
 			sub(subSellAll, "Sell every waifu you own at or below a star rating",
 				&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionInteger, Name: optMaxStars, Description: "Highest rating to sell; unranked waifus are always included", Required: true, Choices: sellAllChoices()}),
 			sub(subHelp, "Explain rolls, odds, coins, trading, and stars"),
@@ -198,9 +201,26 @@ func (b *Bot) Commands() []*discordgo.ApplicationCommand {
 			Options: []*discordgo.ApplicationCommandOption{
 				sub(subFavWaifus, "List favorite waifus", userOpt("Whose favorites to show"),
 					&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optView, Description: "Compact list or one card per page", Choices: []*discordgo.ApplicationCommandOptionChoice{{Name: "Compact list", Value: viewCompact}, {Name: "Cards", Value: viewCards}}}),
-				sub(subFavSeries, "List favorite series", userOpt("Whose favorites to show")),
+				sub(subFavSeries, "List favorite series", userOpt("Whose favorites to show"),
+					&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optView, Description: "Compact list or one card per page", Choices: []*discordgo.ApplicationCommandOptionChoice{{Name: "Compact list", Value: viewCompact}, {Name: "Cards", Value: viewCards}}}),
 				sub(subFavAlerts, "Turn favorite alerts on or off",
 					&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optState, Description: "on or off", Required: true, Choices: []*discordgo.ApplicationCommandOptionChoice{{Name: "on", Value: "on"}, {Name: "off", Value: "off"}}}),
+			},
+		},
+		{
+			Name:             commandProfile,
+			Description:      "Coins, collection and rank for you or another player",
+			Contexts:         &guildOnly,
+			IntegrationTypes: &integrations,
+			Options:          []*discordgo.ApplicationCommandOption{userOpt("Whose profile to show")},
+		},
+		{
+			Name:             commandLeaderboard,
+			Description:      "Top players in this server",
+			Contexts:         &guildOnly,
+			IntegrationTypes: &integrations,
+			Options: []*discordgo.ApplicationCommandOption{
+				{Type: discordgo.ApplicationCommandOptionString, Name: optBy, Description: "What to rank by", Choices: metricChoices},
 			},
 		},
 		{
@@ -282,6 +302,8 @@ func (b *Bot) handleCommand(ctx context.Context, ic *interaction) {
 			b.banner(ctx, ic)
 		case subSellAll:
 			b.guildOnly(ctx, ic, subSellAll, func(ctx context.Context, ic *interaction) { b.sellAllCommand(ctx, ic, opts) })
+		case subHistory:
+			b.guildOnly(ctx, ic, subHistory, func(ctx context.Context, ic *interaction) { b.history(ctx, ic, opts, data.Resolved) })
 		case subHelp:
 			b.help(ic, waifuHelpEmbed())
 		case subTrade:
@@ -300,6 +322,10 @@ func (b *Bot) handleCommand(ctx context.Context, ic *interaction) {
 		}
 	case commandWotd:
 		b.today(ctx, ic)
+	case commandProfile:
+		b.guildOnly(ctx, ic, commandProfile, func(ctx context.Context, ic *interaction) { b.profile(ctx, ic, data.Options, data.Resolved) })
+	case commandLeaderboard:
+		b.guildOnly(ctx, ic, commandLeaderboard, func(ctx context.Context, ic *interaction) { b.leaderboard(ctx, ic, data.Options) })
 	case commandFavs:
 		switch sub {
 		case subFavWaifus, subFavSeries:
@@ -383,6 +409,8 @@ func (b *Bot) handleAutocomplete(ctx context.Context, ic *interaction) {
 		} else {
 			b.searchAutocomplete(ic, opts)
 		}
+	case subOwned:
+		b.seriesAutocomplete(ctx, ic, opts)
 	}
 }
 

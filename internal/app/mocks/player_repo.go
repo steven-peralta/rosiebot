@@ -8,6 +8,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/steven-peralta/rosiebot/internal/app"
 	"github.com/steven-peralta/rosiebot/internal/domain"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -354,6 +355,72 @@ func (_c *PlayerRepo_CountOwned_Call) RunAndReturn(run func(ctx context.Context,
 	return _c
 }
 
+// CountRolls provides a mock function for the type PlayerRepo
+func (_mock *PlayerRepo) CountRolls(ctx context.Context, key domain.PlayerKey) (int, error) {
+	ret := _mock.Called(ctx, key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CountRolls")
+	}
+
+	var r0 int
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.PlayerKey) (int, error)); ok {
+		return returnFunc(ctx, key)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.PlayerKey) int); ok {
+		r0 = returnFunc(ctx, key)
+	} else {
+		r0 = ret.Get(0).(int)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, domain.PlayerKey) error); ok {
+		r1 = returnFunc(ctx, key)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// PlayerRepo_CountRolls_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CountRolls'
+type PlayerRepo_CountRolls_Call struct {
+	*mock.Call
+}
+
+// CountRolls is a helper method to define mock.On call
+//   - ctx context.Context
+//   - key domain.PlayerKey
+func (_e *PlayerRepo_Expecter) CountRolls(ctx any, key any) *PlayerRepo_CountRolls_Call {
+	return &PlayerRepo_CountRolls_Call{Call: _e.mock.On("CountRolls", ctx, key)}
+}
+
+func (_c *PlayerRepo_CountRolls_Call) Run(run func(ctx context.Context, key domain.PlayerKey)) *PlayerRepo_CountRolls_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 domain.PlayerKey
+		if args[1] != nil {
+			arg1 = args[1].(domain.PlayerKey)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *PlayerRepo_CountRolls_Call) Return(n int, err error) *PlayerRepo_CountRolls_Call {
+	_c.Call.Return(n, err)
+	return _c
+}
+
+func (_c *PlayerRepo_CountRolls_Call) RunAndReturn(run func(ctx context.Context, key domain.PlayerKey) (int, error)) *PlayerRepo_CountRolls_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DebitCoins provides a mock function for the type PlayerRepo
 func (_mock *PlayerRepo) DebitCoins(ctx context.Context, key domain.PlayerKey, amount int64) (int64, bool, error) {
 	ret := _mock.Called(ctx, key, amount)
@@ -636,6 +703,142 @@ func (_c *PlayerRepo_GetPlayer_Call) RunAndReturn(run func(ctx context.Context, 
 	return _c
 }
 
+// GuildInventory provides a mock function for the type PlayerRepo
+func (_mock *PlayerRepo) GuildInventory(ctx context.Context, guildID string) ([]app.OwnedRow, error) {
+	ret := _mock.Called(ctx, guildID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GuildInventory")
+	}
+
+	var r0 []app.OwnedRow
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) ([]app.OwnedRow, error)); ok {
+		return returnFunc(ctx, guildID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) []app.OwnedRow); ok {
+		r0 = returnFunc(ctx, guildID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]app.OwnedRow)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, guildID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// PlayerRepo_GuildInventory_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GuildInventory'
+type PlayerRepo_GuildInventory_Call struct {
+	*mock.Call
+}
+
+// GuildInventory is a helper method to define mock.On call
+//   - ctx context.Context
+//   - guildID string
+func (_e *PlayerRepo_Expecter) GuildInventory(ctx any, guildID any) *PlayerRepo_GuildInventory_Call {
+	return &PlayerRepo_GuildInventory_Call{Call: _e.mock.On("GuildInventory", ctx, guildID)}
+}
+
+func (_c *PlayerRepo_GuildInventory_Call) Run(run func(ctx context.Context, guildID string)) *PlayerRepo_GuildInventory_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *PlayerRepo_GuildInventory_Call) Return(ownedRows []app.OwnedRow, err error) *PlayerRepo_GuildInventory_Call {
+	_c.Call.Return(ownedRows, err)
+	return _c
+}
+
+func (_c *PlayerRepo_GuildInventory_Call) RunAndReturn(run func(ctx context.Context, guildID string) ([]app.OwnedRow, error)) *PlayerRepo_GuildInventory_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GuildPlayers provides a mock function for the type PlayerRepo
+func (_mock *PlayerRepo) GuildPlayers(ctx context.Context, guildID string) ([]domain.Player, error) {
+	ret := _mock.Called(ctx, guildID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GuildPlayers")
+	}
+
+	var r0 []domain.Player
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) ([]domain.Player, error)); ok {
+		return returnFunc(ctx, guildID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) []domain.Player); ok {
+		r0 = returnFunc(ctx, guildID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]domain.Player)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, guildID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// PlayerRepo_GuildPlayers_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GuildPlayers'
+type PlayerRepo_GuildPlayers_Call struct {
+	*mock.Call
+}
+
+// GuildPlayers is a helper method to define mock.On call
+//   - ctx context.Context
+//   - guildID string
+func (_e *PlayerRepo_Expecter) GuildPlayers(ctx any, guildID any) *PlayerRepo_GuildPlayers_Call {
+	return &PlayerRepo_GuildPlayers_Call{Call: _e.mock.On("GuildPlayers", ctx, guildID)}
+}
+
+func (_c *PlayerRepo_GuildPlayers_Call) Run(run func(ctx context.Context, guildID string)) *PlayerRepo_GuildPlayers_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *PlayerRepo_GuildPlayers_Call) Return(players []domain.Player, err error) *PlayerRepo_GuildPlayers_Call {
+	_c.Call.Return(players, err)
+	return _c
+}
+
+func (_c *PlayerRepo_GuildPlayers_Call) RunAndReturn(run func(ctx context.Context, guildID string) ([]domain.Player, error)) *PlayerRepo_GuildPlayers_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListOwned provides a mock function for the type PlayerRepo
 func (_mock *PlayerRepo) ListOwned(ctx context.Context, key domain.PlayerKey, prefix string, limit int) ([]domain.OwnedWaifu, error) {
 	ret := _mock.Called(ctx, key, prefix, limit)
@@ -863,6 +1066,143 @@ func (_c *PlayerRepo_OwnedSlugs_Call) Return(strings []string, err error) *Playe
 }
 
 func (_c *PlayerRepo_OwnedSlugs_Call) RunAndReturn(run func(ctx context.Context, key domain.PlayerKey, slugs []string) ([]string, error)) *PlayerRepo_OwnedSlugs_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RecentRolls provides a mock function for the type PlayerRepo
+func (_mock *PlayerRepo) RecentRolls(ctx context.Context, key domain.PlayerKey, limit int) ([]domain.RollRecord, error) {
+	ret := _mock.Called(ctx, key, limit)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RecentRolls")
+	}
+
+	var r0 []domain.RollRecord
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.PlayerKey, int) ([]domain.RollRecord, error)); ok {
+		return returnFunc(ctx, key, limit)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.PlayerKey, int) []domain.RollRecord); ok {
+		r0 = returnFunc(ctx, key, limit)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]domain.RollRecord)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, domain.PlayerKey, int) error); ok {
+		r1 = returnFunc(ctx, key, limit)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// PlayerRepo_RecentRolls_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RecentRolls'
+type PlayerRepo_RecentRolls_Call struct {
+	*mock.Call
+}
+
+// RecentRolls is a helper method to define mock.On call
+//   - ctx context.Context
+//   - key domain.PlayerKey
+//   - limit int
+func (_e *PlayerRepo_Expecter) RecentRolls(ctx any, key any, limit any) *PlayerRepo_RecentRolls_Call {
+	return &PlayerRepo_RecentRolls_Call{Call: _e.mock.On("RecentRolls", ctx, key, limit)}
+}
+
+func (_c *PlayerRepo_RecentRolls_Call) Run(run func(ctx context.Context, key domain.PlayerKey, limit int)) *PlayerRepo_RecentRolls_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 domain.PlayerKey
+		if args[1] != nil {
+			arg1 = args[1].(domain.PlayerKey)
+		}
+		var arg2 int
+		if args[2] != nil {
+			arg2 = args[2].(int)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *PlayerRepo_RecentRolls_Call) Return(rollRecords []domain.RollRecord, err error) *PlayerRepo_RecentRolls_Call {
+	_c.Call.Return(rollRecords, err)
+	return _c
+}
+
+func (_c *PlayerRepo_RecentRolls_Call) RunAndReturn(run func(ctx context.Context, key domain.PlayerKey, limit int) ([]domain.RollRecord, error)) *PlayerRepo_RecentRolls_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RecordRoll provides a mock function for the type PlayerRepo
+func (_mock *PlayerRepo) RecordRoll(ctx context.Context, key domain.PlayerKey, r domain.RollRecord) error {
+	ret := _mock.Called(ctx, key, r)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RecordRoll")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.PlayerKey, domain.RollRecord) error); ok {
+		r0 = returnFunc(ctx, key, r)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// PlayerRepo_RecordRoll_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RecordRoll'
+type PlayerRepo_RecordRoll_Call struct {
+	*mock.Call
+}
+
+// RecordRoll is a helper method to define mock.On call
+//   - ctx context.Context
+//   - key domain.PlayerKey
+//   - r domain.RollRecord
+func (_e *PlayerRepo_Expecter) RecordRoll(ctx any, key any, r any) *PlayerRepo_RecordRoll_Call {
+	return &PlayerRepo_RecordRoll_Call{Call: _e.mock.On("RecordRoll", ctx, key, r)}
+}
+
+func (_c *PlayerRepo_RecordRoll_Call) Run(run func(ctx context.Context, key domain.PlayerKey, r domain.RollRecord)) *PlayerRepo_RecordRoll_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 domain.PlayerKey
+		if args[1] != nil {
+			arg1 = args[1].(domain.PlayerKey)
+		}
+		var arg2 domain.RollRecord
+		if args[2] != nil {
+			arg2 = args[2].(domain.RollRecord)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *PlayerRepo_RecordRoll_Call) Return(err error) *PlayerRepo_RecordRoll_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *PlayerRepo_RecordRoll_Call) RunAndReturn(run func(ctx context.Context, key domain.PlayerKey, r domain.RollRecord) error) *PlayerRepo_RecordRoll_Call {
 	_c.Call.Return(run)
 	return _c
 }

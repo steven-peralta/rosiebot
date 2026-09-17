@@ -163,6 +163,14 @@ func (b *Bot) favs(ctx context.Context, ic *interaction, sub string, opts []*dis
 	}
 	content := fmt.Sprintf("%s %s favorite %s · %s", mention(ic.userID()), whose, noun, thousands(len(favs)))
 	if kind == domain.FavoriteSeries {
+		if stringOption(opts, optView) == viewCards {
+			series := make([]domain.Series, len(favs))
+			for i, f := range favs {
+				series[i] = domain.Series{Slug: f.Slug, Name: f.Name, URL: f.URL, PictureURL: f.PictureURL}
+			}
+			b.openPager(ctx, ic, content, pagesFromSeries(series), false, b.cfg.Clock.Now().Sub(start))
+			return
+		}
 		lines := make([]string, len(favs))
 		for i, f := range favs {
 			lines[i] = fmt.Sprintf("%d. %s", i+1, f.Name)

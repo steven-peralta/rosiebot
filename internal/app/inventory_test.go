@@ -2,7 +2,9 @@ package app_test
 
 import (
 	"errors"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/steven-peralta/rosiebot/internal/app"
 	"github.com/steven-peralta/rosiebot/internal/domain"
@@ -168,5 +170,38 @@ func TestInventoryService_QuoteAndSellBelow(t *testing.T) {
 	}
 	if !f.owns(bob, "plain-c") {
 		t.Error("a failed bulk sale must roll back")
+	}
+}
+
+func TestInventoryService_HistoryAndOwnedSet(t *testing.T) {
+	f := newFixture(t)
+	svc := app.NewInventoryService(f.players, f.ranking)
+	recent, total, err := svc.History(f.ctx, alice, 10)
+	if err != nil || total != 0 || len(recent) != 0 {
+		t.Fatalf("empty history = %+v %d %v", recent, total, err)
+	}
+	for i := range 12 {
+		if err := f.players.RecordRoll(f.ctx, alice, domain.RollRecord{Slug: fmt.Sprintf("w%02d", i), Name: "W", Kind: domain.RollRegular, Cost: 200, At: f.clock.now.Add(time.Duration(i) * time.Minute)}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	recent, total, err = svc.History(f.ctx, alice, 10)
+	if err != nil || total != 12 || len(recent) != 10 || recent[0].Slug != "w11" || recent[9].Slug != "w02" {
+		t.Errorf("history = %d of %d, first %s, err %v", len(recent), total, recent[0].Slug, err)
+	}
+
+	f.give(bob, "rem", "ram")
+	set, err := svc.OwnedSet(f.ctx, bob, []string{"rem", "emilia", "ram"})
+	if err != nil || len(set) != 2 {
+		t.Errorf("owned set = %v %v", set, err)
+	}
+	if _, ok := set["rem"]; !ok {
+		t.Error("rem should be in the set")
+	}
+	if _, err := app.NewInventoryService(failStore{PlayerStore: f.players, fail: map[string]bool{"OwnedSlugs": true}}, f.ranking).OwnedSet(f.ctx, bob, []string{"rem"}); !errors.Is(err, errStore) {
+		t.Errorf("owned set failure = %v", err)
+	}
+	if _, _, err := app.NewInventoryService(failStore{PlayerStore: f.players, fail: map[string]bool{"EnsurePlayer": true}}, f.ranking).History(f.ctx, bob, 5); !errors.Is(err, errStore) {
+		t.Errorf("history failure = %v", err)
 	}
 }

@@ -82,6 +82,16 @@ func (b *Bot) renderPage(ctx context.Context, s *Session, elapsed time.Duration)
 		s.Page = len(s.Pages) - 1
 	}
 	ref := &s.Pages[s.Page]
+	if ref.series != nil {
+		embed := seriesEmbed(*ref.series)
+		embed.Footer = b.footer(elapsed)
+		content := s.Content
+		if len(s.Pages) > 1 {
+			content = strings.TrimRight(content, "\n") + fmt.Sprintf("\nPage %d out of %d", s.Page+1, len(s.Pages))
+		}
+		rows := append(pagerRows(s.Page, len(s.Pages), b.selectOptions(s)), discordgo.ActionsRow{Components: []discordgo.MessageComponent{favButton(domain.FavoriteSeries)}})
+		return content, []*discordgo.MessageEmbed{embed}, append(rows, s.Extra...)
+	}
 	if ref.group != nil {
 		embed := compactEmbed(ref.group)
 		embed.Footer = b.footer(elapsed)
@@ -126,6 +136,14 @@ func (b *Bot) selectOptions(s *Session) []discordgo.SelectMenuOption {
 	start, end := selectWindow(s.Page, len(s.Pages), maxSuggestions)
 	options := make([]discordgo.SelectMenuOption, 0, end-start)
 	for i := start; i < end; i++ {
+		if sr := s.Pages[i].series; sr != nil {
+			options = append(options, discordgo.SelectMenuOption{
+				Label:   truncate(fmt.Sprintf("%d. %s", i+1, sr.Name), maxChoiceLength),
+				Value:   strconv.Itoa(i),
+				Default: i == s.Page,
+			})
+			continue
+		}
 		if g := s.Pages[i].group; g != nil {
 			count := len(g.items)
 			if g.lines != nil {
@@ -374,4 +392,12 @@ func collectionSummary(items []domain.OwnedWaifu, price func(slug string) (int64
 		}
 	}
 	return fmt.Sprintf("%s waifus · %s ranked · worth :coin: %s coins if sold", thousands(len(items)), thousands(ranked), coins(worth))
+}
+
+func pagesFromSeries(items []domain.Series) []pageRef {
+	pages := make([]pageRef, len(items))
+	for i := range items {
+		pages[i] = pageRef{series: &items[i]}
+	}
+	return pages
 }

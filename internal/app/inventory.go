@@ -157,3 +157,30 @@ func (s *InventoryService) SellBelow(ctx context.Context, key domain.PlayerKey, 
 	}
 	return res, nil
 }
+
+func (s *InventoryService) History(ctx context.Context, key domain.PlayerKey, limit int) ([]domain.RollRecord, int, error) {
+	if _, err := s.players.EnsurePlayer(ctx, key); err != nil {
+		return nil, 0, fmt.Errorf("ensure player: %w", err)
+	}
+	recent, err := s.players.RecentRolls(ctx, key, limit)
+	if err != nil {
+		return nil, 0, fmt.Errorf("recent rolls: %w", err)
+	}
+	total, err := s.players.CountRolls(ctx, key)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count rolls: %w", err)
+	}
+	return recent, total, nil
+}
+
+func (s *InventoryService) OwnedSet(ctx context.Context, key domain.PlayerKey, slugs []string) (map[string]struct{}, error) {
+	owned, err := s.players.OwnedSlugs(ctx, key, slugs)
+	if err != nil {
+		return nil, fmt.Errorf("owned slugs: %w", err)
+	}
+	out := make(map[string]struct{}, len(owned))
+	for _, slug := range owned {
+		out[slug] = struct{}{}
+	}
+	return out, nil
+}

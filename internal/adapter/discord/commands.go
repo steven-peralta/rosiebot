@@ -156,17 +156,46 @@ func (b *Bot) owned(ctx context.Context, ic *interaction, opts []*discordgo.Appl
 		b.failed(ic, "owned", err)
 		return
 	}
+	header := mention(ic.userID())
+	if seriesInput := stringOption(opts, optSeries); seriesInput != "" {
+		var res app.SeriesResult
+		if slug, ok := directSlug(seriesInput); ok {
+			res, err = b.svc.Search.SeriesBySlug(ctx, slug, app.Query{})
+		} else {
+			res, err = b.svc.Search.Series(ctx, seriesInput, app.Query{})
+		}
+		if errors.Is(err, app.ErrNotFound) {
+			b.editText(ic, mention(ic.userID())+" "+msgSeriesNotFound)
+			return
+		}
+		if err != nil {
+			b.failed(ic, "owned", err)
+			return
+		}
+		members := make(map[string]struct{}, len(res.Waifus))
+		for _, w := range res.Waifus {
+			members[w.Slug] = struct{}{}
+		}
+		kept := items[:0]
+		for _, it := range items {
+			if _, ok := members[it.Slug]; ok {
+				kept = append(kept, it)
+			}
+		}
+		items = kept
+		header += " " + fmt.Sprintf(msgOwnedSeriesFmt, res.Series.Name, thousands(len(items)), thousands(len(res.Waifus)))
+	}
 	if len(items) == 0 {
 		b.editText(ic, mention(ic.userID())+" "+msgOwnsNothing)
 		return
 	}
 	sorted := sortOwned(items, stringOption(opts, optSort), app.LookupFrom(b.svc.Ranking))
 	if stringOption(opts, optView) == viewCompact {
-		content := mention(ic.userID()) + " " + collectionSummary(items, b.svc.Inventory.Price)
+		content := header + " " + collectionSummary(items, b.svc.Inventory.Price)
 		b.openPager(ctx, ic, content, pagesCompact(sorted, app.LookupFrom(b.svc.Ranking)), false, b.cfg.Clock.Now().Sub(start))
 		return
 	}
-	b.openPager(ctx, ic, mention(ic.userID()), pagesFromOwned(sorted), key.UserID == ic.userID(), b.cfg.Clock.Now().Sub(start))
+	b.openPager(ctx, ic, header, pagesFromOwned(sorted), key.UserID == ic.userID(), b.cfg.Clock.Now().Sub(start))
 }
 
 func sortOwned(items []domain.OwnedWaifu, sortValue string, lookup app.RankLookup) []domain.OwnedWaifu {

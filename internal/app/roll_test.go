@@ -455,3 +455,29 @@ func TestRollService_BannerDropsMissingCharacterFromPool(t *testing.T) {
 		t.Errorf("a missing featured character should be dropped so the next banner hit lands elsewhere: %+v coins=%d", res, f.coins(alice))
 	}
 }
+
+func TestRollService_RecordsHistory(t *testing.T) {
+	f := newFixture(t)
+	f.script(d100(50))
+	f.source.EXPECT().Random(mock.Anything).Return(summary("rem", 500, 20), nil).Once()
+	f.source.EXPECT().Get(mock.Anything, "rem").Return(detail("rem"), nil).Once()
+	if _, err := f.roll().Roll(f.ctx, alice); err != nil {
+		t.Fatal(err)
+	}
+	recent, err := f.players.RecentRolls(f.ctx, alice, 5)
+	if err != nil || len(recent) != 1 || recent[0].Slug != "rem" || recent[0].Kind != domain.RollRegular || recent[0].Cost != domain.RollCost || !recent[0].At.Equal(f.clock.now) {
+		t.Errorf("history = %+v %v", recent, err)
+	}
+
+	f.fund(bob, domain.RollCost)
+	f.script(d100(50))
+	f.source.EXPECT().Random(mock.Anything).Return(summary("ram", 1, 0), nil).Once()
+	f.source.EXPECT().Get(mock.Anything, "ram").Return(detail("ram"), nil).Once()
+	broken := app.NewRollService(failStore{PlayerStore: f.players, fail: map[string]bool{"RecordRoll": true}}, f.source, f.ranking, f.wotd(), f.banner(), f.clock, f.rng, 0, nil)
+	if _, err := broken.Roll(f.ctx, bob); !errors.Is(err, errStore) {
+		t.Fatalf("record failure should fail the roll, got %v", err)
+	}
+	if f.owns(bob, "ram") || f.coins(bob) != domain.StartingCoins+domain.RollCost {
+		t.Error("a failed history write must roll the whole pull back")
+	}
+}

@@ -146,6 +146,13 @@ func (f failRepo) SellOwned(ctx context.Context, key domain.PlayerKey, slug stri
 	return f.PlayerRepo.SellOwned(ctx, key, slug, price)
 }
 
+func (f failRepo) RecordRoll(ctx context.Context, key domain.PlayerKey, r domain.RollRecord) error {
+	if f.fail["RecordRoll"] {
+		return errStore
+	}
+	return f.PlayerRepo.RecordRoll(ctx, key, r)
+}
+
 func (f failRepo) TransferOwned(ctx context.Context, from, to domain.PlayerKey, slugs []string) (int64, error) {
 	if f.fail["TransferOwned"] {
 		return 0, errStore
