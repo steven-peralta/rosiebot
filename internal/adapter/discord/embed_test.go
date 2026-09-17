@@ -157,6 +157,17 @@ func TestThousands(t *testing.T) {
 	}
 }
 
+func TestFooter_DoesNotDoubleTheVersionPrefix(t *testing.T) {
+	b := &Bot{cfg: Config{Version: "v2.0.1-dirty"}}
+	if got := b.footer(0).Text; got != "rosiebot v2.0.1-dirty" {
+		t.Errorf("footer = %q", got)
+	}
+	b.cfg.Version = "dev"
+	if got := b.footer(0).Text; got != "rosiebot vdev" {
+		t.Errorf("footer = %q", got)
+	}
+}
+
 func TestSeriesEmbedAndFooter(t *testing.T) {
 	f := newFixture(t)
 	e := seriesEmbed(domain.Series{Name: "S", URL: "u", Description: strings.Repeat("b", 300), PictureURL: "p"})

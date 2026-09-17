@@ -37,7 +37,7 @@ func truncate(s string, limit int) string {
 }
 
 func (b *Bot) footer(elapsed time.Duration) *discordgo.MessageEmbedFooter {
-	text := "rosiebot v" + b.cfg.Version
+	text := "rosiebot v" + strings.TrimPrefix(b.cfg.Version, "v")
 	if elapsed > 0 {
 		text += fmt.Sprintf(" · %dms", elapsed.Milliseconds())
 	}
