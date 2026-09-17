@@ -25,6 +25,7 @@ type rollPlan struct {
 	banner bool
 	kindFn func(int) (domain.RollKind, error)
 	pickFn func(context.Context, domain.RollKind) (domain.WaifuSummary, domain.RollKind, error)
+	dropFn func(slug string)
 }
 
 type RollService struct {
@@ -77,6 +78,15 @@ func (s *RollService) RollBanner(ctx context.Context, key domain.PlayerKey) (Rol
 		cost:   domain.BannerRollCost,
 		banner: true,
 		kindFn: domain.BannerRollKindFor,
+		dropFn: func(slug string) {
+			kept := pool[:0]
+			for _, c := range pool {
+				if c.Slug != slug {
+					kept = append(kept, c)
+				}
+			}
+			pool = kept
+		},
 		pickFn: func(ctx context.Context, kind domain.RollKind) (domain.WaifuSummary, domain.RollKind, error) {
 			if kind != domain.RollBanner {
 				w, err := s.pick(ctx, kind)
@@ -121,6 +131,13 @@ func (s *RollService) roll(ctx context.Context, key domain.PlayerKey, plan rollP
 		}
 
 		detail, err := s.source.Get(ctx, summary.Slug)
+		if errors.Is(err, ErrNotFound) {
+			s.log.Warn("reroll: picked waifu no longer exists upstream", "slug", summary.Slug, "kind", kind, "attempt", attempt)
+			if plan.dropFn != nil {
+				plan.dropFn(summary.Slug)
+			}
+			continue
+		}
 		if err != nil {
 			return RollResult{}, fmt.Errorf("fetch %s: %w", summary.Slug, err)
 		}

@@ -420,3 +420,38 @@ func TestRollService_BannerLostRaceRerolls(t *testing.T) {
 		t.Errorf("result = %+v coins=%d", res, f.coins(alice))
 	}
 }
+
+func TestRollService_MissingUpstreamWaifuRerolls(t *testing.T) {
+	f := newFixture(t)
+	f.script(d100(50), d100(60))
+	f.source.EXPECT().Random(mock.Anything).Return(summary("gone", 1, 0), nil).Once()
+	f.source.EXPECT().Get(mock.Anything, "gone").Return(domain.Waifu{}, app.ErrNotFound).Once()
+	f.source.EXPECT().Random(mock.Anything).Return(summary("here", 1, 0), nil).Once()
+	f.source.EXPECT().Get(mock.Anything, "here").Return(detail("here"), nil).Once()
+
+	res, err := f.roll().Roll(f.ctx, alice)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Attempts != 2 || res.Waifu.Slug != "here" || f.coins(alice) != 0 || f.owns(alice, "gone") {
+		t.Errorf("result = %+v coins=%d", res, f.coins(alice))
+	}
+}
+
+func TestRollService_BannerDropsMissingCharacterFromPool(t *testing.T) {
+	f := newFixture(t)
+	f.ranking.Set(rankingOf(200))
+	f.seedBanner("ranked-000", "ranked-005", "ranked-006", "ranked-007", "ranked-008")
+	f.fund(alice, domain.BannerRollCost-domain.StartingCoins)
+	f.script(d100(5), 0, d100(5), 0)
+	f.source.EXPECT().Get(mock.Anything, "ranked-000").Return(domain.Waifu{}, app.ErrNotFound).Once()
+	f.source.EXPECT().Get(mock.Anything, "ranked-005").Return(detail("ranked-005"), nil).Once()
+
+	res, err := f.roll().RollBanner(f.ctx, alice)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Attempts != 2 || res.Kind != domain.RollBanner || res.Waifu.Slug != "ranked-005" || f.coins(alice) != 0 {
+		t.Errorf("a missing featured character should be dropped so the next banner hit lands elsewhere: %+v coins=%d", res, f.coins(alice))
+	}
+}

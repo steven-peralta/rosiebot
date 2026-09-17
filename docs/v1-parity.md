@@ -119,7 +119,7 @@ The v2 card is a deliberate redesign (owner request during live testing on 2026-
 | Daily window is a fixed 10:00 boundary, not 10:00 on the day after the claim | Owner decision; removes the 25 hour lockout edge case |
 | Trades may be one-sided gifts | Owner decision |
 | Sell is a message context menu command instead of a reaction button | Owner decision; works on any bot message showing a waifu and survives restarts |
-| Reroll on already-owned capped at 5 attempts, uncharged on exhaustion | v1 recursed without bound |
+| Reroll on already-owned capped at 5 attempts, uncharged on exhaustion; a pick that MyWaifuList no longer serves also counts as a reroll, and a missing banner character is dropped from that roll's pool | v1 recursed without bound (`app.TestRollService_MissingUpstreamWaifuRerolls`, `app.TestRollService_BannerDropsMissingCharacterFromPool`) |
 | v1 `sortby:`/`field:` text tokens replaced by typed slash options: `sort` (choice list), `min_stars` (1..5), `min_likes`, `max_trash`, `ranked`; sorting and filtering apply to the fetched result set (up to 30 results) | Owner asked to leverage slash command features instead of a text mini-language; the MWL search endpoint is term only (`app.TestSearchService_SortAndFilters`, `TestQuery_Apply`, `discord.TestSearch_TypedOptions`) |
 | `query` autocompletes character names from the in-memory ranking table; picking a suggestion opens that card directly | `discord.TestSearch_Autocomplete`, `app.TestSearchService_Suggest` |
 | Result pagers include a select menu of up to 25 results for direct jumps, windowed around the current page, alongside the v1-style buttons and jump modal | `discord.TestOwned_SortAndSelectMenu`, `discord.TestSelectWindow` |
