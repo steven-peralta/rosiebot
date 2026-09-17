@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [v2, master]
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
@@ -39,7 +40,12 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Build and push
         run: |
-          VERSION="${GITHUB_REF_NAME}-${GITHUB_SHA::7}"
-          docker build --build-arg VERSION="$VERSION" -t "$IMAGE:$GITHUB_SHA" -t "$IMAGE:$GITHUB_REF_NAME" .
-          docker push "$IMAGE:$GITHUB_SHA"
-          docker push "$IMAGE:$GITHUB_REF_NAME"
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            VERSION="$GITHUB_REF_NAME"
+            TAGS="-t $IMAGE:$GITHUB_SHA -t $IMAGE:$GITHUB_REF_NAME -t $IMAGE:latest"
+          else
+            VERSION="${GITHUB_REF_NAME}-${GITHUB_SHA::7}"
+            TAGS="-t $IMAGE:$GITHUB_SHA -t $IMAGE:$GITHUB_REF_NAME"
+          fi
+          docker build --build-arg VERSION="$VERSION" $TAGS .
+          docker push --all-tags "$IMAGE"
