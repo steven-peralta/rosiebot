@@ -61,7 +61,7 @@ func (b *Bot) rollResult(userID string, res app.RollResult, elapsed time.Duratio
 		content += " " + msgWotdRoll
 	default:
 	}
-	content += " " + msgRolled + "\n"
+	content += " " + msgRolled + "\n" + fmt.Sprintf(msgRollBalanceFmt, coins(res.Balance))
 	return content, b.waifuEmbed(res.Waifu, elapsed)
 }
 

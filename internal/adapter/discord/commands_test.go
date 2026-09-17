@@ -99,7 +99,7 @@ func TestRoll_Texts(t *testing.T) {
 	f.source.EXPECT().Random(mock.Anything).Return(summary("rem"), nil).Once()
 	f.run(f.slash(aliceID, commandWaifu, subRoll, nil))
 	e := f.api.lastEdit()
-	if editContent(e) != "<@alice> Here's who you rolled:\n" || len(*e.Embeds) != 1 || (*e.Embeds)[0].Title != "Name rem" {
+	if editContent(e) != "<@alice> Here's who you rolled:\nBalance: :coin: 0 coins" || len(*e.Embeds) != 1 || (*e.Embeds)[0].Title != "Name rem" {
 		t.Errorf("regular roll = %q embeds=%+v", editContent(e), *e.Embeds)
 	}
 	if f.coins(aliceID) != 0 || !f.owns(aliceID, "rem") {
@@ -115,7 +115,7 @@ func TestRoll_Texts(t *testing.T) {
 	f.script(d100(5), 3)
 	f.run(f.slash(bobID, commandWaifu, subRoll, nil))
 	e = f.api.lastEdit()
-	if editContent(e) != "<@bob> :sparkles: **CRITICAL ROLL!!** :sparkles: Here's who you rolled:\n" {
+	if editContent(e) != "<@bob> :sparkles: **CRITICAL ROLL!!** :sparkles: Here's who you rolled:\nBalance: :coin: 0 coins" {
 		t.Errorf("critical roll = %q", editContent(e))
 	}
 	if title := (*e.Embeds)[0].Title; !strings.HasPrefix(title, ":star:") {
@@ -125,7 +125,7 @@ func TestRoll_Texts(t *testing.T) {
 	f.give("carol")
 	f.script(d100(1), 7)
 	f.run(f.slash("carol", commandWaifu, subRoll, nil))
-	if got := editContent(f.api.lastEdit()); got != "<@carol> :star2: **You rolled the Waifu of the Day. Congrats!** Here's who you rolled:\n" {
+	if got := editContent(f.api.lastEdit()); got != "<@carol> :star2: **You rolled the Waifu of the Day. Congrats!** Here's who you rolled:\nBalance: :coin: 0 coins" {
 		t.Errorf("wotd roll = %q", got)
 	}
 }
@@ -135,7 +135,7 @@ func TestAlias_WRoutesLikeWaifu(t *testing.T) {
 	f.script(d100(50))
 	f.source.EXPECT().Random(mock.Anything).Return(summary("rem"), nil).Once()
 	f.run(f.slash(aliceID, commandWAlias, subRoll, nil))
-	if got := editContent(f.api.lastEdit()); got != "<@alice> Here's who you rolled:\n" {
+	if got := editContent(f.api.lastEdit()); got != "<@alice> Here's who you rolled:\nBalance: :coin: 0 coins" {
 		t.Errorf("/w roll = %q", got)
 	}
 	f.give(bobID, "ram")
@@ -166,9 +166,16 @@ func TestRoll_AgainButton(t *testing.T) {
 	ic := f.slash(aliceID, commandWaifu, subRoll, nil)
 	f.run(ic)
 	e := f.api.lastEdit()
-	button := (*e.Components)[0].(discordgo.ActionsRow).Components[0].(discordgo.Button)
+	if got := editContent(e); got != "<@alice> Here's who you rolled:\nBalance: :coin: 200 coins" {
+		t.Errorf("first roll content = %q", got)
+	}
+	row := (*e.Components)[0].(discordgo.ActionsRow).Components
+	button := row[0].(discordgo.Button)
 	if button.CustomID != rollPrefix+rollAgain+":"+aliceID || button.Label != "Roll again · 200 coins" {
 		t.Fatalf("roll again button = %+v", button)
+	}
+	if len(row) != 2 || row[1].(discordgo.Button).CustomID != sellPrefix+sellAsk {
+		t.Fatalf("rolled card should carry a Sell button: %+v", row)
 	}
 	msg := f.message("msg-" + ic.ID)
 
@@ -205,6 +212,48 @@ func TestRoll_AgainButton(t *testing.T) {
 		t.Errorf("dm = %q", got)
 	}
 	f.run(f.click(aliceID, msg, rollPrefix+"bogus:"+aliceID))
+}
+
+func TestRoll_SellButtonOnRolledCard(t *testing.T) {
+	f := newFixture(t)
+	f.script(d100(50))
+	f.source.EXPECT().Random(mock.Anything).Return(summary("rem"), nil).Once()
+	ic := f.slash(aliceID, commandWaifu, subRoll, nil)
+	f.run(ic)
+	card := f.message("msg-" + ic.ID)
+
+	f.run(f.click(aliceID, card, sellPrefix+sellAsk))
+	r := f.api.lastRespond()
+	if r.Data.Content != "Are you sure you want to sell your Name rem for 100 coins?" || r.Data.Flags&discordgo.MessageFlagsEphemeral == 0 {
+		t.Fatalf("sell prompt from rolled card = %+v", r.Data)
+	}
+	okID := r.Data.Components[0].(discordgo.ActionsRow).Components[0].(discordgo.Button).CustomID
+	f.run(f.click(aliceID, nil, okID))
+	if got := f.api.lastRespond().Data.Content; got != "Sold Name rem for 100 coins. You now have 100 coins." {
+		t.Errorf("sold = %q", got)
+	}
+	if f.owns(aliceID, "rem") {
+		t.Error("sale not applied")
+	}
+	if me := f.api.lastMsgEdit(); me == nil || me.ID != card.ID || hasSellButton(*me.Components) {
+		t.Errorf("the rolled card should lose its Sell button after the sale: %+v", me)
+	}
+
+	f.run(f.click(bobID, card, sellPrefix+sellAsk))
+	if got := f.respondContent(); got != "You don't own rem." {
+		t.Errorf("someone else pressing Sell on a roll = %q", got)
+	}
+}
+
+func hasSellButton(rows []discordgo.MessageComponent) bool {
+	for _, row := range rows {
+		for _, c := range row.(discordgo.ActionsRow).Components {
+			if btn, ok := c.(discordgo.Button); ok && btn.CustomID == sellPrefix+sellAsk {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func TestRoll_ExhaustedText(t *testing.T) {

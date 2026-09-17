@@ -6,7 +6,7 @@ A Discord waifu gacha bot backed by [MyWaifuList](https://mywaifulist.moe). Roll
 
 | Command | What it does |
 |---|---|
-| `/waifu roll` | Spend 200 coins on a random waifu. 12% chance of a critical roll from the ranked set, 1% chance of the waifu of the day. The result carries a Roll again button. |
+| `/waifu roll` | Spend 200 coins on a random waifu. 12% chance of a critical roll from the ranked set, 1% chance of the waifu of the day. The result shows your remaining balance and carries Roll again and Sell buttons. |
 | `/waifu daily` | Claim 400 coins once per day (window resets at 10:00 bot time), with a chance to double or quintuple. |
 | `/waifu coins [user]` | Show a balance. |
 | `/waifu owned [user] [sort] [view]` | Browse a collection, one waifu per page with a Sell button on your own, or `view:compact` for twenty per page with stars, rank, and the collection's total sell value. |

@@ -42,10 +42,13 @@ func bannerAgainComponents(userID string) []discordgo.MessageComponent {
 }
 
 func againComponents(res app.RollResult, userID string) []discordgo.MessageComponent {
+	rows := rollAgainComponents(userID)
 	if res.Banner {
-		return bannerAgainComponents(userID)
+		rows = bannerAgainComponents(userID)
 	}
-	return rollAgainComponents(userID)
+	row := rows[0].(discordgo.ActionsRow)
+	row.Components = append(row.Components, sellAskButton())
+	return []discordgo.MessageComponent{row}
 }
 
 func (b *Bot) banner(ctx context.Context, ic *interaction) {

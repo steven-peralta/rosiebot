@@ -232,4 +232,5 @@ const (
 	msgSellAllConfirmFmt        = "Sell **%s** waifus (%s) for :coin: %s coins? This can't be undone."
 	msgSellAllDoneFmt           = "Sold %s waifus for :coin: %s coins. You now have %s coins."
 	msgSellAllViewing           = "These are the waifus that would be sold:"
+	msgRollBalanceFmt           = "Balance: :coin: %s coins"
 )

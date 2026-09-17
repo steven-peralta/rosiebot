@@ -79,7 +79,7 @@ func TestBanner_ButtonRollsForAnyClickerWithoutTouchingCard(t *testing.T) {
 		t.Errorf("banner button should reply with a new message, got %+v", r)
 	}
 	e := f.api.lastEdit()
-	if got := editContent(e); got != "<@bob> :confetti_ball: **BANNER ROLL!!** :confetti_ball: Here's who you rolled:\n" {
+	if got := editContent(e); got != "<@bob> :confetti_ball: **BANNER ROLL!!** :confetti_ball: Here's who you rolled:\nBalance: :coin: 400 coins" {
 		t.Errorf("banner roll result = %q", got)
 	}
 	if title := (*e.Embeds)[0].Title; !strings.Contains(title, "Name ranked-020") {
@@ -104,7 +104,7 @@ func TestBanner_ButtonRollsForAnyClickerWithoutTouchingCard(t *testing.T) {
 	f.script(d100(15), 9)
 	f.run(f.click(bobID, result, again.CustomID))
 	e = f.api.lastEdit()
-	if got := editContent(e); got != "<@bob> :sparkles: **CRITICAL ROLL!!** :sparkles: Here's who you rolled:\n" {
+	if got := editContent(e); got != "<@bob> :sparkles: **CRITICAL ROLL!!** :sparkles: Here's who you rolled:\nBalance: :coin: 0 coins" {
 		t.Errorf("banner again result = %q", got)
 	}
 	if f.coins(bobID) != 0 || !f.owns(bobID, "ranked-009") {
@@ -150,7 +150,7 @@ func TestRoll_BannerOptionTexts(t *testing.T) {
 
 	f.script(d100(1), 0)
 	f.run(f.slash(aliceID, commandWaifu, subRoll, nil, boolOpt(optBanner, true)))
-	if got := editContent(f.api.lastEdit()); got != "<@alice> :confetti_ball: **BANNER ROLL!!** :confetti_ball: Here's who you rolled:\n" {
+	if got := editContent(f.api.lastEdit()); got != "<@alice> :confetti_ball: **BANNER ROLL!!** :confetti_ball: Here's who you rolled:\nBalance: :coin: 800 coins" {
 		t.Errorf("banner hit = %q", got)
 	}
 	if f.coins(aliceID) != 800 || !f.owns(aliceID, "ranked-000") {
@@ -160,7 +160,7 @@ func TestRoll_BannerOptionTexts(t *testing.T) {
 	f.script(d100(50))
 	f.source.EXPECT().Random(mock.Anything).Return(summary("rem"), nil).Once()
 	f.run(f.slash(aliceID, commandWaifu, subRoll, nil, boolOpt(optBanner, true)))
-	if got := editContent(f.api.lastEdit()); got != "<@alice> Here's who you rolled:\n" || f.coins(aliceID) != 400 {
+	if got := editContent(f.api.lastEdit()); got != "<@alice> Here's who you rolled:\nBalance: :coin: 400 coins" || f.coins(aliceID) != 400 {
 		t.Errorf("regular on banner = %q coins=%d", got, f.coins(aliceID))
 	}
 
@@ -175,7 +175,7 @@ func TestRoll_BannerOptionTexts(t *testing.T) {
 	f.fund(bobID, 200)
 	f.script(d100(3), 11)
 	f.run(f.slash(bobID, commandWaifu, subRoll, nil, boolOpt(optBanner, true)))
-	if got := editContent(f.api.lastEdit()); got != "<@bob> :sparkles: **CRITICAL ROLL!!** :sparkles: Here's who you rolled:\n" {
+	if got := editContent(f.api.lastEdit()); got != "<@bob> :sparkles: **CRITICAL ROLL!!** :sparkles: Here's who you rolled:\nBalance: :coin: 0 coins" {
 		t.Errorf("degraded banner roll = %q", got)
 	}
 	if f.coins(bobID) != 0 || !f.owns(bobID, "ranked-011") {
