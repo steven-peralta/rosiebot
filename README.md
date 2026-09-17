@@ -18,6 +18,7 @@ A Discord waifu gacha bot backed by [MyWaifuList](https://mywaifulist.moe). Roll
 | `/waifu roll banner:true` | Spend 400 coins on a banner roll: 8% chance of a featured character you don't own yet, 12% critical, 80% regular. Once you own every featured character the banner slot becomes a critical roll. |
 | `/waifu trade <user> [give] [receive]` | Offer a trade or a gift. With no `give` or `receive`, a private trade builder opens: pick from both collections with paged menus, filter by name, then Send. The other side can Accept, Counter (opens the builder prefilled with the reversed offer), or Decline. |
 | `/w …` | Shorthand for every `/waifu` subcommand. |
+| `/series search <query>` | Show a series card: cover, description, and its characters ranked first with stars, plus a Browse characters button that opens the usual one-per-page pager. Autocompletes series names. |
 | **Sell Waifu** (message context menu) | Right-click any bot message showing a waifu you own to sell it for 100 coins. |
 
 Character details and search pages are cached in Postgres and refreshed lazily: a stale entry is served immediately while one background request refreshes it, so nothing depends on a scheduled job. Random rolls and the waifu of the day always go to the live API, so newly submitted characters appear as soon as MyWaifuList lists them.

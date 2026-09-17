@@ -354,10 +354,8 @@ func (b *Bot) today(ctx context.Context, ic *interaction) {
 
 func (b *Bot) seriesAutocomplete(ctx context.Context, ic *interaction, opts []*discordgo.ApplicationCommandInteractionDataOption) {
 	typed := ""
-	for _, o := range opts {
-		if o.Focused && o.Name == optSeries {
-			typed, _ = o.Value.(string)
-		}
+	if o := focusedOption(opts); o != nil {
+		typed, _ = o.Value.(string)
 	}
 	series, err := b.svc.Search.SuggestSeries(ctx, typed, maxSuggestions)
 	if err != nil {

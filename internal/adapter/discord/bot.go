@@ -150,6 +150,16 @@ func (b *Bot) Commands() []*discordgo.ApplicationCommand {
 			Options:          waifuOptions(),
 		},
 		{
+			Name:             commandSeries,
+			Description:      "Look up an anime, game, or other series",
+			Contexts:         &allContexts,
+			IntegrationTypes: &integrations,
+			Options: []*discordgo.ApplicationCommandOption{
+				sub(subSearch, "Show a series card with its ranked characters",
+					&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optQuery, Description: "Series name", Required: true, Autocomplete: true}),
+			},
+		},
+		{
 			Type:             discordgo.MessageApplicationCommand,
 			Name:             commandSell,
 			Contexts:         &guildOnly,
@@ -220,6 +230,12 @@ func (b *Bot) handleCommand(ctx context.Context, ic *interaction) {
 		default:
 			b.log.Warn("unknown waifu subcommand", "sub", sub)
 		}
+	case commandSeries:
+		if sub == subSearch {
+			b.seriesSearch(ctx, ic, opts)
+		} else {
+			b.log.Warn("unknown series subcommand", "sub", sub)
+		}
 	default:
 		b.log.Warn("unknown command", "name", data.Name)
 	}
@@ -248,6 +264,8 @@ func (b *Bot) handleComponent(ctx context.Context, ic *interaction) {
 		b.builderComponent(ctx, ic, strings.TrimPrefix(id, builderPrefix))
 	case strings.HasPrefix(id, bannerPrefix):
 		b.bannerButton(ctx, ic, strings.TrimPrefix(id, bannerPrefix))
+	case strings.HasPrefix(id, seriesPrefix):
+		b.seriesButton(ctx, ic, strings.TrimPrefix(id, seriesPrefix))
 	default:
 		b.log.Warn("unknown component", "custom_id", id)
 	}
@@ -266,6 +284,12 @@ func (b *Bot) handleModal(ctx context.Context, ic *interaction) {
 func (b *Bot) handleAutocomplete(ctx context.Context, ic *interaction) {
 	data := ic.ApplicationCommandData()
 	sub, opts := subcommand(data)
+	if data.Name == commandSeries {
+		if sub == subSearch {
+			b.seriesAutocomplete(ctx, ic, opts)
+		}
+		return
+	}
 	if data.Name != commandWaifu && data.Name != commandWAlias {
 		return
 	}

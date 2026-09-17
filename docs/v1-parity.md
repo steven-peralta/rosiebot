@@ -106,7 +106,7 @@ The v2 card is a deliberate redesign (owner request during live testing on 2026-
 | `Series was not found.` | `discord.TestSearch_SeriesOption` |
 | `User was not found. (Are you sure you @'d them correctly?)` | `discord.TestTrade_ViolationTexts` |
 | `The <name> command cannot be invoked from the direct messages of the bot.` | `discord.TestDMGating_PerSubcommand` |
-| `/series search` folded into `/waifu search` as the `series` option | Owner decision: one search surface with a consistent UX |
+| `/series search` shows a series card (cover, description, characters ranked first with stars, Browse characters button opening the v1-style pager) instead of paging straight into characters; the `series` option on `/waifu search` and `/waifu list` still pages characters with filters | Owner liked the banner card and asked for the same on series (`discord.TestSeriesSearch_Card`, `discord.TestSeriesSearch_DirectSlugNotFoundAndErrors`, `discord.TestSeriesSearch_Autocomplete`, `discord.TestSeriesCardEmbed_CapsList`) |
 
 ## Deliberate departures from v1
 
@@ -141,7 +141,7 @@ The v2 card is a deliberate redesign (owner request during live testing on 2026-
 - [ ] `/waifu coins` self and target
 - [ ] `/waifu owned` pagination: first, prev, next, last, jump modal, expired menu
 - [ ] `/waifu search` with results and with none
-- [ ] `/series search` with results and with none
+- [ ] `/series search` card with results, Browse characters from another account, and a query with no match
 - [ ] `/waifu random`
 - [ ] `/waifu today` twice in a row and after a restart
 - [ ] `/waifu banner` shows the featured series with stars and countdown, again after a restart; Roll on banner from a second account; `/w roll banner:true` debits 400 and shows the banner prefix on a hit

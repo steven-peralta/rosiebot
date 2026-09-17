@@ -33,6 +33,7 @@ const (
 	msgBannerFmt         = "Here's this week's banner:\nRefreshes in %s"
 	msgNoBanner          = "There's no banner this week yet. Check back soon!"
 	msgSeriesHeaderFmt   = "Showing results for series %s"
+	msgSeriesFound       = "Here's the series I found:"
 	msgTradeAccepted     = "You accepted the trade."
 	msgTradeDenied       = "You denied the trade."
 	msgTradeConflict     = "That trade is no longer valid; someone's collection changed."
