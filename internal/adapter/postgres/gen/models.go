@@ -8,6 +8,24 @@ import (
 	"time"
 )
 
+type AlertDmClosed struct {
+	UserID   string
+	ClosedAt time.Time
+}
+
+type AlertSetting struct {
+	GuildID   string
+	UserID    string
+	Enabled   bool
+	UpdatedAt time.Time
+}
+
+type AlertsSent struct {
+	EventID string
+	UserID  string
+	SentAt  time.Time
+}
+
 type Banner struct {
 	WeekStart   time.Time
 	SeriesSlug  string

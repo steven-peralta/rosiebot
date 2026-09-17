@@ -44,6 +44,47 @@ func (q *Queries) AddFavorite(ctx context.Context, arg AddFavoriteParams) (int64
 	return result.RowsAffected(), nil
 }
 
+const findFavorites = `-- name: FindFavorites :many
+SELECT guild_id, user_id, kind, slug, name, url, picture_url, added_at FROM favorites
+WHERE kind = $1 AND slug = ANY($2::text[]) AND ($3::text = '' OR guild_id = $3::text)
+ORDER BY user_id, guild_id, slug
+`
+
+type FindFavoritesParams struct {
+	Kind    string
+	Slugs   []string
+	GuildID string
+}
+
+func (q *Queries) FindFavorites(ctx context.Context, arg FindFavoritesParams) ([]Favorite, error) {
+	rows, err := q.db.Query(ctx, findFavorites, arg.Kind, arg.Slugs, arg.GuildID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Favorite{}
+	for rows.Next() {
+		var i Favorite
+		if err := rows.Scan(
+			&i.GuildID,
+			&i.UserID,
+			&i.Kind,
+			&i.Slug,
+			&i.Name,
+			&i.Url,
+			&i.PictureUrl,
+			&i.AddedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listFavorites = `-- name: ListFavorites :many
 SELECT guild_id, user_id, kind, slug, name, url, picture_url, added_at FROM favorites WHERE guild_id = $1 AND user_id = $2 AND kind = $3 ORDER BY added_at, slug
 `

@@ -42,10 +42,16 @@ type fakeAPI struct {
 	failEdit     bool
 	failRichEdit bool
 	failFetch    bool
+	closedDMs    map[string]bool
+	dms          map[string][]string
 }
 
 func newFakeAPI() *fakeAPI {
-	return &fakeAPI{messages: map[string]*discordgo.Message{}}
+	return newFakeAPIWith()
+}
+
+func newFakeAPIWith() *fakeAPI {
+	return &fakeAPI{messages: map[string]*discordgo.Message{}, closedDMs: map[string]bool{}, dms: map[string][]string{}}
 }
 
 func (f *fakeAPI) InteractionRespond(i *discordgo.Interaction, r *discordgo.InteractionResponse, _ ...discordgo.RequestOption) error {
@@ -95,6 +101,28 @@ func (f *fakeAPI) FollowupMessageCreate(i *discordgo.Interaction, _ bool, p *dis
 	msg := &discordgo.Message{ID: id, ChannelID: i.ChannelID, Author: &discordgo.User{ID: botID}, Content: p.Content, Embeds: p.Embeds, Components: p.Components}
 	f.messages[id] = msg
 	return msg, nil
+}
+
+func (f *fakeAPI) UserChannelCreate(recipientID string, _ ...discordgo.RequestOption) (*discordgo.Channel, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.closedDMs[recipientID] {
+		return nil, &discordgo.RESTError{Message: &discordgo.APIErrorMessage{Code: discordgo.ErrCodeCannotSendMessagesToThisUser, Message: "Cannot send messages to this user"}}
+	}
+	return &discordgo.Channel{ID: "dm-" + recipientID, Type: discordgo.ChannelTypeDM}, nil
+}
+
+func (f *fakeAPI) ChannelMessageSend(channelID string, content string, _ ...discordgo.RequestOption) (*discordgo.Message, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.dms[channelID] = append(f.dms[channelID], content)
+	return &discordgo.Message{ID: "dm-msg", ChannelID: channelID, Content: content}, nil
+}
+
+func (f *fakeAPI) dmsTo(userID string) []string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]string(nil), f.dms["dm-"+userID]...)
 }
 
 func (f *fakeAPI) lastFollowup() *discordgo.WebhookParams {
@@ -236,6 +264,7 @@ type fixture struct {
 	banners *memory.BannerStore
 	loc     *time.Location
 	status  *fakeStatus
+	alerts  *memory.AlertStore
 	seq     int
 }
 
@@ -273,6 +302,7 @@ func newFixture(t *testing.T) *fixture {
 	wotd := app.NewWotdService(daily, ranking, clock, rng, loc, nil)
 	status := &fakeStatus{}
 	favorites := memory.NewFavoriteStore()
+	alerts := memory.NewAlertStore()
 	banners := memory.NewBannerStore()
 	banner := app.NewBannerService(banners, ranking, source, clock, rng, loc, app.BannerConfig{}, nil)
 	svc := Services{
@@ -292,7 +322,15 @@ func newFixture(t *testing.T) *fixture {
 	api := newFakeAPI()
 	bot := New(api, svc, Config{AppID: "app", BotUserID: botID, Version: "test", Clock: clock, OwnerIDs: []string{aliceID}})
 	svc.Status = status
-	return &fixture{t: t, api: api, bot: bot, clock: clock, rng: rng, players: players, source: source, ranking: ranking, daily: daily, banners: banners, loc: loc, status: status}
+	bot.svc.Notify = app.NewNotificationService(favorites, alerts, bot, clock, func(id string) string {
+		if id == guildID {
+			return "Test Guild"
+		}
+		return ""
+	}, nil)
+	bot.svc.Notify.SetSleepForTest(func(context.Context, time.Duration) error { return nil })
+	bot.WireAlerts(svc.Roll, wotd, banner)
+	return &fixture{t: t, api: api, bot: bot, clock: clock, rng: rng, players: players, source: source, ranking: ranking, daily: daily, banners: banners, loc: loc, status: status, alerts: alerts}
 }
 
 func (f *fixture) script(vals ...int) { f.rng.vals = append(f.rng.vals, vals...) }

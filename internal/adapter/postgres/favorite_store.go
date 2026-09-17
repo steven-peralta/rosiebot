@@ -51,3 +51,21 @@ func (s *FavoriteStore) List(ctx context.Context, key domain.PlayerKey, kind dom
 	}
 	return out, nil
 }
+
+func (s *FavoriteStore) Find(ctx context.Context, kind domain.FavoriteKind, slugs []string, guildID string) ([]app.FavoriteMatch, error) {
+	if len(slugs) == 0 {
+		return []app.FavoriteMatch{}, nil
+	}
+	rows, err := s.q.FindFavorites(ctx, gen.FindFavoritesParams{Kind: string(kind), Slugs: slugs, GuildID: guildID})
+	if err != nil {
+		return nil, fmt.Errorf("postgres: find favorites: %w", err)
+	}
+	out := make([]app.FavoriteMatch, len(rows))
+	for i, r := range rows {
+		out[i] = app.FavoriteMatch{
+			Key:      domain.PlayerKey{GuildID: r.GuildID, UserID: r.UserID},
+			Favorite: domain.Favorite{Kind: domain.FavoriteKind(r.Kind), Slug: r.Slug, Name: r.Name, URL: r.Url, PictureURL: r.PictureUrl, AddedAt: r.AddedAt},
+		}
+	}
+	return out, nil
+}

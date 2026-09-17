@@ -7,6 +7,7 @@ package mocks
 import (
 	"context"
 
+	"github.com/steven-peralta/rosiebot/internal/app"
 	"github.com/steven-peralta/rosiebot/internal/domain"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -115,6 +116,86 @@ func (_c *FavoriteStore_Add_Call) Return(added bool, err error) *FavoriteStore_A
 }
 
 func (_c *FavoriteStore_Add_Call) RunAndReturn(run func(ctx context.Context, key domain.PlayerKey, fav domain.Favorite) (bool, error)) *FavoriteStore_Add_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Find provides a mock function for the type FavoriteStore
+func (_mock *FavoriteStore) Find(ctx context.Context, kind domain.FavoriteKind, slugs []string, guildID string) ([]app.FavoriteMatch, error) {
+	ret := _mock.Called(ctx, kind, slugs, guildID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Find")
+	}
+
+	var r0 []app.FavoriteMatch
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.FavoriteKind, []string, string) ([]app.FavoriteMatch, error)); ok {
+		return returnFunc(ctx, kind, slugs, guildID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.FavoriteKind, []string, string) []app.FavoriteMatch); ok {
+		r0 = returnFunc(ctx, kind, slugs, guildID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]app.FavoriteMatch)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, domain.FavoriteKind, []string, string) error); ok {
+		r1 = returnFunc(ctx, kind, slugs, guildID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// FavoriteStore_Find_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Find'
+type FavoriteStore_Find_Call struct {
+	*mock.Call
+}
+
+// Find is a helper method to define mock.On call
+//   - ctx context.Context
+//   - kind domain.FavoriteKind
+//   - slugs []string
+//   - guildID string
+func (_e *FavoriteStore_Expecter) Find(ctx any, kind any, slugs any, guildID any) *FavoriteStore_Find_Call {
+	return &FavoriteStore_Find_Call{Call: _e.mock.On("Find", ctx, kind, slugs, guildID)}
+}
+
+func (_c *FavoriteStore_Find_Call) Run(run func(ctx context.Context, kind domain.FavoriteKind, slugs []string, guildID string)) *FavoriteStore_Find_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 domain.FavoriteKind
+		if args[1] != nil {
+			arg1 = args[1].(domain.FavoriteKind)
+		}
+		var arg2 []string
+		if args[2] != nil {
+			arg2 = args[2].([]string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *FavoriteStore_Find_Call) Return(favoriteMatchs []app.FavoriteMatch, err error) *FavoriteStore_Find_Call {
+	_c.Call.Return(favoriteMatchs, err)
+	return _c
+}
+
+func (_c *FavoriteStore_Find_Call) RunAndReturn(run func(ctx context.Context, kind domain.FavoriteKind, slugs []string, guildID string) ([]app.FavoriteMatch, error)) *FavoriteStore_Find_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -2,9 +2,11 @@ package discord
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 
@@ -16,9 +18,12 @@ const (
 	commandFavs  = "favs"
 	subFavWaifus = "waifus"
 	subFavSeries = "series"
+	subFavAlerts = "alerts"
+	optState     = "state"
 
 	favPrefix           = "fav:"
 	mwlSeriesPathPrefix = "/series/"
+	alertTimeout        = 10 * time.Minute
 )
 
 func favButton(kind domain.FavoriteKind) discordgo.Button {
@@ -174,4 +179,84 @@ func (b *Bot) favs(ctx context.Context, ic *interaction, sub string, opts []*dis
 		return
 	}
 	b.openPager(ctx, ic, content, pagesCompactFromSummaries(summaries, app.LookupFrom(b.svc.Ranking), "Favorite waifus"), false, b.cfg.Clock.Now().Sub(start))
+}
+
+func (b *Bot) favAlerts(ctx context.Context, ic *interaction, opts []*discordgo.ApplicationCommandInteractionDataOption) {
+	if b.svc.Notify == nil {
+		b.replyEphemeral(ic, msgUnexpected)
+		return
+	}
+	state := stringOption(opts, optState)
+	if state != "on" && state != "off" {
+		b.replyEphemeral(ic, msgUnexpected)
+		return
+	}
+	if err := b.svc.Notify.SetEnabled(ctx, ic.key(), state == "on"); err != nil {
+		b.log.Error("set alerts failed", "user", ic.userID(), "err", err)
+		b.replyEphemeral(ic, errorText(err))
+		return
+	}
+	if state == "off" {
+		b.replyEphemeral(ic, msgAlertsOff)
+		return
+	}
+	b.replyEphemeral(ic, msgAlertsOn)
+}
+
+func (b *Bot) DirectMessage(ctx context.Context, userID, content string) error {
+	ch, err := b.s.UserChannelCreate(userID)
+	if err != nil {
+		return dmError(err)
+	}
+	if _, err := b.s.ChannelMessageSend(ch.ID, content); err != nil {
+		return dmError(err)
+	}
+	return nil
+}
+
+func dmError(err error) error {
+	var rest *discordgo.RESTError
+	if errors.As(err, &rest) && rest.Message != nil && rest.Message.Code == discordgo.ErrCodeCannotSendMessagesToThisUser {
+		return app.ErrDMClosed
+	}
+	return err
+}
+
+func (b *Bot) SetNotifier(n *app.NotificationService) {
+	b.svc.Notify = n
+}
+
+func (b *Bot) WireAlerts(roll *app.RollService, wotd *app.WotdService, banner *app.BannerService) {
+	if b.svc.Notify == nil {
+		return
+	}
+	if roll != nil {
+		roll.OnRolled(func(key domain.PlayerKey, w domain.WaifuSummary) {
+			b.background(func(ctx context.Context) { b.svc.Notify.Rolled(ctx, key, w) })
+		})
+	}
+	if wotd != nil {
+		wotd.OnPicked(func(day time.Time, w domain.WaifuSummary) {
+			b.background(func(ctx context.Context) { b.svc.Notify.WotdPicked(ctx, day, w) })
+		})
+	}
+	if banner != nil {
+		banner.OnPicked(func(bn domain.Banner) {
+			b.background(func(ctx context.Context) { b.svc.Notify.BannerPicked(ctx, bn) })
+		})
+	}
+}
+
+func (b *Bot) background(fn func(context.Context)) {
+	b.wg.Add(1)
+	go func() {
+		defer b.wg.Done()
+		ctx, cancel := context.WithTimeout(context.Background(), alertTimeout)
+		defer cancel()
+		fn(ctx)
+	}()
+}
+
+func (b *Bot) WaitBackground() {
+	b.wg.Wait()
 }

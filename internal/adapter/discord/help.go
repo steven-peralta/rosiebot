@@ -38,7 +38,7 @@ func waifuHelpEmbed() *discordgo.MessageEmbed {
 			helpField("trade",
 				"`trade @user` opens a private builder: pick from both collections, filter by name, then Send. Adding `give` or `receive` lists sends the offer straight away. One side may be empty to make a gift. The other player can Accept, Counter with their own offer, or Decline; offers expire after ten minutes."),
 			helpField("favorites",
-				"Every waifu card and series card has a 🤍 Favorite button; press it again to remove. `/favs waifus` and `/favs series` list yours, or someone else's with the `user` option."),
+				"Every waifu card and series card has a 🤍 Favorite button; press it again to remove. `/favs waifus` and `/favs series` list yours, or someone else's with the `user` option. You get a private DM when a favorite is on the banner or is the Waifu of the Day, and when someone else here rolls one; `/favs alerts off` stops them."),
 			helpField("stars and rank",
 				"Ratings come from `((likes+1)/(trash+1)) × (likes+trash)` over every character with more than 100 votes. The top 1% earn five stars, then 6%, 16% and 26% for four, three and two. Everyone else ranked has one star; characters under 100 votes are unranked and show no colour."),
 		},

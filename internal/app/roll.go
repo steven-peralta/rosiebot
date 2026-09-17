@@ -38,6 +38,11 @@ type RollService struct {
 	rng      Random
 	minVotes int
 	log      *slog.Logger
+	rolled   func(key domain.PlayerKey, w domain.WaifuSummary)
+}
+
+func (s *RollService) OnRolled(fn func(key domain.PlayerKey, w domain.WaifuSummary)) {
+	s.rolled = fn
 }
 
 func NewRollService(players PlayerStore, source WaifuSource, ranking RankingProvider, wotd *WotdService, banner *BannerService, clock Clock, rng Random, minVotes int, log *slog.Logger) *RollService {
@@ -169,6 +174,9 @@ func (s *RollService) roll(ctx context.Context, key domain.PlayerKey, plan rollP
 			return RollResult{}, err
 		}
 
+		if s.rolled != nil {
+			s.rolled(key, summary)
+		}
 		result := RollResult{Kind: kind, Waifu: detail, Balance: balance, Attempts: attempt, Banner: plan.banner}
 		if ranked, ok := s.ranking.Current().Lookup(summary.Slug); ok {
 			result.Ranked = &ranked

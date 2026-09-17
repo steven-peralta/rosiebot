@@ -1,6 +1,7 @@
 package discord
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -9,6 +10,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/stretchr/testify/mock"
 
+	"github.com/steven-peralta/rosiebot/internal/app"
 	"github.com/steven-peralta/rosiebot/internal/domain"
 )
 
@@ -155,4 +157,73 @@ func TestFavorites_RolledAndRandomCardsCarryTheButton(t *testing.T) {
 	if len(rows) != 1 || rows[0].(discordgo.ActionsRow).Components[0].(discordgo.Button).CustomID != favPrefix+"waifu" {
 		t.Errorf("today card actions = %+v", rows)
 	}
+}
+
+func TestFavorites_AlertsOnRoll(t *testing.T) {
+	f := newFixture(t)
+	f.run(f.click(aliceID, f.waifuMessage("c1", "rem"), favPrefix+"waifu"))
+	f.run(f.click("carol", f.waifuMessage("c2", "rem"), favPrefix+"waifu"))
+	f.run(f.click(aliceID, f.waifuMessage("c4", "ram"), favPrefix+"waifu"))
+	f.run(f.click("carol", f.waifuMessage("c5", "ram"), favPrefix+"waifu"))
+	f.fund(bobID, 200)
+
+	f.script(d100(50))
+	f.source.EXPECT().Random(mock.Anything).Return(summary("rem"), nil).Once()
+	f.run(f.slash(bobID, commandWaifu, subRoll, nil))
+	f.bot.WaitBackground()
+	got := f.api.dmsTo(aliceID)
+	if len(got) != 1 || got[0] != "<@bob> just rolled **Name rem**, one of your favorites in Test Guild. Ask them for a trade with `/waifu trade`.\n\nTurn these off with /favs alerts off." {
+		t.Errorf("alice's DM = %q", got)
+	}
+	if len(f.api.dmsTo("carol")) != 1 || len(f.api.dmsTo(bobID)) != 0 {
+		t.Errorf("carol should be told, bob should not: carol=%d bob=%d", len(f.api.dmsTo("carol")), len(f.api.dmsTo(bobID)))
+	}
+
+	f.run(f.slash(aliceID, commandFavs, subFavAlerts, nil, strOpt(optState, "off")))
+	if got := f.respondContent(); got != msgAlertsOff {
+		t.Errorf("alerts off = %q", got)
+	}
+	f.api.closedDMs["carol"] = true
+	f.script(d100(50))
+	f.source.EXPECT().Random(mock.Anything).Return(summary("ram"), nil).Once()
+	f.run(f.slash(bobID, commandWaifu, subRoll, nil))
+	f.bot.WaitBackground()
+	if len(f.api.dmsTo(aliceID)) != 1 {
+		t.Error("alice turned alerts off and must not get another DM")
+	}
+	if st, _ := f.alerts.Setting(t.Context(), domain.PlayerKey{GuildID: guildID, UserID: "carol"}); !st.DMClosed {
+		t.Error("carol's bounced DM should mark her DMs closed")
+	}
+
+	f.run(f.slash(aliceID, commandFavs, subFavAlerts, nil, strOpt(optState, "on")))
+	if got := f.respondContent(); got != msgAlertsOn {
+		t.Errorf("alerts on = %q", got)
+	}
+	f.run(f.slash(aliceID, commandFavs, subFavAlerts, nil, strOpt(optState, "maybe")))
+	if got := f.respondContent(); got != msgUnexpected {
+		t.Errorf("bad state = %q", got)
+	}
+	f.run(f.dm(aliceID, commandFavs, subFavAlerts, strOpt(optState, "on")))
+	if got := f.respondContent(); got != "The favs command cannot be invoked from the direct messages of the bot." {
+		t.Errorf("alerts in DM = %q", got)
+	}
+
+	f.seedBanner("ranked-000", "ranked-001", "ranked-002", "ranked-003", "ranked-004")
+	f.run(f.click(aliceID, f.waifuMessage("c3", "ranked-000"), favPrefix+"waifu"))
+	f.bot.svc.Notify.BannerPicked(t.Context(), mustBanner(t, f))
+	if got := f.api.dmsTo(aliceID); len(got) != 2 || !strings.Contains(got[1], "This week's banner is **Re:Zero** and it features your favorites: Name ranked-000.") {
+		t.Errorf("banner DM = %q", got)
+	}
+	if err := f.bot.DirectMessage(t.Context(), "carol", "hi"); !errors.Is(err, app.ErrDMClosed) {
+		t.Errorf("closed DM error = %v", err)
+	}
+}
+
+func mustBanner(t *testing.T, f *fixture) domain.Banner {
+	t.Helper()
+	res, err := f.bot.svc.Banner.Current(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return res.Banner
 }

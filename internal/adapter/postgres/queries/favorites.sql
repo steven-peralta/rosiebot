@@ -8,3 +8,8 @@ DELETE FROM favorites WHERE guild_id = @guild_id AND user_id = @user_id AND kind
 
 -- name: ListFavorites :many
 SELECT * FROM favorites WHERE guild_id = @guild_id AND user_id = @user_id AND kind = @kind ORDER BY added_at, slug;
+
+-- name: FindFavorites :many
+SELECT * FROM favorites
+WHERE kind = @kind AND slug = ANY(@slugs::text[]) AND (@guild_id::text = '' OR guild_id = @guild_id::text)
+ORDER BY user_id, guild_id, slug;

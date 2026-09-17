@@ -73,9 +73,10 @@ func run(ctx context.Context, dryRun bool) error {
 	ranking := app.NewRankingService(postgres.NewRankingStore(pool), source, clock, app.RankingConfig{RefreshInterval: cfg.RankingRefresh, MinVotes: cfg.RankingMinVotes}, logger)
 	wotd := app.NewWotdService(postgres.NewDailyStore(pool), ranking, clock, rng, cfg.Timezone, logger)
 	banner := app.NewBannerService(postgres.NewBannerStore(pool), ranking, source, clock, rng, cfg.Timezone, app.BannerConfig{}, logger)
+	favorites := postgres.NewFavoriteStore(pool)
 	services := discord.Services{
 		Admin:     app.NewAdminService(players, source, clock, logger),
-		Favorites: app.NewFavoriteService(postgres.NewFavoriteStore(pool), clock),
+		Favorites: app.NewFavoriteService(favorites, clock),
 		Roll:      app.NewRollService(players, source, ranking, wotd, banner, clock, rng, cfg.RankingMinVotes, logger),
 		Daily:     app.NewDailyService(players, clock, rng, cfg.Timezone),
 		Coins:     app.NewCoinsService(players),
@@ -106,6 +107,14 @@ func run(ctx context.Context, dryRun bool) error {
 		return fmt.Errorf("discord identity: %w", err)
 	}
 	bot := discord.New(session, services, discord.Config{AppID: me.ID, BotUserID: me.ID, Version: version, Clock: clock, Logger: logger, OwnerIDs: cfg.OwnerIDs})
+	guildName := func(id string) string {
+		if g, err := session.State.Guild(id); err == nil {
+			return g.Name
+		}
+		return ""
+	}
+	bot.SetNotifier(app.NewNotificationService(favorites, postgres.NewAlertStore(pool), bot, clock, guildName, logger))
+	bot.WireAlerts(services.Roll, wotd, banner)
 	session.AddHandler(func(_ *discordgo.Session, i *discordgo.InteractionCreate) { bot.Handle(i) })
 	session.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
 		logger.Info("discord ready", "user", r.User.Username, "guilds", len(r.Guilds))

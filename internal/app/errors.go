@@ -20,6 +20,7 @@ var (
 	ErrRateLimited       = errors.New("upstream rate limited")
 	ErrInsufficientCoins = domain.ErrInsufficientCoins
 	ErrNegativeAmount    = domain.ErrNegativeAmount
+	ErrDMClosed          = errors.New("user does not accept direct messages")
 )
 
 type DailyAlreadyClaimedError struct {

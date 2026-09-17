@@ -335,3 +335,67 @@ func TestFavoriteStore(t *testing.T) {
 		t.Errorf("other player = %+v", got)
 	}
 }
+
+func TestFavoriteStore_Find(t *testing.T) {
+	ctx := context.Background()
+	s := NewFavoriteStore()
+	other := domain.PlayerKey{GuildID: "h", UserID: "alice"}
+	for _, k := range []domain.PlayerKey{alice, bob, other} {
+		if _, err := s.Add(ctx, k, domain.Favorite{Kind: domain.FavoriteWaifu, Slug: "rem", Name: "Rem"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := s.Add(ctx, alice, domain.Favorite{Kind: domain.FavoriteSeries, Slug: "rem", Name: "Series named rem"}); err != nil {
+		t.Fatal(err)
+	}
+	all, err := s.Find(ctx, domain.FavoriteWaifu, []string{"rem", "ram"}, "")
+	if err != nil || len(all) != 3 || all[0].Key != alice || all[1].Key != other || all[2].Key != bob {
+		t.Errorf("find across guilds = %+v %v", all, err)
+	}
+	inGuild, _ := s.Find(ctx, domain.FavoriteWaifu, []string{"rem"}, "g")
+	if len(inGuild) != 2 {
+		t.Errorf("find in guild = %+v", inGuild)
+	}
+	if none, _ := s.Find(ctx, domain.FavoriteWaifu, []string{"nobody"}, ""); len(none) != 0 {
+		t.Errorf("no match = %+v", none)
+	}
+}
+
+func TestAlertStore(t *testing.T) {
+	ctx := context.Background()
+	s := NewAlertStore()
+	now := time.Date(2026, 9, 16, 12, 0, 0, 0, time.UTC)
+	if st, _ := s.Setting(ctx, alice); !st.Enabled || st.DMClosed {
+		t.Errorf("default = %+v", st)
+	}
+	if err := s.SetEnabled(ctx, alice, false, now); err != nil {
+		t.Fatal(err)
+	}
+	if st, _ := s.Setting(ctx, alice); st.Enabled {
+		t.Error("should be disabled")
+	}
+	if err := s.SetEnabled(ctx, alice, true, now); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.MarkDMClosed(ctx, "alice", now); err != nil {
+		t.Fatal(err)
+	}
+	if st, _ := s.Setting(ctx, alice); !st.Enabled || !st.DMClosed {
+		t.Errorf("after closing = %+v", st)
+	}
+	if err := s.ClearDMClosed(ctx, "alice"); err != nil {
+		t.Fatal(err)
+	}
+	if st, _ := s.Setting(ctx, alice); st.DMClosed {
+		t.Error("closed mark should clear")
+	}
+	if first, _ := s.MarkSent(ctx, "e1", "alice", now); !first {
+		t.Error("first send")
+	}
+	if first, _ := s.MarkSent(ctx, "e1", "alice", now); first {
+		t.Error("second send of the same event")
+	}
+	if first, _ := s.MarkSent(ctx, "e1", "bob", now); !first || s.SentCount() != 2 {
+		t.Error("another user is a separate send")
+	}
+}

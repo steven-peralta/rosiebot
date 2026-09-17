@@ -78,6 +78,29 @@ type FavoriteStore interface {
 	Add(ctx context.Context, key domain.PlayerKey, fav domain.Favorite) (added bool, err error)
 	Remove(ctx context.Context, key domain.PlayerKey, kind domain.FavoriteKind, slug string) (removed bool, err error)
 	List(ctx context.Context, key domain.PlayerKey, kind domain.FavoriteKind) ([]domain.Favorite, error)
+	Find(ctx context.Context, kind domain.FavoriteKind, slugs []string, guildID string) ([]FavoriteMatch, error)
+}
+
+type FavoriteMatch struct {
+	Key      domain.PlayerKey
+	Favorite domain.Favorite
+}
+
+type AlertSetting struct {
+	Enabled  bool
+	DMClosed bool
+}
+
+type AlertStore interface {
+	Setting(ctx context.Context, key domain.PlayerKey) (AlertSetting, error)
+	SetEnabled(ctx context.Context, key domain.PlayerKey, enabled bool, now time.Time) error
+	MarkDMClosed(ctx context.Context, userID string, now time.Time) error
+	ClearDMClosed(ctx context.Context, userID string) error
+	MarkSent(ctx context.Context, eventID, userID string, now time.Time) (first bool, err error)
+}
+
+type Notifier interface {
+	DirectMessage(ctx context.Context, userID, content string) error
 }
 
 type Clock interface {

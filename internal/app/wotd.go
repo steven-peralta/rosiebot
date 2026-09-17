@@ -23,6 +23,17 @@ type WotdService struct {
 	rng     Random
 	loc     *time.Location
 	log     *slog.Logger
+	picked  func(day time.Time, w domain.WaifuSummary)
+}
+
+func (s *WotdService) OnPicked(fn func(day time.Time, w domain.WaifuSummary)) {
+	s.picked = fn
+}
+
+func (s *WotdService) notifyPicked(day time.Time, w domain.WaifuSummary) {
+	if s.picked != nil {
+		s.picked(day, w)
+	}
 }
 
 func NewWotdService(store DailyStore, ranking RankingProvider, clock Clock, rng Random, loc *time.Location, log *slog.Logger) *WotdService {
@@ -60,6 +71,7 @@ func (s *WotdService) Today(ctx context.Context) (WotdResult, error) {
 			return WotdResult{}, fmt.Errorf("replace waifu of the day: %w", err)
 		}
 		s.log.Warn("replaced unranked waifu of the day", "day", day, "was", existing.Slug, "now", pick.Slug)
+		s.notifyPicked(day, pick)
 		result.Waifu = pick
 		return result, nil
 	case !errors.Is(err, ErrNotFound):
@@ -73,6 +85,9 @@ func (s *WotdService) Today(ctx context.Context) (WotdResult, error) {
 	stored, err := s.store.Put(ctx, day, pick)
 	if err != nil {
 		return WotdResult{}, fmt.Errorf("store waifu of the day: %w", err)
+	}
+	if stored.Slug == pick.Slug {
+		s.notifyPicked(day, stored)
 	}
 	result.Waifu = stored
 	return result, nil

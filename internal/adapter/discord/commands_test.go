@@ -43,7 +43,7 @@ func TestCommands_Registration(t *testing.T) {
 	if cmds[3].Name != commandSAlias || len(cmds[3].Options) != 2 || cmds[3].Options[0].Name != subSearch {
 		t.Errorf("/s alias = %+v", cmds[3])
 	}
-	if cmds[4].Name != commandFavs || len(cmds[4].Options) != 2 || cmds[4].Options[0].Name != subFavWaifus || cmds[4].Options[1].Name != subFavSeries {
+	if cmds[4].Name != commandFavs || len(cmds[4].Options) != 3 || cmds[4].Options[0].Name != subFavWaifus || cmds[4].Options[1].Name != subFavSeries || cmds[4].Options[2].Name != subFavAlerts {
 		t.Errorf("/favs = %+v", cmds[4])
 	}
 	if cmds[5].Name != commandWotd || len(cmds[5].Options) != 0 {

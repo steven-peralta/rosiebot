@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -20,6 +21,8 @@ type API interface {
 	ChannelMessage(string, string, ...discordgo.RequestOption) (*discordgo.Message, error)
 	ChannelMessageEditComplex(*discordgo.MessageEdit, ...discordgo.RequestOption) (*discordgo.Message, error)
 	ApplicationCommandBulkOverwrite(string, string, []*discordgo.ApplicationCommand, ...discordgo.RequestOption) ([]*discordgo.ApplicationCommand, error)
+	UserChannelCreate(string, ...discordgo.RequestOption) (*discordgo.Channel, error)
+	ChannelMessageSend(string, string, ...discordgo.RequestOption) (*discordgo.Message, error)
 }
 
 type Services struct {
@@ -33,6 +36,7 @@ type Services struct {
 	Banner    *app.BannerService
 	Admin     *app.AdminService
 	Favorites *app.FavoriteService
+	Notify    *app.NotificationService
 	Ranking   app.RankingProvider
 	Status    app.RankingStatusProvider
 }
@@ -86,6 +90,7 @@ const (
 type Bot struct {
 	s        API
 	svc      Services
+	wg       sync.WaitGroup
 	cfg      Config
 	sessions *SessionStore
 	log      *slog.Logger
@@ -194,6 +199,8 @@ func (b *Bot) Commands() []*discordgo.ApplicationCommand {
 				sub(subFavWaifus, "List favorite waifus", userOpt("Whose favorites to show"),
 					&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optView, Description: "Compact list or one card per page", Choices: []*discordgo.ApplicationCommandOptionChoice{{Name: "Compact list", Value: viewCompact}, {Name: "Cards", Value: viewCards}}}),
 				sub(subFavSeries, "List favorite series", userOpt("Whose favorites to show")),
+				sub(subFavAlerts, "Turn favorite alerts on or off",
+					&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optState, Description: "on or off", Required: true, Choices: []*discordgo.ApplicationCommandOptionChoice{{Name: "on", Value: "on"}, {Name: "off", Value: "off"}}}),
 			},
 		},
 		{
@@ -297,6 +304,8 @@ func (b *Bot) handleCommand(ctx context.Context, ic *interaction) {
 		switch sub {
 		case subFavWaifus, subFavSeries:
 			b.guildOnly(ctx, ic, commandFavs, func(ctx context.Context, ic *interaction) { b.favs(ctx, ic, sub, opts, data.Resolved) })
+		case subFavAlerts:
+			b.guildOnly(ctx, ic, commandFavs, func(ctx context.Context, ic *interaction) { b.favAlerts(ctx, ic, opts) })
 		default:
 			b.log.Warn("unknown favs subcommand", "sub", sub)
 		}

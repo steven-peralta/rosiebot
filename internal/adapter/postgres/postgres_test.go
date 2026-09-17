@@ -660,6 +660,70 @@ func TestFavoriteStore(t *testing.T) {
 	}
 }
 
+func TestAlertStoreAndFavoriteFind(t *testing.T) {
+	alice, bob := keys(t)
+	ctx := context.Background()
+	as := NewAlertStore(testPool)
+	fs := NewFavoriteStore(testPool)
+	now := time.Date(2026, 9, 16, 12, 0, 0, 0, time.UTC)
+
+	if st, err := as.Setting(ctx, alice); err != nil || !st.Enabled || st.DMClosed {
+		t.Fatalf("default = %+v %v", st, err)
+	}
+	if err := as.SetEnabled(ctx, alice, false, now); err != nil {
+		t.Fatal(err)
+	}
+	if err := as.SetEnabled(ctx, alice, false, now.Add(time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if st, _ := as.Setting(ctx, alice); st.Enabled {
+		t.Error("should be disabled")
+	}
+	if err := as.MarkDMClosed(ctx, alice.UserID, now); err != nil {
+		t.Fatal(err)
+	}
+	if err := as.MarkDMClosed(ctx, alice.UserID, now.Add(time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if st, _ := as.Setting(ctx, alice); !st.DMClosed {
+		t.Error("should be closed")
+	}
+	if err := as.ClearDMClosed(ctx, alice.UserID); err != nil {
+		t.Fatal(err)
+	}
+	if st, _ := as.Setting(ctx, alice); st.DMClosed {
+		t.Error("closed mark should clear")
+	}
+	event := "test:" + alice.GuildID
+	if first, err := as.MarkSent(ctx, event, alice.UserID, now); err != nil || !first {
+		t.Errorf("first send = %v %v", first, err)
+	}
+	if first, _ := as.MarkSent(ctx, event, alice.UserID, now); first {
+		t.Error("duplicate send should report false")
+	}
+	if n, err := as.Prune(ctx, now.Add(time.Hour)); err != nil || n < 1 {
+		t.Errorf("prune = %d %v", n, err)
+	}
+
+	other := domain.PlayerKey{GuildID: alice.GuildID + "-other", UserID: alice.UserID}
+	for _, k := range []domain.PlayerKey{alice, bob, other} {
+		if _, err := fs.Add(ctx, k, domain.Favorite{Kind: domain.FavoriteWaifu, Slug: "find-rem", Name: "Rem", AddedAt: now}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	all, err := fs.Find(ctx, domain.FavoriteWaifu, []string{"find-rem", "find-ram"}, "")
+	if err != nil || len(all) != 3 {
+		t.Errorf("find across guilds = %+v %v", all, err)
+	}
+	inGuild, err := fs.Find(ctx, domain.FavoriteWaifu, []string{"find-rem"}, alice.GuildID)
+	if err != nil || len(inGuild) != 2 || inGuild[0].Favorite.Name != "Rem" {
+		t.Errorf("find in guild = %+v %v", inGuild, err)
+	}
+	if none, err := fs.Find(ctx, domain.FavoriteWaifu, nil, ""); err != nil || len(none) != 0 {
+		t.Errorf("empty slugs = %+v %v", none, err)
+	}
+}
+
 func TestServices_RollRaceOnPostgres(t *testing.T) {
 	alice, _ := keys(t)
 	ctx := context.Background()

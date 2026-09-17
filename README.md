@@ -17,6 +17,7 @@ A Discord waifu gacha bot backed by [MyWaifuList](https://mywaifulist.moe). Roll
 | `/waifu today` | Show the waifu of the day: a ranked 1 to 4 star pick that changes at local midnight. |
 | `/wotd` | Shorthand for `/waifu today`. |
 | `/favs waifus [user] [view]`, `/favs series [user]` | List your favorite waifus or series, or another user's. Every waifu card and series card has a 🤍 Favorite button; press it again to remove. |
+| `/favs alerts on\|off` | Private DM alerts, on by default: a favorite waifu or series on the weekly banner, a favorite as Waifu of the Day, or someone else in the server rolling a favorite. Never posted in channels; one DM per event; stops automatically if your DMs are closed. |
 | `/waifu banner` | Show this week's banner: a featured series, its ranked characters, and a Roll on banner button anyone can press. |
 | `/waifu roll banner:true` | Spend 400 coins on a banner roll: 8% chance of a featured character you don't own yet, 12% critical, 80% regular. Once you own every featured character the banner slot becomes a critical roll. |
 | `/waifu trade <user> [give] [receive]` | Offer a trade or a gift. With no `give` or `receive`, a private trade builder opens: pick from both collections with paged menus, filter by name, then Send. The other side can Accept, Counter (opens the builder prefilled with the reversed offer), or Decline. |

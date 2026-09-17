@@ -68,6 +68,17 @@ type BannerService struct {
 	cfg     BannerConfig
 	log     *slog.Logger
 	sleep   func(context.Context, time.Duration) error
+	picked  func(domain.Banner)
+}
+
+func (s *BannerService) OnPicked(fn func(domain.Banner)) {
+	s.picked = fn
+}
+
+func (s *BannerService) notifyPicked(b domain.Banner) {
+	if s.picked != nil {
+		s.picked(b)
+	}
 }
 
 func NewBannerService(store BannerStore, ranking RankingProvider, source WaifuSource, clock Clock, rng Random, loc *time.Location, cfg BannerConfig, log *slog.Logger) *BannerService {
@@ -110,6 +121,7 @@ func (s *BannerService) Ensure(ctx context.Context) (domain.Banner, error) {
 		return domain.Banner{}, fmt.Errorf("store banner: %w", err)
 	}
 	s.log.Info("banner selected", "week", week, "series", stored.Series.Slug, "characters", len(stored.Characters))
+	s.notifyPicked(stored)
 	return stored, nil
 }
 
@@ -129,6 +141,7 @@ func (s *BannerService) Reroll(ctx context.Context) (domain.Banner, error) {
 		return domain.Banner{}, fmt.Errorf("replace banner: %w", err)
 	}
 	s.log.Info("banner rerolled", "week", week, "series", picked.Series.Slug, "characters", len(picked.Characters))
+	s.notifyPicked(picked)
 	return picked, nil
 }
 

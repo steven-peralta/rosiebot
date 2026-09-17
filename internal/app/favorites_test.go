@@ -24,6 +24,10 @@ func (f failingFavorites) List(context.Context, domain.PlayerKey, domain.Favorit
 	return nil, f.err
 }
 
+func (f failingFavorites) Find(context.Context, domain.FavoriteKind, []string, string) ([]app.FavoriteMatch, error) {
+	return nil, f.err
+}
+
 func TestFavoriteService_ToggleAndList(t *testing.T) {
 	f := newFixture(t)
 	store := memory.NewFavoriteStore()
