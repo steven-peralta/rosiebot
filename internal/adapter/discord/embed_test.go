@@ -216,6 +216,7 @@ func TestErrorText_V1Strings(t *testing.T) {
 		"not found":  {app.ErrNotFound, msgNoData},
 		"ratelimit":  {app.ErrRateLimited, msgRateLimited},
 		"no banner":  {app.ErrNoBanner, msgNoBanner},
+		"no ranking": {app.ErrNoRanking, msgNoRankingYet},
 		"unexpected": {errors.New("boom"), msgUnexpected},
 		"violation":  {&domain.TradeViolation{Slug: "rem", Side: domain.TradeSideTarget, Err: domain.ErrTradeAlreadyOwn}, "they already owns rem"},
 	}

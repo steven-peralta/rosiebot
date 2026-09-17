@@ -206,6 +206,24 @@ func TestRankingStoreAndHolder(t *testing.T) {
 	}
 }
 
+func TestDailyStore_Replace(t *testing.T) {
+	ctx := context.Background()
+	s := NewDailyStore()
+	day := time.Date(2026, 9, 16, 0, 0, 0, 0, time.UTC)
+	if err := s.Replace(ctx, day, domain.WaifuSummary{Slug: "fresh"}); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := s.Get(ctx, day); got.Slug != "fresh" {
+		t.Errorf("replace on empty = %+v", got)
+	}
+	if err := s.Replace(ctx, day, domain.WaifuSummary{Slug: "newer"}); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := s.Get(ctx, day); got.Slug != "newer" {
+		t.Errorf("replace should overwrite, got %+v", got)
+	}
+}
+
 func TestDailyStore(t *testing.T) {
 	ctx := context.Background()
 	d := NewDailyStore()

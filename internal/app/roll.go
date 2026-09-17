@@ -165,6 +165,10 @@ func (s *RollService) pick(ctx context.Context, kind domain.RollKind) (domain.Wa
 	switch kind {
 	case domain.RollWaifuOfTheDay:
 		today, err := s.wotd.Today(ctx)
+		if errors.Is(err, ErrNoRanking) {
+			s.log.Warn("no waifu of the day yet, degrading to a critical roll")
+			return s.pickRanked(ctx)
+		}
 		if err != nil {
 			return domain.WaifuSummary{}, err
 		}

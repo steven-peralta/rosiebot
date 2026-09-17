@@ -185,3 +185,66 @@ func (_c *DailyStore_Put_Call) RunAndReturn(run func(ctx context.Context, day ti
 	_c.Call.Return(run)
 	return _c
 }
+
+// Replace provides a mock function for the type DailyStore
+func (_mock *DailyStore) Replace(ctx context.Context, day time.Time, w domain.WaifuSummary) error {
+	ret := _mock.Called(ctx, day, w)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Replace")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, time.Time, domain.WaifuSummary) error); ok {
+		r0 = returnFunc(ctx, day, w)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// DailyStore_Replace_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Replace'
+type DailyStore_Replace_Call struct {
+	*mock.Call
+}
+
+// Replace is a helper method to define mock.On call
+//   - ctx context.Context
+//   - day time.Time
+//   - w domain.WaifuSummary
+func (_e *DailyStore_Expecter) Replace(ctx any, day any, w any) *DailyStore_Replace_Call {
+	return &DailyStore_Replace_Call{Call: _e.mock.On("Replace", ctx, day, w)}
+}
+
+func (_c *DailyStore_Replace_Call) Run(run func(ctx context.Context, day time.Time, w domain.WaifuSummary)) *DailyStore_Replace_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 time.Time
+		if args[1] != nil {
+			arg1 = args[1].(time.Time)
+		}
+		var arg2 domain.WaifuSummary
+		if args[2] != nil {
+			arg2 = args[2].(domain.WaifuSummary)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *DailyStore_Replace_Call) Return(err error) *DailyStore_Replace_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *DailyStore_Replace_Call) RunAndReturn(run func(ctx context.Context, day time.Time, w domain.WaifuSummary) error) *DailyStore_Replace_Call {
+	_c.Call.Return(run)
+	return _c
+}

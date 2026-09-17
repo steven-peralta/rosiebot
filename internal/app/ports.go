@@ -65,6 +65,7 @@ type RankingProvider interface {
 type DailyStore interface {
 	Get(ctx context.Context, day time.Time) (domain.WaifuSummary, error)
 	Put(ctx context.Context, day time.Time, w domain.WaifuSummary) (domain.WaifuSummary, error)
+	Replace(ctx context.Context, day time.Time, w domain.WaifuSummary) error
 }
 
 type BannerStore interface {

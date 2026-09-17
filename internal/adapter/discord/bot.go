@@ -54,6 +54,7 @@ const (
 	commandWaifu  = "waifu"
 	commandWAlias = "w"
 	commandSAlias = "s"
+	commandWotd   = "wotd"
 	commandSell   = "Sell Waifu"
 
 	subRoll   = "roll"
@@ -171,6 +172,12 @@ func (b *Bot) Commands() []*discordgo.ApplicationCommand {
 			IntegrationTypes: &integrations,
 			Options:          seriesOptions(),
 		},
+		{
+			Name:             commandWotd,
+			Description:      "Show the waifu of the day",
+			Contexts:         &allContexts,
+			IntegrationTypes: &integrations,
+		},
 		adminCommand(),
 		{
 			Type:             discordgo.MessageApplicationCommand,
@@ -253,6 +260,8 @@ func (b *Bot) handleCommand(ctx context.Context, ic *interaction) {
 		} else {
 			b.log.Warn("unknown series subcommand", "sub", sub)
 		}
+	case commandWotd:
+		b.today(ctx, ic)
 	default:
 		b.log.Warn("unknown command", "name", data.Name)
 	}

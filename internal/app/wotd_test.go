@@ -35,7 +35,7 @@ func TestWotd_SameForWholeDayAndPersisted(t *testing.T) {
 		t.Errorf("second call = %+v, first = %+v", again, first)
 	}
 
-	restarted := app.NewWotdService(f.daily, memory.NewRankingHolder(nil), f.source, f.clock, f.rng, f.loc)
+	restarted := app.NewWotdService(f.daily, memory.NewRankingHolder(nil), f.clock, f.rng, f.loc, nil)
 	afterRestart, err := restarted.Today(f.ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -73,21 +73,47 @@ func TestWotd_PickHasBetween1And4Stars(t *testing.T) {
 	}
 }
 
-func TestWotd_FallsBackToMWLDailyWithoutRanking(t *testing.T) {
+func TestWotd_NoRankingMeansNoPickAndNothingStored(t *testing.T) {
 	f := newFixture(t)
-	f.source.EXPECT().Daily(mock.Anything).Return(summary("mwl-daily", 1, 0), nil).Once()
+	if _, err := f.wotd().Today(f.ctx); !errors.Is(err, app.ErrNoRanking) {
+		t.Fatalf("err = %v, want ErrNoRanking", err)
+	}
+	if _, err := f.daily.Get(f.ctx, domain.WotdDay(f.clock.now, f.loc)); !errors.Is(err, app.ErrNotFound) {
+		t.Errorf("nothing should be stored without a ranking, got %v", err)
+	}
+	f.source.AssertNotCalled(t, "Daily", mock.Anything)
+}
+
+func TestWotd_ReplacesStoredUnrankedPick(t *testing.T) {
+	f := newFixture(t)
+	day := domain.WotdDay(f.clock.now, f.loc)
+	if _, err := f.daily.Put(f.ctx, day, summary("unranked", 50, 5)); err != nil {
+		t.Fatal(err)
+	}
 	res, err := f.wotd().Today(f.ctx)
+	if err != nil || res.Waifu.Slug != "unranked" {
+		t.Fatalf("without a ranking the stored pick stands: %+v %v", res, err)
+	}
+
+	f.ranking.Set(rankingOf(200))
+	f.script(17)
+	res, err = f.wotd().Today(f.ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res.Waifu.Slug != "mwl-daily" {
-		t.Errorf("waifu = %+v", res.Waifu)
+	if res.Waifu.Slug == "unranked" {
+		t.Fatal("an unranked stored pick should be replaced once the ranking is available")
 	}
-
-	f.daily = memory.NewDailyStore()
-	f.source.EXPECT().Daily(mock.Anything).Return(domain.WaifuSummary{}, errors.New("boom")).Once()
-	if _, err := f.wotd().Today(f.ctx); err == nil {
-		t.Error("expected fallback error")
+	if row, ok := rankingOf(200).Lookup(res.Waifu.Slug); !ok || !domain.WotdEligible(row) {
+		t.Errorf("replacement %s is not an eligible ranked pick", res.Waifu.Slug)
+	}
+	stored, err := f.daily.Get(f.ctx, day)
+	if err != nil || stored.Slug != res.Waifu.Slug {
+		t.Errorf("replacement not persisted: %+v %v", stored, err)
+	}
+	again, err := f.wotd().Today(f.ctx)
+	if err != nil || again.Waifu.Slug != res.Waifu.Slug {
+		t.Errorf("a ranked stored pick must stay put: %+v %v", again, err)
 	}
 }
 
@@ -107,17 +133,32 @@ func (d failingDaily) Put(context.Context, time.Time, domain.WaifuSummary) (doma
 	return domain.WaifuSummary{}, d.putErr
 }
 
+func (d failingDaily) Replace(context.Context, time.Time, domain.WaifuSummary) error {
+	return d.putErr
+}
+
+type unrankedDaily struct{ failingDaily }
+
+func (unrankedDaily) Get(context.Context, time.Time) (domain.WaifuSummary, error) {
+	return domain.WaifuSummary{Slug: "unranked"}, nil
+}
+
 func TestWotd_StoreErrorsPropagate(t *testing.T) {
 	f := newFixture(t)
 	f.ranking.Set(rankingOf(100))
-	svc := app.NewWotdService(failingDaily{getErr: errors.New("get boom")}, f.ranking, f.source, f.clock, f.rng, nil)
+	svc := app.NewWotdService(failingDaily{getErr: errors.New("get boom")}, f.ranking, f.clock, f.rng, nil, nil)
 	if _, err := svc.Today(f.ctx); err == nil {
 		t.Error("expected get error")
 	}
 	f.script(0)
-	svc = app.NewWotdService(failingDaily{putErr: errors.New("put boom")}, f.ranking, f.source, f.clock, f.rng, nil)
+	svc = app.NewWotdService(failingDaily{putErr: errors.New("put boom")}, f.ranking, f.clock, f.rng, nil, nil)
 	if _, err := svc.Today(f.ctx); err == nil {
 		t.Error("expected put error")
+	}
+	f.script(0)
+	svc = app.NewWotdService(unrankedDaily{failingDaily{putErr: errors.New("replace boom")}}, f.ranking, f.clock, f.rng, nil, nil)
+	if _, err := svc.Today(f.ctx); err == nil {
+		t.Error("expected replace error")
 	}
 }
 

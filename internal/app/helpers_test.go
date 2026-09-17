@@ -101,7 +101,7 @@ func newFixture(t *testing.T) *fixture {
 func (f *fixture) script(vals ...int) { f.rng.vals = append(f.rng.vals, vals...) }
 
 func (f *fixture) wotd() *app.WotdService {
-	return app.NewWotdService(f.daily, f.ranking, f.source, f.clock, f.rng, f.loc)
+	return app.NewWotdService(f.daily, f.ranking, f.clock, f.rng, f.loc, nil)
 }
 
 func (f *fixture) banner() *app.BannerService {

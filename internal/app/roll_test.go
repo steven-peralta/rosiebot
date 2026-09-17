@@ -120,6 +120,22 @@ func TestRollService_WaifuOfTheDayRoll(t *testing.T) {
 	}
 }
 
+func TestRollService_WaifuOfTheDayWithoutRankingDegradesToCritical(t *testing.T) {
+	f := newFixture(t)
+	f.script(d100(1), 999, 0)
+	f.source.EXPECT().PopularPage(mock.Anything, 1000).Return(app.PopularPage{Rows: []domain.WaifuSummary{summary("popular", 500, 20)}, Page: 1000, LastPage: 1001}, nil).Once()
+	f.source.EXPECT().Get(mock.Anything, "popular").Return(detail("popular"), nil).Once()
+
+	res, err := f.roll().Roll(f.ctx, alice)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Kind != domain.RollWaifuOfTheDay || res.Waifu.Slug != "popular" {
+		t.Errorf("result = %+v", res)
+	}
+	f.source.AssertNotCalled(t, "Daily", mock.Anything)
+}
+
 func TestRollService_RerollOnOwned(t *testing.T) {
 	f := newFixture(t)
 	f.give(alice, "owned")

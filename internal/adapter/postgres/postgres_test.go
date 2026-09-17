@@ -549,6 +549,19 @@ func TestDailyStore(t *testing.T) {
 	if got, err := ds.Get(ctx, sameDayUTC); err != nil || got.Slug != "first" {
 		t.Errorf("Get by calendar date = %+v %v", got, err)
 	}
+	if err := ds.Replace(ctx, day, domain.WaifuSummary{Slug: "replaced", Name: "Replaced", Likes: 3}); err != nil {
+		t.Fatalf("Replace = %v", err)
+	}
+	if got, err := ds.Get(ctx, day); err != nil || got.Slug != "replaced" || got.Likes != 3 {
+		t.Errorf("after replace = %+v %v", got, err)
+	}
+	other := day.AddDate(0, 0, 40)
+	if err := ds.Replace(ctx, other, domain.WaifuSummary{Slug: "inserted", Name: "Inserted"}); err != nil {
+		t.Fatalf("Replace on empty day = %v", err)
+	}
+	if got, err := ds.Get(ctx, other); err != nil || got.Slug != "inserted" {
+		t.Errorf("replace should insert when missing: %+v %v", got, err)
+	}
 }
 
 func TestBannerStore(t *testing.T) {

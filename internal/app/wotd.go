@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/steven-peralta/rosiebot/internal/domain"
@@ -18,17 +19,20 @@ type WotdResult struct {
 type WotdService struct {
 	store   DailyStore
 	ranking RankingProvider
-	source  WaifuSource
 	clock   Clock
 	rng     Random
 	loc     *time.Location
+	log     *slog.Logger
 }
 
-func NewWotdService(store DailyStore, ranking RankingProvider, source WaifuSource, clock Clock, rng Random, loc *time.Location) *WotdService {
+func NewWotdService(store DailyStore, ranking RankingProvider, clock Clock, rng Random, loc *time.Location, log *slog.Logger) *WotdService {
 	if loc == nil {
 		loc = time.UTC
 	}
-	return &WotdService{store: store, ranking: ranking, source: source, clock: clock, rng: rng, loc: loc}
+	if log == nil {
+		log = slog.Default()
+	}
+	return &WotdService{store: store, ranking: ranking, clock: clock, rng: rng, loc: loc, log: log}
 }
 
 func (s *WotdService) Today(ctx context.Context) (WotdResult, error) {
@@ -37,15 +41,32 @@ func (s *WotdService) Today(ctx context.Context) (WotdResult, error) {
 	result := WotdResult{Day: day, RefreshIn: domain.WotdRefreshIn(now, s.loc)}
 
 	existing, err := s.store.Get(ctx, day)
-	if err == nil {
-		result.Waifu = existing
+	switch {
+	case err == nil:
+		ranking := s.ranking.Current()
+		if ranking.Len() == 0 {
+			result.Waifu = existing
+			return result, nil
+		}
+		if _, ok := ranking.Lookup(existing.Slug); ok {
+			result.Waifu = existing
+			return result, nil
+		}
+		pick, err := s.pick()
+		if err != nil {
+			return WotdResult{}, err
+		}
+		if err := s.store.Replace(ctx, day, pick); err != nil {
+			return WotdResult{}, fmt.Errorf("replace waifu of the day: %w", err)
+		}
+		s.log.Warn("replaced unranked waifu of the day", "day", day, "was", existing.Slug, "now", pick.Slug)
+		result.Waifu = pick
 		return result, nil
-	}
-	if !errors.Is(err, ErrNotFound) {
+	case !errors.Is(err, ErrNotFound):
 		return WotdResult{}, fmt.Errorf("load waifu of the day: %w", err)
 	}
 
-	pick, err := s.pick(ctx)
+	pick, err := s.pick()
 	if err != nil {
 		return WotdResult{}, err
 	}
@@ -57,15 +78,14 @@ func (s *WotdService) Today(ctx context.Context) (WotdResult, error) {
 	return result, nil
 }
 
-func (s *WotdService) pick(ctx context.Context) (domain.WaifuSummary, error) {
-	if ranking := s.ranking.Current(); ranking.Len() > 0 {
-		if row, err := ranking.Sample(s.rng, domain.WotdEligible); err == nil {
-			return row.WaifuSummary, nil
-		}
+func (s *WotdService) pick() (domain.WaifuSummary, error) {
+	ranking := s.ranking.Current()
+	if ranking.Len() == 0 {
+		return domain.WaifuSummary{}, ErrNoRanking
 	}
-	daily, err := s.source.Daily(ctx)
+	row, err := ranking.Sample(s.rng, domain.WotdEligible)
 	if err != nil {
-		return domain.WaifuSummary{}, fmt.Errorf("fallback to MWL daily: %w", err)
+		return domain.WaifuSummary{}, ErrNoRanking
 	}
-	return daily, nil
+	return row.WaifuSummary, nil
 }

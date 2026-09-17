@@ -67,3 +67,45 @@ func (q *Queries) PutDailyWaifu(ctx context.Context, arg PutDailyWaifuParams) (i
 	}
 	return result.RowsAffected(), nil
 }
+
+const replaceDailyWaifu = `-- name: ReplaceDailyWaifu :exec
+INSERT INTO daily_waifu (day, slug, uuid, name, original_name, romaji_name, picture_url, likes, trash)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+ON CONFLICT (day) DO UPDATE SET
+    slug          = EXCLUDED.slug,
+    uuid          = EXCLUDED.uuid,
+    name          = EXCLUDED.name,
+    original_name = EXCLUDED.original_name,
+    romaji_name   = EXCLUDED.romaji_name,
+    picture_url   = EXCLUDED.picture_url,
+    likes         = EXCLUDED.likes,
+    trash         = EXCLUDED.trash,
+    created_at    = now()
+`
+
+type ReplaceDailyWaifuParams struct {
+	Day          time.Time
+	Slug         string
+	Uuid         string
+	Name         string
+	OriginalName string
+	RomajiName   string
+	PictureUrl   string
+	Likes        int32
+	Trash        int32
+}
+
+func (q *Queries) ReplaceDailyWaifu(ctx context.Context, arg ReplaceDailyWaifuParams) error {
+	_, err := q.db.Exec(ctx, replaceDailyWaifu,
+		arg.Day,
+		arg.Slug,
+		arg.Uuid,
+		arg.Name,
+		arg.OriginalName,
+		arg.RomajiName,
+		arg.PictureUrl,
+		arg.Likes,
+		arg.Trash,
+	)
+	return err
+}

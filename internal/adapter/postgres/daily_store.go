@@ -36,7 +36,21 @@ func (s *DailyStore) Get(ctx context.Context, day time.Time) (domain.WaifuSummar
 }
 
 func (s *DailyStore) Put(ctx context.Context, day time.Time, w domain.WaifuSummary) (domain.WaifuSummary, error) {
-	_, err := s.q.PutDailyWaifu(ctx, gen.PutDailyWaifuParams{
+	if _, err := s.q.PutDailyWaifu(ctx, gen.PutDailyWaifuParams(dailyParams(day, w))); err != nil {
+		return domain.WaifuSummary{}, fmt.Errorf("postgres: put daily waifu: %w", err)
+	}
+	return s.Get(ctx, day)
+}
+
+func (s *DailyStore) Replace(ctx context.Context, day time.Time, w domain.WaifuSummary) error {
+	if err := s.q.ReplaceDailyWaifu(ctx, gen.ReplaceDailyWaifuParams(dailyParams(day, w))); err != nil {
+		return fmt.Errorf("postgres: replace daily waifu: %w", err)
+	}
+	return nil
+}
+
+func dailyParams(day time.Time, w domain.WaifuSummary) gen.PutDailyWaifuParams {
+	return gen.PutDailyWaifuParams{
 		Day:          dateOnly(day),
 		Slug:         w.Slug,
 		Uuid:         w.UUID,
@@ -46,11 +60,7 @@ func (s *DailyStore) Put(ctx context.Context, day time.Time, w domain.WaifuSumma
 		PictureUrl:   w.PictureURL,
 		Likes:        int32(w.Likes),
 		Trash:        int32(w.Trash),
-	})
-	if err != nil {
-		return domain.WaifuSummary{}, fmt.Errorf("postgres: put daily waifu: %w", err)
 	}
-	return s.Get(ctx, day)
 }
 
 func dateOnly(t time.Time) time.Time {

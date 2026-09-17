@@ -41,3 +41,10 @@ func (s *DailyStore) Put(ctx context.Context, day time.Time, w domain.WaifuSumma
 	s.days[dayKey(day)] = w
 	return w, nil
 }
+
+func (s *DailyStore) Replace(ctx context.Context, day time.Time, w domain.WaifuSummary) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.days[dayKey(day)] = w
+	return nil
+}

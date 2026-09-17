@@ -261,7 +261,7 @@ func newFixture(t *testing.T) *fixture {
 	}).Maybe()
 	ranking := memory.NewRankingHolder(rankingOf(200))
 	daily := memory.NewDailyStore()
-	wotd := app.NewWotdService(daily, ranking, source, clock, rng, loc)
+	wotd := app.NewWotdService(daily, ranking, clock, rng, loc, nil)
 	banners := memory.NewBannerStore()
 	banner := app.NewBannerService(banners, ranking, source, clock, rng, loc, app.BannerConfig{}, nil)
 	svc := Services{

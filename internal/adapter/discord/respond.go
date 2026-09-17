@@ -172,6 +172,8 @@ func errorText(err error) string {
 		return msgRateLimited
 	case errors.Is(err, app.ErrNoBanner):
 		return msgNoBanner
+	case errors.Is(err, app.ErrNoRanking):
+		return msgNoRankingYet
 	case errors.Is(err, app.ErrNotFound):
 		return msgNoData
 	default:
@@ -202,4 +204,5 @@ const (
 	msgAdminRerolledFmt = "This week's banner is now **%s**."
 	msgAdminNoRanking   = "The ranking isn't loaded yet, so no banner can be picked. Try again in a minute."
 	msgAdminNoSeries    = "Couldn't find an eligible series this time. Try again."
+	msgNoRankingYet     = "The ranking isn't loaded yet. Try again in a minute."
 )

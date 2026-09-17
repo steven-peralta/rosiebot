@@ -17,7 +17,7 @@ import (
 func TestCommands_Registration(t *testing.T) {
 	f := newFixture(t)
 	cmds := f.bot.Commands()
-	if len(cmds) != 6 {
+	if len(cmds) != 7 {
 		t.Fatalf("commands = %d", len(cmds))
 	}
 	names := map[string][]string{}
@@ -42,15 +42,18 @@ func TestCommands_Registration(t *testing.T) {
 	if cmds[3].Name != commandSAlias || len(cmds[3].Options) != 1 || cmds[3].Options[0].Name != subSearch {
 		t.Errorf("/s alias = %+v", cmds[3])
 	}
-	admin := cmds[4]
+	if cmds[4].Name != commandWotd || len(cmds[4].Options) != 0 {
+		t.Errorf("/wotd = %+v", cmds[4])
+	}
+	admin := cmds[5]
 	if admin.Name != commandAdmin || admin.DefaultMemberPermissions == nil || *admin.DefaultMemberPermissions != discordgo.PermissionAdministrator || len(admin.Options) != 3 || admin.Options[2].Name != groupBanner {
 		t.Errorf("admin command = %+v", admin)
 	}
 	if groups := admin.Options; groups[0].Name != groupCoins || len(groups[0].Options) != 3 || groups[1].Name != groupWaifu || len(groups[1].Options) != 2 || !groups[1].Options[0].Options[1].Autocomplete {
 		t.Errorf("admin groups = %+v", groups)
 	}
-	if cmds[5].Type != discordgo.MessageApplicationCommand || cmds[5].Name != commandSell {
-		t.Errorf("context command = %+v", cmds[5])
+	if cmds[6].Type != discordgo.MessageApplicationCommand || cmds[6].Name != commandSell {
+		t.Errorf("context command = %+v", cmds[6])
 	}
 	if err := f.bot.Register(guildID); err != nil {
 		t.Fatal(err)
@@ -559,6 +562,18 @@ func TestRandom_AndToday(t *testing.T) {
 	f.run(f.slash(bobID, commandWaifu, subToday, nil))
 	if (*f.api.lastEdit().Embeds)[0].Title != first {
 		t.Error("waifu of the day must be the same for everyone")
+	}
+	f.run(f.dm(bobID, commandWotd, ""))
+	e = f.api.lastEdit()
+	if !strings.HasPrefix(editContent(e), "<@bob> Here's the Waifu of the Day:") || (*e.Embeds)[0].Title != first {
+		t.Errorf("/wotd = %q %q", editContent(e), (*e.Embeds)[0].Title)
+	}
+
+	g := newFixture(t)
+	g.ranking.Set(nil)
+	g.run(g.slash(aliceID, commandWaifu, subToday, nil))
+	if got := editContent(g.api.lastEdit()); got != "<@alice> "+msgNoRankingYet {
+		t.Errorf("today without ranking = %q", got)
 	}
 }
 

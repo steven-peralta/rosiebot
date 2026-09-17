@@ -193,9 +193,10 @@ func TestStoreFailures_Roll(t *testing.T) {
 	})
 	t.Run("wotd error", func(t *testing.T) {
 		f := newFixture(t)
+		f.ranking.Set(rankingOf(200))
 		f.script(d100(1))
-		f.source.EXPECT().Daily(mock.Anything).Return(domain.WaifuSummary{}, errors.New("boom")).Once()
-		if _, err := f.roll().Roll(f.ctx, alice); err == nil {
+		svc := app.NewRollService(f.players, f.source, f.ranking, app.NewWotdService(failingDaily{getErr: errors.New("boom")}, f.ranking, f.clock, f.rng, f.loc, nil), f.banner(), f.clock, f.rng, 0, nil)
+		if _, err := svc.Roll(f.ctx, alice); err == nil {
 			t.Fatal("expected error")
 		}
 	})
