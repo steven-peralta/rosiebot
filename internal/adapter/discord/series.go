@@ -134,14 +134,26 @@ func cardCharacters(waifus []domain.WaifuSummary, lookup app.RankLookup) []cardC
 	return out
 }
 
+const (
+	embedFieldLimit = 1024
+	moreLineReserve = 16
+)
+
 func cardLines(chars []cardCharacter) string {
 	lines := make([]string, 0, min(len(chars), domain.BannerCardLimit)+1)
-	for i, c := range chars {
-		if i == domain.BannerCardLimit {
-			lines = append(lines, fmt.Sprintf("+%d more", len(chars)-domain.BannerCardLimit))
+	size := 0
+	shown := 0
+	for _, c := range chars {
+		line := cardLine(c)
+		if shown == domain.BannerCardLimit || size+len(line)+1 > embedFieldLimit-moreLineReserve {
 			break
 		}
-		lines = append(lines, cardLine(c))
+		lines = append(lines, line)
+		size += len(line) + 1
+		shown++
+	}
+	if extra := len(chars) - shown; extra > 0 {
+		lines = append(lines, fmt.Sprintf("+%d more", extra))
 	}
 	return strings.Join(lines, "\n")
 }

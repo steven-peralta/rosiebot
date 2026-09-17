@@ -2,6 +2,7 @@ package discord
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/bwmarrin/discordgo"
@@ -10,6 +11,49 @@ import (
 	"github.com/steven-peralta/rosiebot/internal/app"
 	"github.com/steven-peralta/rosiebot/internal/domain"
 )
+
+func TestHelp_AllCommands(t *testing.T) {
+	f := newFixture(t)
+	check := func(name string, ic *discordgo.InteractionCreate, title string) {
+		t.Helper()
+		f.api.reset()
+		f.run(ic)
+		r := f.api.lastRespond()
+		if r == nil || r.Type != discordgo.InteractionResponseChannelMessageWithSource || r.Data == nil || r.Data.Flags&discordgo.MessageFlagsEphemeral == 0 || len(r.Data.Embeds) != 1 {
+			t.Fatalf("%s help = %+v", name, r)
+		}
+		e := r.Data.Embeds[0]
+		if e.Title != title || len(e.Fields) == 0 {
+			t.Errorf("%s help embed = %+v", name, e)
+		}
+		total := len(e.Title) + len(e.Description)
+		for _, fld := range e.Fields {
+			if len(fld.Value) > embedFieldLimit || len(fld.Name) > 256 || fld.Value == "" {
+				t.Errorf("%s help field %q is %d characters", name, fld.Name, len(fld.Value))
+			}
+			total += len(fld.Name) + len(fld.Value)
+		}
+		if total > 6000 {
+			t.Errorf("%s help embed totals %d characters", name, total)
+		}
+	}
+	check("waifu", f.slash(aliceID, commandWaifu, subHelp, nil), "/waifu · how it works")
+	check("w", f.dm(aliceID, commandWAlias, subHelp), "/waifu · how it works")
+	check("series", f.slash(aliceID, commandSeries, subHelp, nil), "/series · how it works")
+	check("s", f.dm(aliceID, commandSAlias, subHelp), "/series · how it works")
+	admin := f.slash(aliceID, commandAdmin, subHelp, nil)
+	admin.Member.Permissions = discordgo.PermissionAdministrator
+	check("admin", admin, "/admin · how it works")
+
+	plain := f.slash(bobID, commandAdmin, subHelp, nil)
+	f.run(plain)
+	if got := f.respondContent(); got != msgAdminOnly {
+		t.Errorf("admin help for non-admins = %q", got)
+	}
+	if got := waifuHelpEmbed().Fields[0].Name; !strings.Contains(got, "200") {
+		t.Errorf("roll cost missing from help: %q", got)
+	}
+}
 
 func TestAdmin_BannerReroll(t *testing.T) {
 	f := newFixture(t)

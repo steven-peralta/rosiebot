@@ -36,11 +36,12 @@ type call struct {
 }
 
 type fakeAPI struct {
-	mu        sync.Mutex
-	calls     []call
-	messages  map[string]*discordgo.Message
-	failEdit  bool
-	failFetch bool
+	mu           sync.Mutex
+	calls        []call
+	messages     map[string]*discordgo.Message
+	failEdit     bool
+	failRichEdit bool
+	failFetch    bool
 }
 
 func newFakeAPI() *fakeAPI {
@@ -67,6 +68,9 @@ func (f *fakeAPI) InteractionResponseEdit(i *discordgo.Interaction, e *discordgo
 	f.calls = append(f.calls, call{kind: "edit", edit: e})
 	if f.failEdit {
 		return nil, errors.New("edit failed")
+	}
+	if f.failRichEdit && ((e.Embeds != nil && len(*e.Embeds) > 0) || (e.Components != nil && len(*e.Components) > 0)) {
+		return nil, errors.New("HTTP 400 Bad Request")
 	}
 	id := "msg-" + i.ID
 	msg := &discordgo.Message{ID: id, ChannelID: i.ChannelID, Author: &discordgo.User{ID: botID}}

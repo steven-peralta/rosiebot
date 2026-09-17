@@ -121,6 +121,14 @@ func (b *Bot) edit(ic *interaction, content string, embeds []*discordgo.MessageE
 	msg, err := b.s.InteractionResponseEdit(ic.Interaction, &discordgo.WebhookEdit{Content: &content, Embeds: &embeds, Components: &components})
 	if err != nil {
 		b.log.Error("edit response failed", "err", err)
+		if len(embeds) > 0 || len(components) > 0 {
+			fallback := mention(ic.userID()) + " " + msgUnexpected
+			empty := []*discordgo.MessageEmbed{}
+			none := []discordgo.MessageComponent{}
+			if _, ferr := b.s.InteractionResponseEdit(ic.Interaction, &discordgo.WebhookEdit{Content: &fallback, Embeds: &empty, Components: &none}); ferr != nil {
+				b.log.Error("fallback edit failed", "err", ferr)
+			}
+		}
 		return nil
 	}
 	return msg

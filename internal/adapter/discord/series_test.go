@@ -146,6 +146,22 @@ func TestSeriesSearch_Autocomplete(t *testing.T) {
 	f.run(ic)
 }
 
+func TestCardLines_StayUnderFieldLimit(t *testing.T) {
+	chars := make([]cardCharacter, 15)
+	for i := range chars {
+		long := strings.Repeat("Very Long Character Name ", 4) + fmt.Sprint(i)
+		chars[i] = cardCharacter{summary: domain.WaifuSummary{Slug: fmt.Sprintf("a-really-quite-long-slug-for-character-%02d", i), Name: long}, ranked: &domain.RankedWaifu{Position: i + 1, Stars: 5}}
+	}
+	value := cardLines(chars)
+	if len(value) > embedFieldLimit {
+		t.Fatalf("field value is %d characters, over Discord's %d limit", len(value), embedFieldLimit)
+	}
+	lines := strings.Split(value, "\n")
+	if !strings.HasPrefix(lines[len(lines)-1], "+") || len(lines) >= 15 {
+		t.Errorf("long names should be cut short with a +N more line: %d lines, last %q", len(lines), lines[len(lines)-1])
+	}
+}
+
 func TestSeriesCardEmbed_CapsList(t *testing.T) {
 	items := make([]domain.WaifuSummary, 20)
 	for i := range items {
@@ -153,7 +169,8 @@ func TestSeriesCardEmbed_CapsList(t *testing.T) {
 	}
 	e := seriesCardEmbed(reZero, cardCharacters(items, app.LookupFrom(newFixture(t).ranking)))
 	lines := strings.Split(e.Fields[0].Value, "\n")
-	if len(lines) != domain.BannerCardLimit+1 || lines[len(lines)-1] != "+5 more" || e.Fields[0].Name != "Characters · 20 ranked of 20" {
+	shown := len(lines) - 1
+	if shown > domain.BannerCardLimit || lines[len(lines)-1] != fmt.Sprintf("+%d more", 20-shown) || e.Fields[0].Name != "Characters · 20 ranked of 20" || len(e.Fields[0].Value) > embedFieldLimit {
 		t.Errorf("field = %+v", e.Fields[0])
 	}
 }

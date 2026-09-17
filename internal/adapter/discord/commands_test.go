@@ -26,7 +26,7 @@ func TestCommands_Registration(t *testing.T) {
 			names[c.Name] = append(names[c.Name], o.Name)
 		}
 	}
-	want := []string{subRoll, subDaily, subCoins, subOwned, subSearch, subList, subRandom, subToday, subBanner, subTrade}
+	want := []string{subRoll, subDaily, subCoins, subOwned, subSearch, subList, subRandom, subToday, subBanner, subTrade, subHelp}
 	if strings.Join(names[commandWaifu], ",") != strings.Join(want, ",") {
 		t.Errorf("waifu subcommands = %v", names[commandWaifu])
 	}
@@ -36,17 +36,17 @@ func TestCommands_Registration(t *testing.T) {
 	if strings.Join(names[commandWAlias], ",") != strings.Join(want, ",") {
 		t.Errorf("/w alias subcommands = %v", names[commandWAlias])
 	}
-	if cmds[2].Name != commandSeries || len(cmds[2].Options) != 1 || cmds[2].Options[0].Name != subSearch || !cmds[2].Options[0].Options[0].Required || !cmds[2].Options[0].Options[0].Autocomplete {
+	if cmds[2].Name != commandSeries || len(cmds[2].Options) != 2 || cmds[2].Options[0].Name != subSearch || !cmds[2].Options[0].Options[0].Required || !cmds[2].Options[0].Options[0].Autocomplete || cmds[2].Options[1].Name != subHelp {
 		t.Errorf("series command = %+v", cmds[2])
 	}
-	if cmds[3].Name != commandSAlias || len(cmds[3].Options) != 1 || cmds[3].Options[0].Name != subSearch {
+	if cmds[3].Name != commandSAlias || len(cmds[3].Options) != 2 || cmds[3].Options[0].Name != subSearch {
 		t.Errorf("/s alias = %+v", cmds[3])
 	}
 	if cmds[4].Name != commandWotd || len(cmds[4].Options) != 0 {
 		t.Errorf("/wotd = %+v", cmds[4])
 	}
 	admin := cmds[5]
-	if admin.Name != commandAdmin || admin.DefaultMemberPermissions == nil || *admin.DefaultMemberPermissions != discordgo.PermissionAdministrator || len(admin.Options) != 3 || admin.Options[2].Name != groupBanner {
+	if admin.Name != commandAdmin || admin.DefaultMemberPermissions == nil || *admin.DefaultMemberPermissions != discordgo.PermissionAdministrator || len(admin.Options) != 4 || admin.Options[2].Name != groupBanner || admin.Options[3].Name != subHelp {
 		t.Errorf("admin command = %+v", admin)
 	}
 	if groups := admin.Options; groups[0].Name != groupCoins || len(groups[0].Options) != 3 || groups[1].Name != groupWaifu || len(groups[1].Options) != 2 || !groups[1].Options[0].Options[1].Autocomplete {
@@ -682,6 +682,30 @@ func TestRouter_IgnoresUnknown(t *testing.T) {
 	f.run(f.contextMenu(aliceID, nil))
 	if len(f.api.calls) != 1 {
 		t.Errorf("unknown interactions should be ignored (only the context menu replies), calls=%d", len(f.api.calls))
+	}
+}
+
+func TestEditRejectedFallsBackToPlainText(t *testing.T) {
+	f := newFixture(t)
+	f.api.failRichEdit = true
+	f.source.EXPECT().Random(mock.Anything).Return(summary("rem"), nil).Once()
+	f.run(f.slash(aliceID, commandWaifu, subRandom, nil))
+	e := f.api.lastEdit()
+	if editContent(e) != "<@alice> "+msgUnexpected || len(*e.Embeds) != 0 || len(*e.Components) != 0 {
+		t.Errorf("fallback edit = %q %+v", editContent(e), e)
+	}
+	f.api.reset()
+	f.api.failEdit = true
+	f.source.EXPECT().Random(mock.Anything).Return(summary("ram"), nil).Once()
+	f.run(f.slash(aliceID, commandWaifu, subRandom, nil))
+	edits := 0
+	for _, c := range f.api.calls {
+		if c.kind == "edit" {
+			edits++
+		}
+	}
+	if edits != 2 {
+		t.Errorf("a rejected card should be retried exactly once as plain text, got %d edits", edits)
 	}
 }
 

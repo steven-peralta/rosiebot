@@ -64,12 +64,19 @@ func adminCommand() *discordgo.ApplicationCommand {
 			{Type: discordgo.ApplicationCommandOptionSubCommandGroup, Name: groupBanner, Description: "Manage this week's banner", Options: []*discordgo.ApplicationCommandOption{
 				sub(adminReroll, "Pick a different series for this week's banner"),
 			}},
+			sub(subHelp, "Explain the admin tools"),
 		},
 	}
 }
 
 func groupSubcommand(data discordgo.ApplicationCommandInteractionData) (group, sub string, opts []*discordgo.ApplicationCommandInteractionDataOption) {
-	if len(data.Options) == 0 || data.Options[0].Type != discordgo.ApplicationCommandOptionSubCommandGroup || len(data.Options[0].Options) == 0 {
+	if len(data.Options) == 0 {
+		return "", "", nil
+	}
+	if data.Options[0].Type == discordgo.ApplicationCommandOptionSubCommand {
+		return "", data.Options[0].Name, data.Options[0].Options
+	}
+	if data.Options[0].Type != discordgo.ApplicationCommandOptionSubCommandGroup || len(data.Options[0].Options) == 0 {
 		return "", "", nil
 	}
 	g := data.Options[0]
@@ -90,6 +97,10 @@ func (b *Bot) admin(ctx context.Context, ic *interaction, data discordgo.Applica
 	}
 	if !ic.isAdmin() {
 		b.replyEphemeral(ic, msgAdminOnly)
+		return
+	}
+	if group == "" && sub == subHelp {
+		b.help(ic, adminHelpEmbed())
 		return
 	}
 	if group == groupBanner {

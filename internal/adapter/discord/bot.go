@@ -121,6 +121,7 @@ func (b *Bot) Commands() []*discordgo.ApplicationCommand {
 		return []*discordgo.ApplicationCommandOption{
 			sub(subSearch, "Show a series card with its ranked characters",
 				&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optQuery, Description: "Series name", Required: true, Autocomplete: true}),
+			sub(subHelp, "Explain how the series commands work"),
 		}
 	}
 	waifuOptions := func() []*discordgo.ApplicationCommandOption {
@@ -141,6 +142,7 @@ func (b *Bot) Commands() []*discordgo.ApplicationCommand {
 				&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optGive, Description: "Waifus you give, comma separated", Autocomplete: true},
 				&discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionString, Name: optReceive, Description: "Waifus you receive, comma separated", Autocomplete: true},
 			),
+			sub(subHelp, "Explain rolls, odds, coins, trading, and stars"),
 		}
 	}
 	return []*discordgo.ApplicationCommand{
@@ -249,15 +251,20 @@ func (b *Bot) handleCommand(ctx context.Context, ic *interaction) {
 			b.today(ctx, ic)
 		case subBanner:
 			b.banner(ctx, ic)
+		case subHelp:
+			b.help(ic, waifuHelpEmbed())
 		case subTrade:
 			b.guildOnly(ctx, ic, subTrade, func(ctx context.Context, ic *interaction) { b.trade(ctx, ic, opts, data.Resolved) })
 		default:
 			b.log.Warn("unknown waifu subcommand", "sub", sub)
 		}
 	case commandSeries, commandSAlias:
-		if sub == subSearch {
+		switch sub {
+		case subSearch:
 			b.seriesSearch(ctx, ic, opts)
-		} else {
+		case subHelp:
+			b.help(ic, seriesHelpEmbed())
+		default:
 			b.log.Warn("unknown series subcommand", "sub", sub)
 		}
 	case commandWotd:
